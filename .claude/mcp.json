@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "python",
+      "args": ["backend/integrations/mcp_confluence/server.py"],
+      "env": {
+        "CONFLUENCE_BASE_URL": "${CONFLUENCE_BASE_URL}",
+        "CONFLUENCE_API_TOKEN": "${CONFLUENCE_API_TOKEN}",
+        "CONFLUENCE_USER_EMAIL": "${CONFLUENCE_USER_EMAIL}",
+        "CONFLUENCE_SPACE_KEY": "${CONFLUENCE_SPACE_KEY}"
+      }
+    },
+    "teams": {
+      "command": "python",
+      "args": ["backend/integrations/mcp_teams/server.py"],
+      "env": {
+        "TEAMS_WEBHOOK_URL": "${TEAMS_WEBHOOK_URL}"
+      },
+      "disabled": true
+    }
+  }
+}

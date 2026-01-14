@@ -1,0 +1,12 @@
+{
+  "setting_sources": ["project", "user"],
+  "allowed_tools": ["Skill", "mcp", "bash", "files"],
+  "permission_mode": "ask",
+  "default_agent": "orchestrator",
+  "project_name": "ax-discovery-portal",
+  "project_description": "AX BD팀 멀티에이전트 기반 사업기회 포착 엔진",
+  "skills_dir": ".claude/skills",
+  "agents_dir": ".claude/agents",
+  "commands_dir": ".claude/commands",
+  "hooks_dir": ".claude/hooks"
+}

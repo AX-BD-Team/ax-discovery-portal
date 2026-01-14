@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpportunityBrief",
+  "description": "1-Page Opportunity Brief - AX BD Discovery Portal",
+  "type": "object",
+  "required": ["brief_id", "signal_id", "title", "customer", "problem", "solution_hypothesis", "kpis", "evidence", "validation_plan", "owner", "created_at"],
+  "properties": {
+    "brief_id": {
+      "type": "string",
+      "pattern": "^BRF-\\d{4}-\\d{3,}$",
+      "description": "Brief ID (예: BRF-2025-001)"
+    },
+    "signal_id": {
+      "type": "string",
+      "description": "원본 Signal ID"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "기회 제목"
+    },
+    "customer": {
+      "type": "object",
+      "required": ["segment", "buyer_role"],
+      "properties": {
+        "segment": {"type": "string", "description": "고객 세그먼트"},
+        "buyer_role": {"type": "string", "description": "의사결정자 역할"},
+        "users": {"type": "string", "description": "실사용자"},
+        "account": {"type": "string", "description": "특정 고객사"}
+      }
+    },
+    "problem": {
+      "type": "object",
+      "required": ["pain", "why_now"],
+      "properties": {
+        "pain": {"type": "string", "description": "핵심 Pain Point"},
+        "why_now": {"type": "string", "description": "지금 해결해야 하는 이유"},
+        "current_process": {"type": "string", "description": "현재 해결 방식"}
+      }
+    },
+    "solution_hypothesis": {
+      "type": "object",
+      "required": ["approach", "integration_points"],
+      "properties": {
+        "approach": {"type": "string", "description": "솔루션 방향"},
+        "integration_points": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "연동 포인트"
+        },
+        "data_needed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "필요 데이터"
+        }
+      }
+    },
+    "kpis": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "측정 지표"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "근거 링크"
+    },
+    "validation_plan": {
+      "type": "object",
+      "required": ["questions", "method", "success_criteria", "timebox_days"],
+      "properties": {
+        "questions": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "검증 질문"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["5DAY_SPRINT", "INTERVIEW", "DATA_ANALYSIS", "BUYER_REVIEW", "POC"],
+          "description": "검증 방법"
+        },
+        "success_criteria": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "성공 기준"
+        },
+        "timebox_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "description": "검증 기간 (일)"
+        }
+      }
+    },
+    "mvp_scope": {
+      "type": "object",
+      "properties": {
+        "in_scope": {"type": "array", "items": {"type": "string"}},
+        "out_of_scope": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "리스크 목록"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["DRAFT", "REVIEW", "APPROVED", "VALIDATED", "PILOT_READY", "ARCHIVED"],
+      "default": "DRAFT"
+    },
+    "owner": {
+      "type": "string",
+      "description": "담당자"
+    },
+    "confluence_url": {
+      "type": "string",
+      "description": "Confluence 페이지 URL"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

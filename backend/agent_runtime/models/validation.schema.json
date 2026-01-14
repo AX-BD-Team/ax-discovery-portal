@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ValidationResult",
+  "description": "Brief 검증 결과 (S2) - AX BD Discovery Portal",
+  "type": "object",
+  "required": ["validation_id", "brief_id", "method", "decision", "findings", "validated_at"],
+  "properties": {
+    "validation_id": {
+      "type": "string",
+      "pattern": "^VAL-\\d{4}-\\d{3,}$",
+      "description": "Validation ID (예: VAL-2025-001)"
+    },
+    "brief_id": {
+      "type": "string",
+      "description": "검증 대상 Brief ID"
+    },
+    "method": {
+      "type": "string",
+      "enum": ["5DAY_SPRINT", "INTERVIEW", "DATA_ANALYSIS", "BUYER_REVIEW", "POC"],
+      "description": "검증 방법"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["GO", "PIVOT", "NO_GO"],
+      "description": "검증 결과 판정"
+    },
+    "findings": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "주요 발견 사항"
+    },
+    "evidence_links": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "근거 자료 링크"
+    },
+    "success_criteria_met": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "criteria": {"type": "string"},
+          "met": {"type": "boolean"},
+          "note": {"type": "string"}
+        }
+      },
+      "description": "성공 기준 달성 여부"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "후속 액션"
+    },
+    "validated_by": {
+      "type": "string",
+      "description": "검증 수행자"
+    },
+    "validated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "검증 완료 일시"
+    },
+    "confluence_url": {
+      "type": "string",
+      "description": "Confluence 문서 URL"
+    }
+  },
+  "additionalProperties": false
+}

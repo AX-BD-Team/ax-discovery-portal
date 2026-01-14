@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlayRecord",
+  "description": "Play 진행현황 DB 레코드 - AX BD Discovery Portal",
+  "type": "object",
+  "required": ["play_id", "play_name", "status"],
+  "properties": {
+    "play_id": {
+      "type": "string",
+      "description": "Play 고유 ID (예: EXT_Desk_D01_Seminar)"
+    },
+    "play_name": {
+      "type": "string",
+      "description": "Play 이름"
+    },
+    "owner": {
+      "type": "string",
+      "description": "담당자"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["G", "Y", "R"],
+      "description": "상태 (Green/Yellow/Red)"
+    },
+    "activity_qtd": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "분기 Activity 수"
+    },
+    "signal_qtd": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "분기 Signal 수"
+    },
+    "brief_qtd": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "분기 Brief 수"
+    },
+    "s2_qtd": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "분기 S2(Validated) 수"
+    },
+    "s3_qtd": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "분기 S3(Pilot-ready) 수"
+    },
+    "next_action": {
+      "type": "string",
+      "description": "다음 액션"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "마감일"
+    },
+    "last_activity_date": {
+      "type": "string",
+      "format": "date",
+      "description": "마지막 Activity 일자"
+    },
+    "notes": {
+      "type": "string",
+      "description": "비고"
+    },
+    "confluence_live_doc_url": {
+      "type": "string",
+      "description": "Live doc URL"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "최종 수정일"
+    }
+  },
+  "additionalProperties": false
+}

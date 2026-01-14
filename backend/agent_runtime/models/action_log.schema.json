@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ActionLog",
+  "description": "Action Log DB 레코드 - AX BD Discovery Portal",
+  "type": "object",
+  "required": ["log_id", "play_id", "action_type", "title", "created_at"],
+  "properties": {
+    "log_id": {
+      "type": "string",
+      "pattern": "^LOG-\\d{4}-\\d{5,}$",
+      "description": "로그 ID (예: LOG-2025-00001)"
+    },
+    "play_id": {
+      "type": "string",
+      "description": "Play ID"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": ["ACTIVITY", "SIGNAL", "SCORECARD", "BRIEF", "VALIDATION", "PILOT", "OTHER"],
+      "description": "액션 유형"
+    },
+    "title": {
+      "type": "string",
+      "description": "제목"
+    },
+    "description": {
+      "type": "string",
+      "description": "상세 설명"
+    },
+    "url": {
+      "type": "string",
+      "description": "관련 링크"
+    },
+    "related_ids": {
+      "type": "object",
+      "properties": {
+        "activity_id": {"type": "string"},
+        "signal_id": {"type": "string"},
+        "scorecard_id": {"type": "string"},
+        "brief_id": {"type": "string"},
+        "validation_id": {"type": "string"},
+        "pilot_id": {"type": "string"}
+      },
+      "description": "관련 ID들"
+    },
+    "actor": {
+      "type": "string",
+      "description": "수행자 (사용자 또는 에이전트)"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "에이전트 ID (자동 생성 시)"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "세션 ID"
+    },
+    "workflow_id": {
+      "type": "string",
+      "description": "워크플로 ID"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "추가 메타데이터"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "생성 일시"
+    }
+  },
+  "additionalProperties": false
+}

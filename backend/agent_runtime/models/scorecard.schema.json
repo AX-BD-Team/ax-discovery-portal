@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scorecard",
+  "description": "Signal 평가 스코어카드 - AX BD Discovery Portal",
+  "type": "object",
+  "required": ["signal_id", "total_score", "dimension_scores", "red_flags", "recommendation", "scored_at"],
+  "properties": {
+    "scorecard_id": {
+      "type": "string",
+      "pattern": "^SCR-\\d{4}-\\d{3,}$",
+      "description": "Scorecard ID (예: SCR-2025-001)"
+    },
+    "signal_id": {
+      "type": "string",
+      "description": "평가 대상 Signal ID"
+    },
+    "total_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "총점 (100점 만점)"
+    },
+    "dimension_scores": {
+      "type": "object",
+      "required": ["problem_severity", "willingness_to_pay", "data_availability", "feasibility", "strategic_fit"],
+      "properties": {
+        "problem_severity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "문제 심각도 (20점)"
+        },
+        "willingness_to_pay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "지불 의사 (20점)"
+        },
+        "data_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "데이터 가용성 (20점)"
+        },
+        "feasibility": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "실현 가능성 (20점)"
+        },
+        "strategic_fit": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "전략 적합성 (20점)"
+        }
+      }
+    },
+    "red_flags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Red Flag 목록"
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["decision", "next_step"],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": ["GO", "PIVOT", "HOLD", "NO_GO"],
+          "description": "판정"
+        },
+        "next_step": {
+          "type": "string",
+          "enum": ["BRIEF", "VALIDATION", "PILOT_READY", "DROP", "NEED_MORE_EVIDENCE"],
+          "description": "다음 단계"
+        },
+        "rationale": {
+          "type": "string",
+          "description": "판정 근거"
+        }
+      }
+    },
+    "scored_by": {
+      "type": "string",
+      "description": "평가자 (에이전트 또는 사용자)"
+    },
+    "scored_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "평가 일시"
+    }
+  },
+  "additionalProperties": false
+}

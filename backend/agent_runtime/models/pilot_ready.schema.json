@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PilotReady",
+  "description": "Pilot 준비 완료 상태 (S3) - AX BD Discovery Portal",
+  "type": "object",
+  "required": ["pilot_id", "brief_id", "scope", "success_metrics", "stakeholders", "timeline"],
+  "properties": {
+    "pilot_id": {
+      "type": "string",
+      "pattern": "^PLT-\\d{4}-\\d{3,}$",
+      "description": "Pilot ID (예: PLT-2025-001)"
+    },
+    "brief_id": {
+      "type": "string",
+      "description": "원본 Brief ID"
+    },
+    "validation_id": {
+      "type": "string",
+      "description": "Validation ID (S2)"
+    },
+    "scope": {
+      "type": "object",
+      "required": ["in_scope", "out_of_scope"],
+      "properties": {
+        "in_scope": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Pilot 범위 내"
+        },
+        "out_of_scope": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Pilot 범위 외"
+        }
+      }
+    },
+    "success_metrics": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "성공 지표"
+    },
+    "data_access_plan": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "데이터 접근 계획"
+    },
+    "security_plan": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "보안 계획"
+    },
+    "stakeholders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "name_or_team"],
+        "properties": {
+          "role": {"type": "string"},
+          "name_or_team": {"type": "string"},
+          "contact": {"type": "string"}
+        }
+      },
+      "description": "이해관계자 목록"
+    },
+    "timeline": {
+      "type": "object",
+      "required": ["start_date", "end_date"],
+      "properties": {
+        "start_date": {
+          "type": "string",
+          "format": "date",
+          "description": "시작일"
+        },
+        "end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "종료일"
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": {"type": "string", "format": "date"},
+              "description": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "전제 조건"
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "risk": {"type": "string"},
+          "mitigation": {"type": "string"},
+          "owner": {"type": "string"}
+        }
+      },
+      "description": "리스크 및 대응 방안"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PREPARING", "READY", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
+      "default": "PREPARING"
+    },
+    "owner": {
+      "type": "string",
+      "description": "담당자"
+    },
+    "confluence_url": {
+      "type": "string",
+      "description": "Confluence 문서 URL"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}
