@@ -122,8 +122,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `POST /api/workflows/inbound-triage`: REST API 실행 (DB 저장 포함)
   - `POST /api/workflows/inbound-triage/preview`: Play 라우팅/SLA 미리보기
 
+- WF-05 KPI Digest 워크플로 구현
+  - `KPIDigestPipeline`: 기본 파이프라인 클래스
+  - `KPIDigestPipelineWithEvents`: AG-UI 이벤트 발행 버전
+  - `KPIDigestPipelineWithDB`: DB 연동 버전
+  - 주간/월간 기간 계산 (calculate_period_range)
+  - PoC 목표 기준 정의 (Activity 20+/주, Signal 30+/주, Brief 6+/주, S2 2~4/주)
+  - KPI 메트릭 집계 (Activity, Signal, Brief, S2, S3, 원천/채널별 분포)
+  - 리드타임 계산 (Signal→Brief ≤7일, Brief→S2 ≤14일)
+  - 경고 생성 (UNDER_TARGET, LEAD_TIME_EXCEEDED, PLAY_DELAYED)
+  - 경고 심각도 (INFO: ≥80%, YELLOW: ≥50%, RED: <50%)
+  - Top Plays 선정 (성과 우수 Play 순위)
+  - 추천 사항 자동 생성 (경고 기반 개선 권고)
+  - Play 상태 요약 (Green/Yellow/Red 분포)
+  - 6단계 워크플로: 기간 계산 → 메트릭 집계 → 리드타임 계산 → 경고 생성 → Top Plays → 추천 사항
+- WF-05 API 엔드포인트
+  - `GET /api/stream/workflow/WF-05`: SSE 스트리밍 실행
+  - `GET /api/workflows/kpi-digest`: REST API 실행 (DB 연동)
+  - `GET /api/workflows/kpi-digest/summary`: 요약 미리보기 (Mock 데이터)
+- WF-05 단위 테스트 31개 추가
+  - TestPeriodRangeCalculation (3개)
+  - TestAchievementCalculation (5개)
+  - TestSeverityDetermination (3개)
+  - TestPOCTargets (2개)
+  - TestKPITarget (1개)
+  - TestAlertGeneration (3개)
+  - TestTopPlays (2개)
+  - TestRecommendationsGeneration (4개)
+  - TestKPIDigestPipeline (6개)
+  - TestKPIDigestPipelineIntegration (2개)
+
 ### In Planning
-- WF-05 KPI Digest 구현
 - Confluence Database API 구현 (db_query, db_upsert_row)
 - AI Agent 기반 Scorecard 평가 (LLM 활용)
 - AI Agent 기반 Brief 생성 (LLM 활용)

@@ -22,6 +22,11 @@ from backend.agent_runtime.workflows.wf_inbound_triage import (
     InboundTriagePipeline,
     InboundTriagePipelineWithDB,
 )
+from backend.agent_runtime.workflows.wf_kpi_digest import (
+    KPIInput,
+    KPIDigestPipeline,
+    KPIDigestPipelineWithDB,
+)
 from backend.agent_runtime.event_manager import (
     SessionEventManager,
     WorkflowEventEmitter,
@@ -369,4 +374,137 @@ async def preview_inbound_triage(
             "deadline": deadline.isoformat(),
         },
         "message": "실제 실행은 POST /api/workflows/inbound-triage를 사용하세요",
+    }
+
+
+# ============================================================
+# WF-05: KPI Digest
+# ============================================================
+
+class KPIDigestRequest(BaseModel):
+    """WF-05 KPI Digest 요청"""
+    period: str = "week"  # week, month
+    play_ids: list[str] | None = None  # None이면 전체
+    notify: bool = False  # Teams/Slack 알림 여부
+    include_recommendations: bool = True
+
+
+class KPIDigestResponse(BaseModel):
+    """WF-05 KPI Digest 응답"""
+    period: str
+    period_start: str
+    period_end: str
+    metrics: dict[str, Any]
+    lead_times: dict[str, Any]
+    alerts: list[dict[str, Any]]
+    top_plays: list[dict[str, Any]]
+    recommendations: list[str]
+    status_summary: dict[str, int]
+    confluence_url: str | None
+    generated_at: str
+
+
+@router.get("/kpi-digest", response_model=KPIDigestResponse)
+async def get_kpi_digest(
+    period: str = "week",
+    notify: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    WF-05: KPI Digest 리포트 생성
+
+    주간/월간 KPI 리포트 + 지연 Play/Action 경고
+
+    Args:
+        period: 기간 (week, month)
+        notify: 알림 발송 여부
+
+    Returns:
+        metrics: Activity/Signal/Brief/S2 달성 현황
+        lead_times: Signal→Brief, Brief→S2 리드타임
+        alerts: 목표 미달/지연 경고
+        top_plays: 성과 우수 Play 순위
+        recommendations: 개선 권고사항
+        status_summary: G/Y/R Play 분포
+    """
+    logger.info(
+        "Running KPI Digest",
+        period=period,
+        notify=notify,
+    )
+
+    # 입력 데이터 구성
+    input_data = KPIInput(
+        period=period,
+        notify=notify,
+        include_recommendations=True,
+    )
+
+    # DB 연동 파이프라인 실행
+    session_id = generate_session_id("WF-05")
+    run_id = generate_run_id()
+    event_manager = SessionEventManager.get_or_create(session_id)
+    emitter = WorkflowEventEmitter(event_manager, run_id)
+
+    pipeline = KPIDigestPipelineWithDB(emitter, db)
+    result = await pipeline.run(input_data)
+
+    # 세션 정리
+    SessionEventManager.remove(session_id)
+
+    return KPIDigestResponse(
+        period=result.period,
+        period_start=result.period_start,
+        period_end=result.period_end,
+        metrics=result.metrics,
+        lead_times=result.lead_times,
+        alerts=result.alerts,
+        top_plays=result.top_plays,
+        recommendations=result.recommendations,
+        status_summary=result.status_summary,
+        confluence_url=result.confluence_url,
+        generated_at=result.generated_at,
+    )
+
+
+@router.get("/kpi-digest/summary")
+async def get_kpi_summary(
+    period: str = "week",
+):
+    """
+    KPI 요약 미리보기 (DB 연결 없이)
+
+    빠른 확인용 간략 리포트
+    """
+    from backend.agent_runtime.workflows.wf_kpi_digest import (
+        calculate_period_range,
+    )
+
+    period_start, period_end = calculate_period_range(period)
+
+    # 기본 파이프라인으로 실행 (Mock 데이터)
+    pipeline = KPIDigestPipeline()
+    input_data = KPIInput(
+        period=period,
+        notify=False,
+        include_recommendations=True,
+    )
+
+    result = await pipeline.run(input_data)
+
+    return {
+        "status": "preview",
+        "period": period,
+        "period_range": {
+            "start": period_start.isoformat(),
+            "end": period_end.isoformat(),
+        },
+        "metrics_summary": {
+            "activity": result.metrics["activity"]["achievement"],
+            "signal": result.metrics["signal"]["achievement"],
+            "brief": result.metrics["brief"]["achievement"],
+            "s2": result.metrics["s2"]["achievement"],
+        },
+        "alerts_count": len(result.alerts),
+        "message": "실제 데이터는 GET /api/workflows/kpi-digest를 사용하세요",
     }

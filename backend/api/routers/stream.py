@@ -29,6 +29,10 @@ from backend.agent_runtime.workflows.wf_inbound_triage import (
     InboundInput,
     InboundTriagePipelineWithEvents,
 )
+from backend.agent_runtime.workflows.wf_kpi_digest import (
+    KPIInput,
+    KPIDigestPipelineWithEvents,
+)
 
 logger = structlog.get_logger()
 
@@ -237,6 +241,61 @@ async def stream_inbound_triage(
     return EventSourceResponse(event_generator(event_manager, queue))
 
 
+@router.get("/workflow/WF-05")
+async def stream_kpi_digest(
+    period: str = Query("week", description="기간 (week, month)"),
+    notify: bool = Query(False, description="알림 발송 여부"),
+) -> EventSourceResponse:
+    """
+    WF-05 KPI Digest 파이프라인 실행 및 이벤트 스트림
+
+    주간/월간 KPI 리포트 생성 + 지연 Play/Action 경고
+
+    SSE Content-Type: text/event-stream
+    이벤트 형식: event: EVENT_TYPE\\ndata: {JSON}\\n\\n
+
+    PoC 목표:
+    - Activity 20+/주, Signal 30+/주, Brief 6+/주, S2 2~4/주
+    - Signal→Brief ≤7일, Brief→S2 ≤14일
+    """
+    # 세션 및 실행 ID 생성
+    session_id = generate_session_id("WF-05")
+    run_id = generate_run_id()
+
+    logger.info(
+        "Starting KPI digest pipeline stream",
+        session_id=session_id,
+        run_id=run_id,
+        period=period,
+    )
+
+    # 이벤트 매니저 생성
+    event_manager = SessionEventManager.get_or_create(session_id)
+    emitter = WorkflowEventEmitter(event_manager, run_id)
+
+    # 구독자 등록
+    queue = event_manager.subscribe()
+
+    # 워크플로 실행 (비동기)
+    async def run_workflow() -> None:
+        try:
+            pipeline = KPIDigestPipelineWithEvents(emitter)
+            input_data = KPIInput(
+                period=period,
+                notify=notify,
+                include_recommendations=True,
+            )
+            await pipeline.run(input_data)
+        except Exception as e:
+            logger.error("Workflow error", error=str(e))
+            await emitter.emit_run_error(str(e), recoverable=False)
+
+    # 워크플로를 백그라운드에서 실행
+    asyncio.create_task(run_workflow())
+
+    return EventSourceResponse(event_generator(event_manager, queue))
+
+
 @router.get("/workflow/{workflow_id}")
 async def stream_workflow(
     workflow_id: str,
@@ -249,6 +308,7 @@ async def stream_workflow(
     - WF-01: 세미나 파이프라인 (/api/stream/workflow/WF-01)
     - WF-02: 인터뷰-to-Brief (/api/stream/workflow/WF-02)
     - WF-04: 인바운드 Triage (/api/stream/workflow/WF-04)
+    - WF-05: KPI Digest (/api/stream/workflow/WF-05)
     """
     if workflow_id == "WF-01":
         raise HTTPException(
@@ -266,6 +326,12 @@ async def stream_workflow(
         raise HTTPException(
             status_code=400,
             detail="WF-04는 POST /api/stream/workflow/WF-04 엔드포인트를 사용하세요",
+        )
+
+    if workflow_id == "WF-05":
+        raise HTTPException(
+            status_code=400,
+            detail="WF-05는 GET /api/stream/workflow/WF-05 엔드포인트를 사용하세요",
         )
 
     # TODO: 다른 워크플로 지원 추가

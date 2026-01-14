@@ -3,6 +3,7 @@ Workflow 단위 테스트
 
 backend/agent_runtime/workflows/wf_seminar_pipeline.py 테스트
 backend/agent_runtime/workflows/wf_inbound_triage.py 테스트
+backend/agent_runtime/workflows/wf_kpi_digest.py 테스트
 """
 
 import pytest
@@ -697,3 +698,522 @@ class TestInboundTriagePipelineIntegration:
         assert scorecard["total_score"] <= 100
         assert "recommendation" in scorecard
         assert scorecard["recommendation"]["decision"] in ["GO", "PIVOT", "HOLD", "NO_GO"]
+
+
+# ============================================================
+# WF-05: KPI Digest 테스트
+# ============================================================
+
+from backend.agent_runtime.workflows.wf_kpi_digest import (
+    KPIDigestPipeline,
+    KPIInput,
+    KPIDigestOutput,
+    KPITarget,
+    Alert,
+    AlertSeverity,
+    AlertType,
+    TopPlay,
+    calculate_period_range,
+    calculate_achievement,
+    determine_severity,
+    POC_TARGETS,
+)
+
+
+class TestPeriodRangeCalculation:
+    """기간 범위 계산 테스트"""
+
+    def test_week_period(self):
+        """주간 기간 계산"""
+        start, end = calculate_period_range("week")
+
+        # 월요일 00:00 시작
+        assert start.weekday() == 0
+        assert start.hour == 0
+        assert start.minute == 0
+
+        # 일요일 23:59 종료
+        assert end.weekday() == 6
+        assert end.hour == 23
+        assert end.minute == 59
+
+        # 7일 차이
+        diff = (end - start).days
+        assert diff == 6
+
+    def test_month_period(self):
+        """월간 기간 계산"""
+        start, end = calculate_period_range("month")
+
+        # 1일 시작
+        assert start.day == 1
+        assert start.hour == 0
+
+        # 말일 종료 (다음 달 1일 -1초)
+        next_day = end + timedelta(seconds=1)
+        assert next_day.day == 1
+
+    def test_invalid_period_defaults_to_7_days(self):
+        """유효하지 않은 기간 → 7일"""
+        start, end = calculate_period_range("invalid")
+
+        diff = (end - start).days
+        assert diff == 7
+
+
+class TestAchievementCalculation:
+    """달성률 계산 테스트"""
+
+    def test_full_achievement(self):
+        """100% 달성"""
+        achievement = calculate_achievement(20, 20)
+        assert achievement == 100.0
+
+    def test_over_achievement(self):
+        """초과 달성"""
+        achievement = calculate_achievement(30, 20)
+        assert achievement == 150.0
+
+    def test_partial_achievement(self):
+        """부분 달성"""
+        achievement = calculate_achievement(15, 30)
+        assert achievement == 50.0
+
+    def test_zero_target(self):
+        """목표 0일 때"""
+        # 실적 있으면 100%
+        assert calculate_achievement(5, 0) == 100.0
+        # 실적 없으면 0%
+        assert calculate_achievement(0, 0) == 0.0
+
+    def test_zero_actual(self):
+        """실적 0일 때"""
+        achievement = calculate_achievement(0, 20)
+        assert achievement == 0.0
+
+
+class TestSeverityDetermination:
+    """심각도 결정 테스트"""
+
+    def test_info_severity(self):
+        """80% 이상 → INFO"""
+        assert determine_severity(100.0) == "INFO"
+        assert determine_severity(80.0) == "INFO"
+        assert determine_severity(85.5) == "INFO"
+
+    def test_yellow_severity(self):
+        """50~79% → YELLOW"""
+        assert determine_severity(79.9) == "YELLOW"
+        assert determine_severity(50.0) == "YELLOW"
+        assert determine_severity(65.0) == "YELLOW"
+
+    def test_red_severity(self):
+        """50% 미만 → RED"""
+        assert determine_severity(49.9) == "RED"
+        assert determine_severity(0.0) == "RED"
+        assert determine_severity(30.0) == "RED"
+
+
+class TestPOCTargets:
+    """PoC 목표 상수 테스트"""
+
+    def test_weekly_targets(self):
+        """주간 목표 확인"""
+        assert POC_TARGETS["activity_weekly"] == 20
+        assert POC_TARGETS["signal_weekly"] == 30
+        assert POC_TARGETS["brief_weekly"] == 6
+        assert POC_TARGETS["s2_weekly_min"] == 2
+        assert POC_TARGETS["s2_weekly_max"] == 4
+
+    def test_lead_time_targets(self):
+        """리드타임 목표 확인"""
+        assert POC_TARGETS["signal_to_brief_days"] == 7
+        assert POC_TARGETS["brief_to_s2_days"] == 14
+
+
+class TestKPITarget:
+    """KPITarget 데이터클래스 테스트"""
+
+    def test_default_values(self):
+        """기본값 확인"""
+        target = KPITarget()
+
+        assert target.activity_weekly == 20
+        assert target.signal_weekly == 30
+        assert target.brief_weekly == 6
+        assert target.s2_weekly_min == 2
+        assert target.s2_weekly_max == 4
+        assert target.signal_to_brief_days == 7
+        assert target.brief_to_s2_days == 14
+
+
+class TestAlertGeneration:
+    """경고 생성 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_under_target_alert(self):
+        """목표 미달 경고 생성"""
+        pipeline = KPIDigestPipeline()
+
+        # 낮은 달성률 메트릭
+        metrics = {
+            "activity": {"actual": 10, "target": 20, "achievement": 50.0},
+            "signal": {"actual": 35, "target": 30, "achievement": 116.7},
+            "brief": {"actual": 8, "target": 6, "achievement": 133.3},
+            "s2": {"actual": 3, "target_min": 2, "target_max": 4, "achievement": 150.0},
+        }
+
+        lead_times = {
+            "signal_to_brief": {"avg_days": 5.0, "target_days": 7, "on_target": True},
+            "brief_to_s2": {"avg_days": 10.0, "target_days": 14, "on_target": True},
+        }
+
+        alerts = await pipeline._generate_alerts(metrics, lead_times)
+
+        # Activity 목표 미달 경고
+        under_target_alerts = [a for a in alerts if a.type == AlertType.UNDER_TARGET.value]
+        assert len(under_target_alerts) == 1
+        assert under_target_alerts[0].metric == "activity"
+        assert under_target_alerts[0].severity == AlertSeverity.YELLOW.value
+
+    @pytest.mark.asyncio
+    async def test_lead_time_exceeded_alert(self):
+        """리드타임 초과 경고 생성"""
+        pipeline = KPIDigestPipeline()
+
+        metrics = {
+            "activity": {"actual": 25, "target": 20, "achievement": 125.0},
+            "signal": {"actual": 35, "target": 30, "achievement": 116.7},
+            "brief": {"actual": 8, "target": 6, "achievement": 133.3},
+            "s2": {"actual": 3, "target_min": 2, "target_max": 4, "achievement": 150.0},
+        }
+
+        lead_times = {
+            "signal_to_brief": {"avg_days": 10.0, "target_days": 7, "on_target": False},
+            "brief_to_s2": {"avg_days": 18.0, "target_days": 14, "on_target": False},
+        }
+
+        alerts = await pipeline._generate_alerts(metrics, lead_times)
+
+        # 리드타임 초과 경고
+        lead_time_alerts = [a for a in alerts if a.type == AlertType.LEAD_TIME_EXCEEDED.value]
+        assert len(lead_time_alerts) == 2
+
+    @pytest.mark.asyncio
+    async def test_s2_under_target_alert(self):
+        """S2 목표 미달 경고"""
+        pipeline = KPIDigestPipeline()
+
+        metrics = {
+            "activity": {"actual": 25, "target": 20, "achievement": 125.0},
+            "signal": {"actual": 35, "target": 30, "achievement": 116.7},
+            "brief": {"actual": 8, "target": 6, "achievement": 133.3},
+            "s2": {"actual": 1, "target_min": 2, "target_max": 4, "achievement": 50.0},
+        }
+
+        lead_times = {
+            "signal_to_brief": {"avg_days": 5.0, "target_days": 7, "on_target": True},
+            "brief_to_s2": {"avg_days": 10.0, "target_days": 14, "on_target": True},
+        }
+
+        alerts = await pipeline._generate_alerts(metrics, lead_times)
+
+        # S2 목표 미달 경고
+        s2_alerts = [a for a in alerts if a.metric == "s2"]
+        assert len(s2_alerts) == 1
+        assert s2_alerts[0].severity == AlertSeverity.YELLOW.value
+
+
+class TestTopPlays:
+    """Top Plays 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_get_top_plays(self):
+        """Top Plays 조회 (Mock 데이터)"""
+        pipeline = KPIDigestPipeline()
+        start, end = calculate_period_range("week")
+
+        top_plays = await pipeline._get_top_plays(start, end)
+
+        assert len(top_plays) == 3
+        assert top_plays[0].rank == 1
+        assert top_plays[0].signal_count >= top_plays[1].signal_count
+
+    def test_top_play_to_dict(self):
+        """TopPlay → dict 변환"""
+        pipeline = KPIDigestPipeline()
+
+        top_play = TopPlay(
+            rank=1,
+            play_id="TEST_PLAY",
+            play_name="테스트 Play",
+            signal_count=10,
+            brief_count=5,
+            s2_count=2,
+            owner="테스터",
+        )
+
+        result = pipeline._top_play_to_dict(top_play)
+
+        assert result["rank"] == 1
+        assert result["play_id"] == "TEST_PLAY"
+        assert result["signal_count"] == 10
+        assert result["owner"] == "테스터"
+
+
+class TestRecommendationsGeneration:
+    """추천 사항 생성 테스트"""
+
+    def test_activity_recommendation(self):
+        """Activity 목표 미달 추천"""
+        pipeline = KPIDigestPipeline()
+
+        metrics = {
+            "activity": {"achievement": 50.0},
+            "signal": {"achievement": 100.0},
+            "brief": {"achievement": 100.0},
+        }
+
+        alerts = [
+            Alert(
+                type=AlertType.UNDER_TARGET.value,
+                severity=AlertSeverity.YELLOW.value,
+                metric="activity",
+                message="Activity 목표 대비 50% 달성",
+            )
+        ]
+
+        recommendations = pipeline._generate_recommendations(metrics, alerts)
+
+        assert any("Activity" in r for r in recommendations)
+
+    def test_signal_recommendation(self):
+        """Signal 목표 미달 추천"""
+        pipeline = KPIDigestPipeline()
+
+        metrics = {
+            "activity": {"achievement": 100.0},
+            "signal": {"achievement": 50.0},
+            "brief": {"achievement": 100.0},
+        }
+
+        alerts = [
+            Alert(
+                type=AlertType.UNDER_TARGET.value,
+                severity=AlertSeverity.YELLOW.value,
+                metric="signal",
+                message="Signal 목표 대비 50% 달성",
+            )
+        ]
+
+        recommendations = pipeline._generate_recommendations(metrics, alerts)
+
+        assert any("Signal" in r for r in recommendations)
+
+    def test_lead_time_recommendation(self):
+        """리드타임 초과 추천"""
+        pipeline = KPIDigestPipeline()
+
+        metrics = {
+            "activity": {"achievement": 100.0},
+            "signal": {"achievement": 100.0},
+            "brief": {"achievement": 100.0},
+        }
+
+        alerts = [
+            Alert(
+                type=AlertType.LEAD_TIME_EXCEEDED.value,
+                severity=AlertSeverity.YELLOW.value,
+                metric="signal_to_brief",
+                message="리드타임 초과",
+            )
+        ]
+
+        recommendations = pipeline._generate_recommendations(metrics, alerts)
+
+        assert any("리드타임" in r for r in recommendations)
+
+    def test_all_good_recommendation(self):
+        """모든 KPI 달성 시 추천"""
+        pipeline = KPIDigestPipeline()
+
+        metrics = {
+            "activity": {"achievement": 100.0},
+            "signal": {"achievement": 100.0},
+            "brief": {"achievement": 100.0},
+        }
+
+        alerts = []
+
+        recommendations = pipeline._generate_recommendations(metrics, alerts)
+
+        assert any("🎉" in r or "양호" in r for r in recommendations)
+
+
+class TestKPIDigestPipeline:
+    """KPIDigestPipeline 전체 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_pipeline_run_week(self):
+        """주간 KPI Digest 실행"""
+        pipeline = KPIDigestPipeline()
+
+        input_data = KPIInput(
+            period="week",
+            notify=False,
+            include_recommendations=True,
+        )
+
+        result = await pipeline.run(input_data)
+
+        assert result.period == "week"
+        assert result.period_start is not None
+        assert result.period_end is not None
+        assert result.metrics is not None
+        assert result.lead_times is not None
+        assert result.alerts is not None
+        assert result.top_plays is not None
+        assert result.recommendations is not None
+        assert result.status_summary is not None
+        assert result.generated_at is not None
+
+    @pytest.mark.asyncio
+    async def test_pipeline_run_month(self):
+        """월간 KPI Digest 실행"""
+        pipeline = KPIDigestPipeline()
+
+        input_data = KPIInput(
+            period="month",
+            notify=False,
+        )
+
+        result = await pipeline.run(input_data)
+
+        assert result.period == "month"
+
+    @pytest.mark.asyncio
+    async def test_metrics_structure(self):
+        """메트릭 구조 확인"""
+        pipeline = KPIDigestPipeline()
+
+        input_data = KPIInput(period="week")
+        result = await pipeline.run(input_data)
+
+        # 필수 메트릭 확인
+        assert "activity" in result.metrics
+        assert "signal" in result.metrics
+        assert "brief" in result.metrics
+        assert "s2" in result.metrics
+
+        # 메트릭 필드 확인
+        for key in ["activity", "signal", "brief"]:
+            assert "actual" in result.metrics[key]
+            assert "target" in result.metrics[key]
+            assert "achievement" in result.metrics[key]
+
+    @pytest.mark.asyncio
+    async def test_lead_times_structure(self):
+        """리드타임 구조 확인"""
+        pipeline = KPIDigestPipeline()
+
+        input_data = KPIInput(period="week")
+        result = await pipeline.run(input_data)
+
+        # 필수 리드타임 확인
+        assert "signal_to_brief" in result.lead_times
+        assert "brief_to_s2" in result.lead_times
+
+        # 리드타임 필드 확인
+        for key in ["signal_to_brief", "brief_to_s2"]:
+            assert "avg_days" in result.lead_times[key]
+            assert "target_days" in result.lead_times[key]
+            assert "on_target" in result.lead_times[key]
+
+    @pytest.mark.asyncio
+    async def test_status_summary_structure(self):
+        """상태 요약 구조 확인"""
+        pipeline = KPIDigestPipeline()
+
+        input_data = KPIInput(period="week")
+        result = await pipeline.run(input_data)
+
+        # Play 상태 분포 확인
+        assert "green" in result.status_summary
+        assert "yellow" in result.status_summary
+        assert "red" in result.status_summary
+        assert "total" in result.status_summary
+
+        # total = green + yellow + red
+        total = result.status_summary["green"] + result.status_summary["yellow"] + result.status_summary["red"]
+        assert result.status_summary["total"] == total
+
+    @pytest.mark.asyncio
+    async def test_without_recommendations(self):
+        """추천 사항 없이 실행"""
+        pipeline = KPIDigestPipeline()
+
+        input_data = KPIInput(
+            period="week",
+            include_recommendations=False,
+        )
+
+        result = await pipeline.run(input_data)
+
+        assert result.recommendations == []
+
+
+class TestKPIDigestPipelineIntegration:
+    """WF-05 통합 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_full_pipeline_flow(self):
+        """전체 파이프라인 흐름 테스트"""
+        pipeline = KPIDigestPipeline()
+
+        input_data = KPIInput(
+            period="week",
+            notify=False,
+            include_recommendations=True,
+        )
+
+        result = await pipeline.run(input_data)
+
+        # 결과 검증
+        assert isinstance(result, KPIDigestOutput)
+        assert result.period == "week"
+
+        # 메트릭 달성률 범위 확인
+        for key in ["activity", "signal", "brief"]:
+            achievement = result.metrics[key]["achievement"]
+            assert 0 <= achievement <= 200  # 200%까지 가능
+
+        # 리드타임 범위 확인
+        for key in ["signal_to_brief", "brief_to_s2"]:
+            avg_days = result.lead_times[key]["avg_days"]
+            assert avg_days >= 0
+
+        # 알림이 꺼져있으면 confluence_url은 None
+        assert result.confluence_url is None
+
+    @pytest.mark.asyncio
+    async def test_alert_to_dict_conversion(self):
+        """Alert → dict 변환 확인"""
+        pipeline = KPIDigestPipeline()
+
+        alert = Alert(
+            type=AlertType.UNDER_TARGET.value,
+            severity=AlertSeverity.YELLOW.value,
+            metric="activity",
+            message="테스트 경고",
+            play_id="TEST_PLAY",
+            details={"actual": 10, "target": 20},
+        )
+
+        result = pipeline._alert_to_dict(alert)
+
+        assert result["type"] == "UNDER_TARGET"
+        assert result["severity"] == "YELLOW"
+        assert result["metric"] == "activity"
+        assert result["message"] == "테스트 경고"
+        assert result["play_id"] == "TEST_PLAY"
+        assert result["details"]["actual"] == 10

@@ -103,7 +103,14 @@
   - [x] Alembic 마이그레이션
 - [ ] Confluence Database API 구현 (db_query, db_upsert_row)
 - [x] 중복 Signal 체크 알고리즘 ✅ v0.3.0 (Jaccard 유사도 기반)
-- [ ] WF-05 KPI Digest 구현
+- [x] WF-05 KPI Digest 구현 ✅ v0.4.0
+  - [x] 주간/월간 기간 계산
+  - [x] KPI 메트릭 집계 (Activity, Signal, Brief, S2, S3)
+  - [x] 리드타임 계산 (Signal→Brief ≤7일, Brief→S2 ≤14일)
+  - [x] 경고 생성 (목표 미달, 리드타임 초과, 지연 Play)
+  - [x] Top Plays 선정 (성과 우수 Play 순위)
+  - [x] 추천 사항 생성 (AI 기반 개선 권고)
+  - [x] 단위 테스트 31개 통과
 - [ ] Teams 연동 (MCP 서버)
 
 ---
