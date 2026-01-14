@@ -2,7 +2,7 @@
 
 > 프로젝트 진행 상황 및 다음 단계
 
-**현재 버전**: 0.2.0
+**현재 버전**: 0.3.0
 **마지막 업데이트**: 2026-01-14
 
 ---
@@ -22,9 +22,9 @@
 
 ---
 
-## 🚧 Phase 2: Core Integration (진행 중)
+## ✅ Phase 2: Core Integration (완료)
 
-### 우선순위 1: 필수 기능
+### 우선순위 1: 필수 기능 ✅
 
 - [x] Claude Agent SDK 통합 ✅ v0.2.0
   - [x] Agent 인스턴스 생성 및 초기화 (.claude/agents/*.md 파싱)
@@ -36,13 +36,24 @@
   - [x] Signal 추출 로직
   - [x] AAR 템플릿 생성
   - [x] Confluence Live doc 업데이트
-- [ ] 데이터베이스 연동
-  - [ ] PostgreSQL 설정 및 연결
-  - [ ] SQLAlchemy 모델 정의
-  - [ ] Alembic 마이그레이션 설정
-  - [ ] API 라우터에 DB 연동
+- [x] 데이터베이스 연동 ✅ v0.3.0
+  - [x] PostgreSQL 설정 및 연결 (asyncpg + SQLAlchemy 2.0)
+  - [x] SQLAlchemy 모델 정의 (5개 테이블: Signal, Scorecard, Brief, PlayRecord, ActionLog)
+  - [x] Alembic 마이그레이션 설정 (비동기 환경)
+  - [x] CRUD 저장소 패턴 구현 (CRUDBase + 4개 repository)
+  - [x] API 라우터 DB 연동 (inbox.py: ACTIVITY_STORE 제거)
+- [x] Agent Runtime 단위 테스트 ✅ v0.3.0
+  - [x] 테스트 기반 설정 (conftest.py + fixtures)
+  - [x] Runner 테스트 (17개: 에이전트 로딩, MCP, 세션, 워크플로)
+  - [x] EventManager 테스트 (12개: 발행/구독, 싱글톤, 스트리밍)
+  - [x] Workflow 테스트 (12개: 메타데이터, Activity, AAR, Confluence)
+
+---
+
+## 🚧 Phase 3: Advanced Features (진행 중)
 
 ### 우선순위 2: 핵심 워크플로
+- [ ] Scorecard, Brief, PlayDashboard API 라우터 DB 연동
 - [ ] WF-02 Interview-to-Brief 구현
 - [ ] WF-04 Inbound Triage 구현
 - [ ] Scorecard 평가 로직 구현
@@ -56,7 +67,7 @@
 
 ---
 
-## 📅 Phase 3: UI & UX (계획)
+## 📅 Phase 4: UI & UX (계획)
 
 - [ ] 웹 UI (Next.js)
   - [ ] Inbox 페이지
@@ -73,25 +84,29 @@
 2. **Confluence Database API**: Confluence Cloud API의 Database 기능 제약 → 대안 필요 (페이지 테이블 우회 또는 Postgres 사용)
 3. **Markdown to Confluence 변환**: 현재 간단한 HTML 래핑만 구현 → 완전한 변환 라이브러리 필요
 4. **인증/권한**: 현재 mock 구현, 프로덕션용 JWT 인증 필요
+5. **Alembic 마이그레이션**: 초기 스키마 생성 필요 (`alembic revision --autogenerate -m "Initial schema"`)
 
 ---
 
-## 📝 다음 스프린트 (Week 3)
+## 📝 다음 스프린트 (Week 4)
 
-**목표**: WF-02/04 구현 및 데이터베이스 연동
+**목표**: 나머지 API 라우터 DB 연동 및 WF-02/04 구현
 
 **작업 항목**:
 
-1. PostgreSQL 로컬 설정 및 SQLAlchemy 모델 정의
-2. Alembic 마이그레이션 설정
-3. WF-02 Interview-to-Brief 워크플로 구현
-4. WF-04 Inbound Triage 워크플로 구현
-5. Scorecard 평가 로직 구현
-6. Brief 생성 로직 구현
+1. PostgreSQL 마이그레이션 실행 (`alembic upgrade head`)
+2. Scorecard, Brief, PlayDashboard API 라우터 DB 연동
+3. 통합 테스트 작성 (API + DB)
+4. WF-02 Interview-to-Brief 워크플로 구현
+5. WF-04 Inbound Triage 워크플로 구현
+6. Scorecard 평가 로직 구현
+7. Brief 생성 로직 구현
 
 **성공 조건**:
 
-- [ ] 데이터베이스에 Signal/Scorecard/Brief 저장
+- [x] 데이터베이스에 Signal 저장 ✅ v0.3.0
+- [ ] 데이터베이스에 Scorecard/Brief 저장
 - [ ] `/ax:triage` 실행 시 WF-04 성공
 - [ ] Scorecard 100점 만점 평가 동작
 - [ ] Brief 1-Page 포맷 자동 생성
+- [ ] pytest 전체 테스트 통과 (80%+ 커버리지)

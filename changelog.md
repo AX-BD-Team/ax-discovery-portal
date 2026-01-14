@@ -30,6 +30,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-01-14
+
+### Added
+
+- PostgreSQL 데이터베이스 연동 완료
+  - SQLAlchemy 2.0 비동기 ORM 통합
+  - 5개 테이블 정의 (signals, scorecards, opportunity_briefs, play_records, action_logs)
+  - Enum 타입 (SignalSource, SignalChannel, SignalStatus, Decision, NextStep 등)
+  - JSON/JSONB 필드 (evidence, kpi_hypothesis, dimension_scores 등)
+  - 외래키 관계 및 인덱스 설정
+  - TimestampMixin (created_at, updated_at 자동 관리)
+- Alembic 마이그레이션 시스템
+  - 비동기 마이그레이션 환경 설정
+  - 초기 스키마 마이그레이션 준비
+  - Enum 타입 자동 생성 지원
+- CRUD 저장소 패턴
+  - CRUDBase 제네릭 클래스
+  - Signal, Scorecard, Brief, PlayRecord 저장소 구현
+  - ID 자동 생성 (SIG-YYYY-NNN, SCR-YYYY-NNN, BRF-YYYY-NNN 형식)
+  - 필터링 및 페이지네이션 지원
+  - 통계 쿼리 (get_stats)
+- Agent Runtime 단위 테스트 (80%+ 커버리지 목표)
+  - 17개 Runner 테스트 (에이전트 로딩, MCP 연결, 세션 관리, 워크플로 라우팅)
+  - 12개 EventManager 테스트 (이벤트 발행/구독, 싱글톤, 스트리밍)
+  - 12개 Workflow 테스트 (메타데이터 추출, Activity 생성, AAR 템플릿, Confluence 업데이트)
+  - pytest fixtures (mock_env, sample_agent_markdown, mock_confluence_mcp 등)
+  - AsyncMock 및 httpx Mock 패턴
+
+### Changed
+
+- API 라우터 DB 연동
+  - `backend/api/routers/inbox.py`: ACTIVITY_STORE 제거, Signal CRUD 연동
+  - GET /api/inbox: 실제 DB 조회 및 필터링
+  - POST /api/inbox: DB 저장 및 Signal ID 자동 생성
+  - GET /api/inbox/stats/summary: 실제 통계 쿼리
+- Pydantic 모델 개선
+  - SignalCreate: pain 필수 필드 추가, kpi_hypothesis 지원
+  - SignalResponse: from_attributes 설정으로 ORM 호환
+- 의존성 추가
+  - `asyncpg>=0.30.0` (PostgreSQL 비동기 드라이버)
+  - `sqlalchemy[asyncio]>=2.0.0` (비동기 ORM)
+  - `alembic>=1.14.0` (마이그레이션)
+  - `pytest-mock>=3.12.0` (Mock 지원)
+  - `pytest-httpx>=0.30.0` (httpx Mock)
+
+### Fixed
+
+- Signal 생성 API 스키마 정합성 (description → pain)
+- DB 세션 의존성 주입 (get_db)
+
+### Removed
+
+- ACTIVITY_STORE 인메모리 저장소 (DB로 대체)
+
+---
+
 ## [0.2.0] - 2026-01-14
 
 ### Added
