@@ -4,11 +4,12 @@ FastAPI Dependencies
 의존성 주입 함수들
 """
 
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 from functools import lru_cache
 
 from fastapi import Depends, HTTPException, status
 from pydantic_settings import BaseSettings
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class Settings(BaseSettings):
@@ -96,3 +97,25 @@ async def verify_confluence_config(
             detail="Confluence credentials not configured"
         )
     return True
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    데이터베이스 세션 의존성
+
+    Usage:
+        @router.get("/items")
+        async def read_items(db: AsyncSession = Depends(get_db)):
+            ...
+    """
+    from backend.database.session import SessionLocal
+
+    async with SessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
