@@ -1,4 +1,4 @@
-name: CD Frontend (Cloudflare Pages)
+name: Frontend CI/CD
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'turbo.json'
   pull_request:
     branches: [main]
     paths:
@@ -15,11 +16,18 @@ on:
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'turbo.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy-preview:
-    name: Deploy Preview
-    if: github.event_name == 'pull_request'
+  # ===========================================
+  # CI: Lint, Type-check, Build
+  # ===========================================
+  ci:
+    name: CI
     runs-on: ubuntu-latest
 
     steps:
@@ -37,13 +45,53 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
+      - name: Setup Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build for preview
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Build
         run: pnpm build
         env:
-          NEXT_PUBLIC_API_URL: ${{ vars.STAGING_API_URL }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.ax-discovery.example.com' }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+          retention-days: 1
+
+  # ===========================================
+  # CD: Preview 배포 (PR)
+  # ===========================================
+  deploy-preview:
+    name: Deploy Preview
+    needs: ci
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
 
       - name: Deploy to Cloudflare Pages (Preview)
         uses: cloudflare/wrangler-action@v3
@@ -66,8 +114,12 @@ jobs:
               body: `## Preview Deployment\n\nDeployed to: ${previewUrl}`
             });
 
+  # ===========================================
+  # CD: Production 배포 (main push)
+  # ===========================================
   deploy-production:
     name: Deploy Production
+    needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -75,24 +127,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build for production
-        run: pnpm build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ vars.PRODUCTION_API_URL }}
+          name: web-build
+          path: apps/web/.next
 
       - name: Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
