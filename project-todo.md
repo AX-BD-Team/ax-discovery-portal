@@ -50,6 +50,31 @@
 
 ---
 
+## ✅ Phase 2.5: CI/CD & Infrastructure (완료)
+
+### 완료 항목 ✅ v0.4.0
+
+- [x] GitHub Actions 워크플로우 설정
+  - [x] frontend.yml (CI + CD 통합, Cloudflare Pages 배포)
+  - [x] ci-backend.yml (ruff, mypy, pytest)
+  - [x] cd-backend.yml (Render Deploy Hook)
+- [x] Cloudflare 리소스 생성
+  - [x] Pages 프로젝트 (`ax-discovery-portal.pages.dev`)
+  - [x] D1 데이터베이스 (`ax-discovery-db`, APAC/ICN)
+  - [x] D1 마이그레이션 적용 (5개 테이블, 10개 인덱스)
+- [x] Render 백엔드 배포 설정
+  - [x] render.yaml (Blueprint)
+  - [x] Deploy Hook 연동
+- [x] GitHub Secrets 설정
+  - [x] CLOUDFLARE_ACCOUNT_ID
+  - [x] CLOUDFLARE_API_TOKEN
+  - [x] RENDER_PRODUCTION_DEPLOY_HOOK
+  - [x] RENDER_STAGING_DEPLOY_HOOK
+- [x] 로컬 환경변수 설정 (.env)
+- [x] GitHub Flow 브랜치 전략 적용
+
+---
+
 ## 🚧 Phase 3: Advanced Features (진행 중)
 
 ### 우선순위 2: 핵심 워크플로
