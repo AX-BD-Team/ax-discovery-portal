@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CI/CD 파이프라인 구축** ✨
+  - GitHub Actions 워크플로우 3개 (frontend.yml, ci-backend.yml, cd-backend.yml)
+  - Cloudflare Pages 프로젝트 (`ax-discovery-portal.pages.dev`)
+  - Cloudflare D1 데이터베이스 (`ax-discovery-db`, APAC/ICN 리전)
+  - D1 마이그레이션 (5개 테이블, 10개 인덱스)
+  - Render 백엔드 배포 설정 (`render.yaml`)
+  - wrangler.toml 설정
+  - D1 HTTP API 클라이언트 (`backend/integrations/cloudflare_d1/client.py`)
+- GitHub Flow 브랜치 전략 적용
+  - main: 프로덕션 브랜치
+  - feature/*: 기능 개발 브랜치
+  - PR 기반 코드 리뷰
+
 - **Ontology 기반 Knowledge Graph 구조** ✨
   - Entity 모델 (12종 EntityType: Signal, Topic, Scorecard, Brief, Customer, Technology, Competitor, Industry, Evidence, Source, ReasoningStep, Play)
   - Triple 모델 (15종 PredicateType: has_pain, has_scorecard, similar_to, targets, supported_by, leads_to 등)
