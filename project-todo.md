@@ -2,8 +2,8 @@
 
 > 프로젝트 진행 상황 및 다음 단계
 
-**현재 버전**: 0.3.0
-**마지막 업데이트**: 2026-01-14
+**현재 버전**: 0.4.0
+**마지막 업데이트**: 2026-01-15
 
 ---
 
@@ -53,27 +53,61 @@
 ## 🚧 Phase 3: Advanced Features (진행 중)
 
 ### 우선순위 2: 핵심 워크플로
-- [ ] Scorecard, Brief, PlayDashboard API 라우터 DB 연동
-- [ ] WF-02 Interview-to-Brief 구현
-- [ ] WF-04 Inbound Triage 구현
-- [ ] Scorecard 평가 로직 구현
-- [ ] Brief 생성 로직 구현
+- [x] Scorecard API 라우터 DB 연동 ✅ v0.3.0
+- [x] Brief API 라우터 DB 연동 ✅ v0.3.0
+- [x] PlayDashboard API 라우터 DB 연동 ✅ v0.3.0
+- [x] WF-02 Interview-to-Brief 구현 ✅ v0.3.0
+  - [x] Signal 추출 로직 (휴리스틱 기반, LLM 확장 가능)
+  - [x] Scorecard 평가 로직 (5차원 100점 평가)
+  - [x] Brief 초안 생성 로직 (승인 대기)
+- [x] WF-04 Inbound Triage 구현 ✅ v0.3.0
+  - [x] Signal 생성 로직 (Intake Form → Signal)
+  - [x] 중복 체크 알고리즘 (Jaccard 유사도 기반)
+  - [x] Play 라우팅 로직 (키워드 기반)
+  - [x] Scorecard 초안 생성 (5차원 100점 평가)
+  - [x] SLA 트래킹 (URGENT: 24h, NORMAL: 48h, LOW: 72h)
 
 ### 우선순위 3: 고급 기능
+
+- [x] **Ontology 기반 Knowledge Graph** ✅ v0.4.0
+  - [x] Entity 모델 (12종 EntityType)
+  - [x] Triple 모델 (15종 PredicateType, SPO 구조)
+  - [x] OntologyRepository (CRUD + 그래프 탐색)
+  - [x] Ontology API 라우터 (9개 엔드포인트)
+  - [x] XAI API 라우터 (5개 엔드포인트)
+  - [x] Alembic 마이그레이션
 - [ ] Confluence Database API 구현 (db_query, db_upsert_row)
-- [ ] 중복 Signal 체크 알고리즘
+- [x] 중복 Signal 체크 알고리즘 ✅ v0.3.0 (Jaccard 유사도 기반)
 - [ ] WF-05 KPI Digest 구현
 - [ ] Teams 연동 (MCP 서버)
 
 ---
 
-## 📅 Phase 4: UI & UX (계획)
+## 🚧 Phase 4: UI & UX (부분 완료)
 
-- [ ] 웹 UI (Next.js)
-  - [ ] Inbox 페이지
-  - [ ] Scorecard 페이지
-  - [ ] Brief 페이지
-  - [ ] Play Dashboard
+### 완료 항목 ✅ v0.3.0
+- [x] 모노레포 구조 (pnpm + Turborepo)
+- [x] 웹 UI (Next.js 15)
+  - [x] 메인 대시보드 (`/`)
+  - [x] Inbox 페이지 (`/inbox`)
+  - [x] Scorecard 페이지 (`/scorecard`)
+  - [x] Brief 페이지 (`/brief`)
+  - [x] Play Dashboard (`/plays`)
+  - [x] 세미나 등록 페이지 (`/seminar`)
+- [x] AXIS 디자인 시스템
+  - [x] AG-UI 이벤트 타입 (18종)
+  - [x] A2UI Surface 타입 (10종)
+  - [x] Agentic UI 컴포넌트 (8종)
+  - [x] SSE 실시간 스트리밍
+- [x] 공유 패키지
+  - [x] @ax/api-client (FastAPI 클라이언트)
+  - [x] @ax/types (TypeScript 타입 정의)
+  - [x] @ax/utils (유틸리티 함수)
+  - [x] @ax/config (공통 설정)
+  - [x] @ax/ui (shadcn/ui 컴포넌트)
+
+### 미완료 항목
+- [ ] 페이지별 API 연동 완성 (Scorecard, Brief, Play)
 - [ ] 모바일 앱 (PWA/React Native)
 
 ---
@@ -105,8 +139,11 @@
 **성공 조건**:
 
 - [x] 데이터베이스에 Signal 저장 ✅ v0.3.0
-- [ ] 데이터베이스에 Scorecard/Brief 저장
-- [ ] `/ax:triage` 실행 시 WF-04 성공
-- [ ] Scorecard 100점 만점 평가 동작
-- [ ] Brief 1-Page 포맷 자동 생성
+- [x] 웹 UI 기본 페이지 구현 ✅ v0.3.0
+- [x] AXIS 디자인 시스템 타입 정의 ✅ v0.3.0
+- [x] 데이터베이스에 Scorecard 저장 ✅ v0.3.0
+- [x] 데이터베이스에 Brief 저장 ✅ v0.3.0
+- [x] `/ax:triage` 실행 시 WF-04 성공 ✅ v0.3.0
+- [x] Scorecard 100점 만점 평가 동작 ✅ v0.3.0
+- [x] Brief 1-Page 포맷 자동 생성 ✅ v0.3.0
 - [ ] pytest 전체 테스트 통과 (80%+ 커버리지)

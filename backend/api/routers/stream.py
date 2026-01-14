@@ -21,6 +21,14 @@ from backend.agent_runtime.workflows.wf_seminar_pipeline import (
     SeminarInput,
     SeminarPipelineWithEvents,
 )
+from backend.agent_runtime.workflows.wf_interview_to_brief import (
+    InterviewInput,
+    InterviewToBriefPipelineWithEvents,
+)
+from backend.agent_runtime.workflows.wf_inbound_triage import (
+    InboundInput,
+    InboundTriagePipelineWithEvents,
+)
 
 logger = structlog.get_logger()
 
@@ -105,6 +113,130 @@ async def stream_seminar_pipeline(
     return EventSourceResponse(event_generator(event_manager, queue))
 
 
+@router.post("/workflow/WF-02")
+async def stream_interview_pipeline(
+    content: str = Query(..., description="인터뷰 노트 내용"),
+    play_id: str | None = Query(None, description="Play ID"),
+    customer: str | None = Query(None, description="고객/세그먼트"),
+    source: str = Query("KT", description="원천 (KT, 그룹사, 대외)"),
+    channel: str = Query("영업PM", description="채널"),
+    interviewee: str | None = Query(None, description="인터뷰 대상자"),
+) -> EventSourceResponse:
+    """
+    WF-02 Interview-to-Brief 파이프라인 실행 및 이벤트 스트림
+
+    인터뷰 노트 → Signal 추출 → Scorecard 평가 → Brief 생성
+
+    SSE Content-Type: text/event-stream
+    이벤트 형식: event: EVENT_TYPE\\ndata: {JSON}\\n\\n
+    """
+    # 세션 및 실행 ID 생성
+    session_id = generate_session_id("WF-02")
+    run_id = generate_run_id()
+
+    logger.info(
+        "Starting interview-to-brief pipeline stream",
+        session_id=session_id,
+        run_id=run_id,
+        play_id=play_id,
+    )
+
+    # 이벤트 매니저 생성
+    event_manager = SessionEventManager.get_or_create(session_id)
+    emitter = WorkflowEventEmitter(event_manager, run_id)
+
+    # 구독자 등록
+    queue = event_manager.subscribe()
+
+    # 워크플로 실행 (비동기)
+    async def run_workflow() -> None:
+        try:
+            pipeline = InterviewToBriefPipelineWithEvents(emitter)
+            input_data = InterviewInput(
+                content=content,
+                play_id=play_id,
+                customer=customer,
+                source=source,
+                channel=channel,
+                interviewee=interviewee,
+            )
+            await pipeline.run(input_data)
+        except Exception as e:
+            logger.error("Workflow error", error=str(e))
+            await emitter.emit_run_error(str(e), recoverable=False)
+
+    # 워크플로를 백그라운드에서 실행
+    asyncio.create_task(run_workflow())
+
+    return EventSourceResponse(event_generator(event_manager, queue))
+
+
+@router.post("/workflow/WF-04")
+async def stream_inbound_triage(
+    title: str = Query(..., description="제목"),
+    description: str = Query(..., description="설명"),
+    customer_segment: str | None = Query(None, description="고객/세그먼트"),
+    pain: str | None = Query(None, description="Pain Point"),
+    submitter: str | None = Query(None, description="제출자"),
+    urgency: str = Query("NORMAL", description="긴급도 (URGENT, NORMAL, LOW)"),
+    source: str = Query("KT", description="원천 (KT, 그룹사, 대외)"),
+) -> EventSourceResponse:
+    """
+    WF-04 Inbound Triage 파이프라인 실행 및 이벤트 스트림
+
+    Intake Form → Signal 생성 → 중복 체크 → Scorecard 초안 → SLA 설정
+
+    SSE Content-Type: text/event-stream
+    이벤트 형식: event: EVENT_TYPE\\ndata: {JSON}\\n\\n
+
+    SLA:
+    - URGENT: 24시간
+    - NORMAL: 48시간
+    - LOW: 72시간
+    """
+    # 세션 및 실행 ID 생성
+    session_id = generate_session_id("WF-04")
+    run_id = generate_run_id()
+
+    logger.info(
+        "Starting inbound triage pipeline stream",
+        session_id=session_id,
+        run_id=run_id,
+        title=title,
+        urgency=urgency,
+    )
+
+    # 이벤트 매니저 생성
+    event_manager = SessionEventManager.get_or_create(session_id)
+    emitter = WorkflowEventEmitter(event_manager, run_id)
+
+    # 구독자 등록
+    queue = event_manager.subscribe()
+
+    # 워크플로 실행 (비동기)
+    async def run_workflow() -> None:
+        try:
+            pipeline = InboundTriagePipelineWithEvents(emitter)
+            input_data = InboundInput(
+                title=title,
+                description=description,
+                customer_segment=customer_segment,
+                pain=pain,
+                submitter=submitter,
+                urgency=urgency,
+                source=source,
+            )
+            await pipeline.run(input_data)
+        except Exception as e:
+            logger.error("Workflow error", error=str(e))
+            await emitter.emit_run_error(str(e), recoverable=False)
+
+    # 워크플로를 백그라운드에서 실행
+    asyncio.create_task(run_workflow())
+
+    return EventSourceResponse(event_generator(event_manager, queue))
+
+
 @router.get("/workflow/{workflow_id}")
 async def stream_workflow(
     workflow_id: str,
@@ -114,12 +246,26 @@ async def stream_workflow(
     범용 워크플로 실행 및 이벤트 스트림
 
     현재 지원 워크플로:
-    - WF-01: 세미나 파이프라인 (별도 엔드포인트 권장)
+    - WF-01: 세미나 파이프라인 (/api/stream/workflow/WF-01)
+    - WF-02: 인터뷰-to-Brief (/api/stream/workflow/WF-02)
+    - WF-04: 인바운드 Triage (/api/stream/workflow/WF-04)
     """
     if workflow_id == "WF-01":
         raise HTTPException(
             status_code=400,
             detail="WF-01은 /api/stream/workflow/WF-01 엔드포인트를 사용하세요",
+        )
+
+    if workflow_id == "WF-02":
+        raise HTTPException(
+            status_code=400,
+            detail="WF-02는 POST /api/stream/workflow/WF-02 엔드포인트를 사용하세요",
+        )
+
+    if workflow_id == "WF-04":
+        raise HTTPException(
+            status_code=400,
+            detail="WF-04는 POST /api/stream/workflow/WF-04 엔드포인트를 사용하세요",
         )
 
     # TODO: 다른 워크플로 지원 추가

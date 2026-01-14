@@ -9,6 +9,8 @@ from .scorecard import Scorecard, Decision, NextStep
 from .brief import OpportunityBrief, ValidationMethod, BriefStatus
 from .play_record import PlayRecord, PlayStatus
 from .action_log import ActionLog, ActionType
+from .entity import Entity, EntityType
+from .triple import Triple, PredicateType
 
 __all__ = [
     # Signal
@@ -30,4 +32,10 @@ __all__ = [
     # ActionLog
     "ActionLog",
     "ActionType",
+    # Ontology - Entity
+    "Entity",
+    "EntityType",
+    # Ontology - Triple
+    "Triple",
+    "PredicateType",
 ]

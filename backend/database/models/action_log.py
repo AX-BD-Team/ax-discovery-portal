@@ -53,7 +53,7 @@ class ActionLog(Base):
     workflow_id: Mapped[Optional[str]] = mapped_column(String(100))
 
     # 추가 메타데이터
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON)
+    extra_data: Mapped[Optional[dict]] = mapped_column(JSON)
 
     # 타임스탬프
     created_at: Mapped[datetime] = mapped_column(

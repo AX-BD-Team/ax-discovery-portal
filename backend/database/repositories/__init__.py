@@ -9,6 +9,7 @@ from .signal import signal_repo, SignalRepository
 from .scorecard import scorecard_repo, ScorecardRepository
 from .brief import brief_repo, BriefRepository
 from .play_record import play_record_repo, PlayRecordRepository
+from .ontology import ontology_repo, OntologyRepository
 
 __all__ = [
     # Base
@@ -25,4 +26,7 @@ __all__ = [
     # PlayRecord
     "play_record_repo",
     "PlayRecordRepository",
+    # Ontology
+    "ontology_repo",
+    "OntologyRepository",
 ]

@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import structlog
 
-from .routers import inbox, scorecard, brief, play_dashboard, stream
+from .routers import inbox, scorecard, brief, play_dashboard, stream, workflows, ontology, xai
 
 
 logger = structlog.get_logger()
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AX Discovery Portal API",
     description="AX BD팀 멀티에이전트 기반 사업기회 포착 엔진",
-    version="0.1.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -63,7 +63,11 @@ app.include_router(inbox.router, prefix="/api/inbox", tags=["inbox"])
 app.include_router(scorecard.router, prefix="/api/scorecard", tags=["scorecard"])
 app.include_router(brief.router, prefix="/api/brief", tags=["brief"])
 app.include_router(play_dashboard.router, prefix="/api/plays", tags=["plays"])
+app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
 app.include_router(stream.router, tags=["stream"])
+# Ontology & XAI
+app.include_router(ontology.router, prefix="/api", tags=["ontology"])
+app.include_router(xai.router, prefix="/api", tags=["xai"])
 
 
 @app.get("/")

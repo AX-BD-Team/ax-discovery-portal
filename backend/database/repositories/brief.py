@@ -139,7 +139,7 @@ class BriefRepository(CRUDBase[OpportunityBrief]):
         """
         # 총 Brief 수
         total_result = await db.execute(select(func.count()).select_from(OpportunityBrief))
-        total = total_result.scalar()
+        total = total_result.scalar() or 0
 
         # 상태별 개수
         status_stats = {}
@@ -147,12 +147,42 @@ class BriefRepository(CRUDBase[OpportunityBrief]):
             count_result = await db.execute(
                 select(func.count()).select_from(OpportunityBrief).where(OpportunityBrief.status == status)
             )
-            status_stats[status.value] = count_result.scalar()
+            status_stats[status.value] = count_result.scalar() or 0
 
         return {
             "total": total,
             "by_status": status_stats
         }
+
+    async def update_status(
+        self,
+        db: AsyncSession,
+        brief_id: str,
+        status: BriefStatus,
+        confluence_url: Optional[str] = None
+    ) -> Optional[OpportunityBrief]:
+        """
+        Brief 상태 업데이트
+
+        Args:
+            db: 데이터베이스 세션
+            brief_id: Brief ID
+            status: 새 상태
+            confluence_url: Confluence URL (승인 시)
+
+        Returns:
+            OpportunityBrief | None
+        """
+        brief = await self.get_by_id(db, brief_id)
+        if not brief:
+            return None
+
+        brief.status = status
+        if confluence_url:
+            brief.confluence_url = confluence_url
+
+        await db.flush()
+        return brief
 
 
 # 싱글톤 인스턴스

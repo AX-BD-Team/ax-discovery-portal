@@ -7,56 +7,215 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.1.0] - 2025-01-14
+## [Unreleased]
 
 ### Added
-- 프로젝트 초기 스캐폴딩
-- 6개 에이전트 정의 (orchestrator, external_scout, scorecard_evaluator, brief_writer, confluence_sync, governance)
-- 5개 Skills (ax-scorecard, ax-brief, ax-sprint, ax-seminar, ax-confluence)
-- 4개 Commands (/ax:seminar-add, /ax:triage, /ax:brief, /ax:kpi-digest)
-- 7개 JSON Schema 데이터 모델 (signal, scorecard, brief, validation, pilot_ready, play_record, action_log)
-- 6개 워크플로우 골격 (WF-01~06)
-- FastAPI 백엔드 API 라우터 (inbox, scorecard, brief, play_dashboard)
-- Confluence MCP 서버 (페이지 CRUD 기능)
-- pytest 테스트 케이스
-- 프로젝트 문서 (README.md, CLAUDE.md, docs/scaffold.md)
 
-### Known Issues
-- Claude Agent SDK 미연동 (import 주석 처리)
-- 데이터베이스 미연동 (API 더미 응답)
-- Confluence Database API 미구현 (스텁 상태)
-- Teams 연동 미구현
-- 웹/모바일 UI 미구현
+- **Ontology 기반 Knowledge Graph 구조** ✨
+  - Entity 모델 (12종 EntityType: Signal, Topic, Scorecard, Brief, Customer, Technology, Competitor, Industry, Evidence, Source, ReasoningStep, Play)
+  - Triple 모델 (15종 PredicateType: has_pain, has_scorecard, similar_to, targets, supported_by, leads_to 등)
+  - SPO (Subject-Predicate-Object) 구조 Triple Store
+  - 3방향 인덱스 (SPO, POS, OSP) 최적화
+- Ontology API 라우터 (`/api/ontology`)
+  - `POST /entities`: 엔티티 생성
+  - `GET /entities/{id}`: 엔티티 조회
+  - `GET /entities`: 엔티티 목록 (타입/검색 필터)
+  - `POST /triples`: 관계 생성
+  - `GET /triples`: SPO 패턴 쿼리
+  - `GET /graph/{id}`: 그래프 탐색 (depth 지정)
+  - `GET /path/{src}/{dst}`: 경로 탐색 (BFS)
+  - `GET /similar/{id}`: 유사 엔티티 검색
+  - `GET /stats`: 온톨로지 통계
+- XAI (설명가능한 AI) API 라우터 (`/api/xai`)
+  - `GET /explain/scorecard/{id}`: Scorecard 평가 근거 설명
+  - `GET /trace/signal/{id}`: Signal 출처 추적
+  - `GET /confidence/{id}`: 신뢰도 분석
+  - `GET /evidence-chain/{id}`: Evidence Chain 조회
+  - `GET /reasoning-path/{id}`: 추론 경로 조회
+- OntologyRepository: Entity/Triple CRUD + 그래프 탐색 기능
+  - `get_entity_graph()`: 엔티티 중심 그래프 조회
+  - `find_path()`: BFS 최단 경로 탐색
+  - `get_similar_entities()`: similar_to 관계 기반 유사 엔티티
+  - `get_reasoning_path()`: leads_to 관계 역추적
+- Alembic 마이그레이션 (entities, triples 테이블)
+
+- Scorecard API 라우터 DB 연동
+  - `GET /api/scorecard`: 목록 조회 (decision, min_score, max_score 필터)
+  - `GET /api/scorecard/{signal_id}`: Signal의 Scorecard 조회
+  - `POST /api/scorecard`: 수동 Scorecard 생성 (DB 저장)
+  - `POST /api/scorecard/evaluate/{signal_id}`: 평가 시작 (AI/수동)
+  - `GET /api/scorecard/stats/distribution`: 점수 분포 통계
+- Scorecard 리포지토리 확장
+  - `get_multi_filtered()`: 필터링된 목록 조회
+  - `get_distribution_stats()`: GO/PIVOT/HOLD/NO_GO 분포 및 Red-flag 비율
+- Brief API 라우터 DB 연동
+  - `GET /api/brief`: 목록 조회 (status, owner 필터)
+  - `GET /api/brief/{brief_id}`: Brief 상세 조회
+  - `POST /api/brief`: 수동 Brief 생성 (DB 저장)
+  - `POST /api/brief/generate/{signal_id}`: Brief 자동 생성 (AI)
+  - `POST /api/brief/{brief_id}/approve`: Brief 승인 + Confluence 게시
+  - `POST /api/brief/{brief_id}/start-validation`: Validation 시작
+  - `POST /api/brief/{brief_id}/complete-validation`: Validation 완료 (S3 전환)
+  - `GET /api/brief/stats`: 상태별 통계
+- Brief 리포지토리 확장
+  - `update_status()`: 상태 업데이트 + Confluence URL 설정
+
+- PlayDashboard API 라우터 DB 연동
+  - `GET /api/play`: 목록 조회 (status, owner 필터, 페이지네이션)
+  - `GET /api/play/{play_id}`: Play 상세 조회
+  - `GET /api/play/{play_id}/timeline`: Play 타임라인 조회
+  - `POST /api/play`: Play 생성 (DB 저장)
+  - `PATCH /api/play/{play_id}`: Play 업데이트 (status, next_action, due_date, owner)
+  - `POST /api/play/{play_id}/increment/{metric}`: 지표 증가 (activity, signal, brief, s2, s3)
+  - `POST /api/play/{play_id}/sync`: Confluence 동기화 (TODO)
+  - `GET /api/play/kpi/digest`: KPI 요약 리포트 (period별 목표 대비 실적)
+  - `GET /api/play/kpi/alerts`: 지연/병목 경고 (Yellow/Red, 기한초과, 7일 비활동)
+  - `GET /api/play/leaderboard`: Play 성과 순위
+- PlayRecord 리포지토리 확장
+  - `get_multi_filtered()`: 필터링된 목록 조회 (status, owner, 페이지네이션)
+  - `get_stats()`: 전체 통계 (Play수, Activity/Signal/Brief/S2/S3 합계)
+  - `get_kpi_digest()`: KPI 요약 (주간/월간 목표 대비 실적, 상태별 분포)
+  - `get_alerts()`: 경고 조회 (Yellow/Red Play, 기한초과, 비활동)
+  - `update_status()`: 상태 업데이트 (next_action, due_date 포함)
+  - `get_timeline()`: 타임라인 조회 (TODO: ActionLog 연동)
+  - `get_leaderboard()`: 성과 순위 (Signal 기준 상위 Play)
+
+- WF-02 Interview-to-Brief 워크플로 구현
+  - `InterviewToBriefPipeline`: 기본 파이프라인 클래스
+  - `InterviewToBriefPipelineWithEvents`: AG-UI 이벤트 발행 버전
+  - `InterviewToBriefPipelineWithDB`: DB 연동 버전
+  - Signal 추출 로직 (Pain Point 키워드 기반)
+  - Scorecard 평가 로직 (5차원 100점 평가)
+  - Brief 초안 생성 로직 (승인 대기)
+  - Red Flag 탐지 (데이터 접근불가, Buyer 부재, 규제 이슈)
+  - 4단계 워크플로: Signal 추출 → Scorecard 평가 → Brief 생성 → DB 저장
+- WF-02 API 엔드포인트
+  - `POST /api/stream/workflow/WF-02`: SSE 스트리밍 실행
+  - `POST /api/workflows/interview-to-brief`: REST API 실행 (DB 저장 포함)
+  - `POST /api/workflows/interview-to-brief/preview`: Signal 추출 미리보기
+
+- WF-04 Inbound Triage 워크플로 구현
+  - `InboundTriagePipeline`: 기본 파이프라인 클래스
+  - `InboundTriagePipelineWithEvents`: AG-UI 이벤트 발행 버전
+  - `InboundTriagePipelineWithDB`: DB 연동 버전
+  - Signal 생성 로직 (Intake Form → Signal)
+  - 중복 체크 알고리즘 (Jaccard 유사도 기반, 임계값 0.7)
+  - Play 라우팅 로직 (키워드 기반 자동 배정)
+  - Scorecard 초안 생성 (5차원 100점 평가 재사용)
+  - SLA 트래킹 (URGENT: 24h, NORMAL: 48h, LOW: 72h)
+  - 5단계 워크플로: Signal 생성 → 중복 체크 → Play 라우팅 → Scorecard 생성 → SLA 설정
+- WF-04 API 엔드포인트
+  - `POST /api/stream/workflow/WF-04`: SSE 스트리밍 실행
+  - `POST /api/workflows/inbound-triage`: REST API 실행 (DB 저장 포함)
+  - `POST /api/workflows/inbound-triage/preview`: Play 라우팅/SLA 미리보기
+
+### In Planning
+- WF-05 KPI Digest 구현
+- Confluence Database API 구현 (db_query, db_upsert_row)
+- AI Agent 기반 Scorecard 평가 (LLM 활용)
+- AI Agent 기반 Brief 생성 (LLM 활용)
+- 모바일 앱 (PWA/React Native)
 
 ---
 
 ## [0.3.0] - 2026-01-14
 
-### Added
+### Added - PostgreSQL 데이터베이스 연동
 
-- PostgreSQL 데이터베이스 연동 완료
-  - SQLAlchemy 2.0 비동기 ORM 통합
-  - 5개 테이블 정의 (signals, scorecards, opportunity_briefs, play_records, action_logs)
-  - Enum 타입 (SignalSource, SignalChannel, SignalStatus, Decision, NextStep 등)
-  - JSON/JSONB 필드 (evidence, kpi_hypothesis, dimension_scores 등)
-  - 외래키 관계 및 인덱스 설정
-  - TimestampMixin (created_at, updated_at 자동 관리)
-- Alembic 마이그레이션 시스템
-  - 비동기 마이그레이션 환경 설정
-  - 초기 스키마 마이그레이션 준비
-  - Enum 타입 자동 생성 지원
-- CRUD 저장소 패턴
-  - CRUDBase 제네릭 클래스
-  - Signal, Scorecard, Brief, PlayRecord 저장소 구현
-  - ID 자동 생성 (SIG-YYYY-NNN, SCR-YYYY-NNN, BRF-YYYY-NNN 형식)
-  - 필터링 및 페이지네이션 지원
-  - 통계 쿼리 (get_stats)
-- Agent Runtime 단위 테스트 (80%+ 커버리지 목표)
-  - 17개 Runner 테스트 (에이전트 로딩, MCP 연결, 세션 관리, 워크플로 라우팅)
-  - 12개 EventManager 테스트 (이벤트 발행/구독, 싱글톤, 스트리밍)
-  - 12개 Workflow 테스트 (메타데이터 추출, Activity 생성, AAR 템플릿, Confluence 업데이트)
-  - pytest fixtures (mock_env, sample_agent_markdown, mock_confluence_mcp 등)
-  - AsyncMock 및 httpx Mock 패턴
+- SQLAlchemy 2.0 비동기 ORM 통합
+- 5개 테이블 정의 (signals, scorecards, opportunity_briefs, play_records, action_logs)
+- Enum 타입 (SignalSource, SignalChannel, SignalStatus, Decision, NextStep 등)
+- JSON/JSONB 필드 (evidence, kpi_hypothesis, dimension_scores 등)
+- 외래키 관계 및 인덱스 설정
+- TimestampMixin (created_at, updated_at 자동 관리)
+
+### Added - Alembic 마이그레이션 시스템
+
+- 비동기 마이그레이션 환경 설정
+- 초기 스키마 마이그레이션 준비
+- Enum 타입 자동 생성 지원
+
+### Added - CRUD 저장소 패턴
+
+- CRUDBase 제네릭 클래스
+- Signal, Scorecard, Brief, PlayRecord 저장소 구현
+- ID 자동 생성 (SIG-YYYY-NNN, SCR-YYYY-NNN, BRF-YYYY-NNN 형식)
+- 필터링 및 페이지네이션 지원
+- 통계 쿼리 (get_stats)
+
+### Added - Agent Runtime 단위 테스트 (80%+ 커버리지 목표)
+
+- 17개 Runner 테스트 (에이전트 로딩, MCP 연결, 세션 관리, 워크플로 라우팅)
+- 12개 EventManager 테스트 (이벤트 발행/구독, 싱글톤, 스트리밍)
+- 12개 Workflow 테스트 (메타데이터 추출, Activity 생성, AAR 템플릿, Confluence 업데이트)
+- pytest fixtures (mock_env, sample_agent_markdown, mock_confluence_mcp 등)
+- AsyncMock 및 httpx Mock 패턴
+
+### Added - AXIS 디자인 시스템 (SSDD 완료)
+
+#### Phase 1: 타입/이벤트 스키마 정의
+
+- `packages/shared/types/src/agui-events.ts` - AG-UI 이벤트 타입 (18종)
+- `packages/shared/types/src/a2ui-surfaces.ts` - A2UI Surface 타입 (10종)
+
+#### Phase 2: 백엔드 SSE 구현
+
+- `backend/agent_runtime/event_manager.py` - 세션 이벤트 관리자
+- `backend/agent_runtime/event_types.py` - Python 이벤트 dataclass
+- `backend/api/routers/stream.py` - SSE 엔드포인트 (`/api/stream/workflow/WF-01`)
+- `pyproject.toml`에 `sse-starlette>=2.2.1` 의존성 추가
+
+#### Phase 3: Agentic UI 컴포넌트 (8종)
+
+- `AgentRunContainer` - 워크플로 실행 컨테이너
+- `StepIndicator` - 단계 진행률 표시
+- `StreamingText` - 실시간 텍스트 스트리밍
+- `SurfaceRenderer` - A2UI Surface 렌더링
+- `ActivityPreviewCard` - Activity 미리보기 (WF-01)
+- `AARTemplateCard` - AAR 템플릿 표시
+- `ApprovalDialog` - Human-in-the-Loop 승인
+- `ToolCallCard` - 도구 호출 상태
+
+#### Phase 4: 프론트엔드 통합
+
+- `packages/shared/api-client/src/hooks/useAgentStream.ts` - SSE 구독 훅
+- `apps/web/src/stores/agentStore.ts` - Zustand 상태 관리
+- `apps/web/src/app/seminar/page.tsx` - 세미나 등록 페이지
+
+#### Phase 5: WF-01 이벤트 통합
+
+- `wf_seminar_pipeline.py`에 `SeminarPipelineWithEvents` 클래스 추가
+- 단계별 이벤트 발행 (run_started, step_started/finished, surface, run_finished)
+
+#### Phase 6: Human-in-the-Loop
+
+- `ApprovalDialog` - 위험도 4단계 표시 + 변경사항 diff
+- `ToolCallCard` - 도구 호출 상태 표시 + 인자/결과
+
+### Added - 모노레포 구조
+
+- pnpm + Turbo 기반 모노레포 설정
+- `apps/web` - Next.js 15 웹앱
+- `packages/ui` - @ax/ui 컴포넌트 라이브러리
+- `packages/shared/types` - @ax/types 타입 정의
+- `packages/shared/api-client` - @ax/api-client API 클라이언트
+- `packages/shared/utils` - @ax/utils 유틸리티
+- `packages/shared/config` - @ax/config 설정
+
+### Added - CI/CD
+
+- `.github/workflows/frontend.yml` - 프론트엔드 CI/CD
+- `.github/workflows/ci-backend.yml` - 백엔드 CI
+- `.github/workflows/cd-backend.yml` - 백엔드 CD
+
+### Added - 웹 페이지
+
+- `/` - 메인 대시보드
+- `/inbox` - Signal 관리 (Triage)
+- `/seminar` - 세미나 등록 (WF-01)
+- `/scorecard` - Scorecard 평가
+- `/brief` - Brief 관리
+- `/plays` - Play 대시보드
 
 ### Changed
 
@@ -128,80 +287,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.3.0] - 2026-01-14
+## [0.1.0] - 2025-01-14
 
-### Added - AXIS 디자인 시스템 (SSDD 완료)
+### Added
 
-#### Phase 1: 타입/이벤트 스키마 정의
+- 프로젝트 초기 스캐폴딩
+- 6개 에이전트 정의 (orchestrator, external_scout, scorecard_evaluator, brief_writer, confluence_sync, governance)
+- 5개 Skills (ax-scorecard, ax-brief, ax-sprint, ax-seminar, ax-confluence)
+- 4개 Commands (/ax:seminar-add, /ax:triage, /ax:brief, /ax:kpi-digest)
+- 7개 JSON Schema 데이터 모델 (signal, scorecard, brief, validation, pilot_ready, play_record, action_log)
+- 6개 워크플로우 골격 (WF-01~06)
+- FastAPI 백엔드 API 라우터 (inbox, scorecard, brief, play_dashboard)
+- Confluence MCP 서버 (페이지 CRUD 기능)
+- pytest 테스트 케이스
+- 프로젝트 문서 (README.md, CLAUDE.md, docs/scaffold.md)
 
-- `packages/shared/types/src/agui-events.ts` - AG-UI 이벤트 타입 (18종)
-- `packages/shared/types/src/a2ui-surfaces.ts` - A2UI Surface 타입 (10종)
+### Known Issues
 
-#### Phase 2: 백엔드 SSE 구현
-
-- `backend/agent_runtime/event_manager.py` - 세션 이벤트 관리자
-- `backend/agent_runtime/event_types.py` - Python 이벤트 dataclass
-- `backend/api/routers/stream.py` - SSE 엔드포인트 (`/api/stream/workflow/WF-01`)
-- `pyproject.toml`에 `sse-starlette>=2.2.1` 의존성 추가
-
-#### Phase 3: Agentic UI 컴포넌트 (8종)
-
-- `AgentRunContainer` - 워크플로 실행 컨테이너
-- `StepIndicator` - 단계 진행률 표시
-- `StreamingText` - 실시간 텍스트 스트리밍
-- `SurfaceRenderer` - A2UI Surface 렌더링
-- `ActivityPreviewCard` - Activity 미리보기 (WF-01)
-- `AARTemplateCard` - AAR 템플릿 표시
-- `ApprovalDialog` - Human-in-the-Loop 승인
-- `ToolCallCard` - 도구 호출 상태
-
-#### Phase 4: 프론트엔드 통합
-
-- `packages/shared/api-client/src/hooks/useAgentStream.ts` - SSE 구독 훅
-- `apps/web/src/stores/agentStore.ts` - Zustand 상태 관리
-- `apps/web/src/app/seminar/page.tsx` - 세미나 등록 페이지
-
-#### Phase 5: WF-01 이벤트 통합
-
-- `wf_seminar_pipeline.py`에 `SeminarPipelineWithEvents` 클래스 추가
-- 단계별 이벤트 발행 (run_started, step_started/finished, surface, run_finished)
-
-#### Phase 6: Human-in-the-Loop
-
-- `ApprovalDialog` - 위험도 4단계 표시 + 변경사항 diff
-- `ToolCallCard` - 도구 호출 상태 표시 + 인자/결과
-
-### Added - 모노레포 구조
-
-- pnpm + Turbo 기반 모노레포 설정
-- `apps/web` - Next.js 15 웹앱
-- `packages/ui` - @ax/ui 컴포넌트 라이브러리
-- `packages/shared/types` - @ax/types 타입 정의
-- `packages/shared/api-client` - @ax/api-client API 클라이언트
-- `packages/shared/utils` - @ax/utils 유틸리티
-- `packages/shared/config` - @ax/config 설정
-
-### Added - CI/CD
-
-- `.github/workflows/frontend.yml` - 프론트엔드 CI/CD
-- `.github/workflows/ci-backend.yml` - 백엔드 CI
-- `.github/workflows/cd-backend.yml` - 백엔드 CD
-
-### Added - 페이지
-
-- `/` - 메인 대시보드
-- `/inbox` - Signal 관리 (Triage)
-- `/seminar` - 세미나 등록 (WF-01)
-- `/plays` - Play 대시보드
-
----
-
-## [Unreleased]
-
-### In Planning
-
-- PostgreSQL 데이터베이스 연동
-- WF-02 Interview-to-Brief 구현
-- WF-04 Inbound Triage 구현
-- Scorecard 평가 로직 구현
-- Brief 생성 로직 구현
+- Claude Agent SDK 미연동 (import 주석 처리)
+- 데이터베이스 미연동 (API 더미 응답)
+- Confluence Database API 미구현 (스텁 상태)
+- Teams 연동 미구현
+- 웹/모바일 UI 미구현

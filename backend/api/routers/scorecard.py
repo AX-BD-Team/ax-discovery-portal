@@ -1,12 +1,18 @@
 """
 Scorecard Router
 
-Scorecard 평가 API
+Scorecard 평가 API - DB 연동
 """
 
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.api.deps import get_db
+from backend.database.repositories.scorecard import scorecard_repo
+from backend.database.repositories.signal import signal_repo
 
 
 router = APIRouter()
@@ -40,30 +46,113 @@ class ScorecardResponse(BaseModel):
     """Scorecard 응답"""
     scorecard_id: str
     signal_id: str
-    total_score: int
-    dimension_scores: DimensionScores
+    total_score: float
+    dimension_scores: dict
     red_flags: list[str]
-    recommendation: Recommendation
-    scored_by: str
+    recommendation: dict
+    scored_by: str | None
     scored_at: datetime
 
+    class Config:
+        from_attributes = True
 
-@router.get("/{signal_id}")
-async def get_scorecard(signal_id: str):
+
+class ScorecardListResponse(BaseModel):
+    """Scorecard 목록 응답"""
+    items: list[ScorecardResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+@router.get("", response_model=ScorecardListResponse)
+async def list_scorecards(
+    db: AsyncSession = Depends(get_db),
+    decision: Annotated[str | None, Query(description="판정 필터 (GO, PIVOT, HOLD, NO_GO)")] = None,
+    min_score: Annotated[float | None, Query(description="최소 점수 필터")] = None,
+    max_score: Annotated[float | None, Query(description="최대 점수 필터")] = None,
+    page: int = 1,
+    page_size: int = 20,
+):
+    """Scorecard 목록 조회"""
+    skip = (page - 1) * page_size
+    items, total = await scorecard_repo.get_multi_filtered(
+        db, decision, min_score, max_score, skip, page_size
+    )
+
+    return ScorecardListResponse(
+        items=[
+            ScorecardResponse(
+                scorecard_id=item.scorecard_id,
+                signal_id=item.signal_id,
+                total_score=item.total_score,
+                dimension_scores=item.dimension_scores,
+                red_flags=item.red_flags or [],
+                recommendation=item.recommendation,
+                scored_by=item.scored_by,
+                scored_at=item.scored_at
+            )
+            for item in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size
+    )
+
+
+@router.get("/stats/distribution")
+async def get_score_distribution(db: AsyncSession = Depends(get_db)):
+    """Scorecard 점수 분포 통계"""
+    return await scorecard_repo.get_distribution_stats(db)
+
+
+@router.get("/{signal_id}", response_model=ScorecardResponse)
+async def get_scorecard(signal_id: str, db: AsyncSession = Depends(get_db)):
     """Signal의 Scorecard 조회"""
-    # TODO: DB 조회
-    raise HTTPException(status_code=404, detail="Scorecard not found")
+    scorecard = await scorecard_repo.get_by_signal_id(db, signal_id)
+    if not scorecard:
+        raise HTTPException(status_code=404, detail="Scorecard not found")
+
+    return ScorecardResponse(
+        scorecard_id=scorecard.scorecard_id,
+        signal_id=scorecard.signal_id,
+        total_score=scorecard.total_score,
+        dimension_scores=scorecard.dimension_scores,
+        red_flags=scorecard.red_flags or [],
+        recommendation=scorecard.recommendation,
+        scored_by=scorecard.scored_by,
+        scored_at=scorecard.scored_at
+    )
 
 
 @router.post("/evaluate/{signal_id}")
-async def evaluate_signal(signal_id: str, auto: bool = True):
+async def evaluate_signal(
+    signal_id: str,
+    db: AsyncSession = Depends(get_db),
+    auto: bool = True
+):
     """
     Signal 자동 평가
-    
+
     Args:
         signal_id: 평가할 Signal ID
         auto: True면 AI 자동 평가, False면 수동 평가 폼 반환
     """
+    # Signal 존재 확인
+    signal = await signal_repo.get_by_id(db, signal_id)
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+
+    # 이미 평가된 Signal인지 확인
+    existing = await scorecard_repo.get_by_signal_id(db, signal_id)
+    if existing:
+        return {
+            "status": "already_scored",
+            "signal_id": signal_id,
+            "scorecard_id": existing.scorecard_id,
+            "message": "이미 평가된 Signal입니다."
+        }
+
     if auto:
         # TODO: ScorecardEvaluator Agent 호출
         return {
@@ -87,9 +176,25 @@ async def evaluate_signal(signal_id: str, auto: bool = True):
         }
 
 
-@router.post("")
-async def create_scorecard(scorecard: ScorecardCreate):
+@router.post("", response_model=ScorecardResponse)
+async def create_scorecard(
+    scorecard: ScorecardCreate,
+    db: AsyncSession = Depends(get_db)
+):
     """Scorecard 수동 생성"""
+    # Signal 존재 확인
+    signal = await signal_repo.get_by_id(db, scorecard.signal_id)
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+
+    # 이미 평가된 Signal인지 확인
+    existing = await scorecard_repo.get_by_signal_id(db, scorecard.signal_id)
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Signal already has scorecard: {existing.scorecard_id}"
+        )
+
     # 총점 계산
     scores = scorecard.dimension_scores
     total_score = (
@@ -99,7 +204,7 @@ async def create_scorecard(scorecard: ScorecardCreate):
         scores.feasibility +
         scores.strategic_fit
     )
-    
+
     # 추천 결정
     red_flags = scorecard.red_flags or []
     if total_score >= 70 and len(red_flags) == 0:
@@ -110,35 +215,36 @@ async def create_scorecard(scorecard: ScorecardCreate):
         decision, next_step = "HOLD", "NEED_MORE_EVIDENCE"
     else:
         decision, next_step = "NO_GO", "DROP"
-    
-    # TODO: DB 저장
-    scorecard_id = f"SCR-{datetime.now().year}-001"
-    
-    return ScorecardResponse(
-        scorecard_id=scorecard_id,
-        signal_id=scorecard.signal_id,
-        total_score=total_score,
-        dimension_scores=scorecard.dimension_scores,
-        red_flags=red_flags,
-        recommendation=Recommendation(
-            decision=decision,
-            next_step=next_step,
-            rationale=scorecard.rationale or ""
-        ),
-        scored_by="manual",
-        scored_at=datetime.utcnow()
-    )
 
+    # Scorecard ID 생성
+    scorecard_id = await scorecard_repo.generate_scorecard_id(db)
 
-@router.get("/stats/distribution")
-async def get_score_distribution():
-    """Scorecard 점수 분포 통계"""
-    return {
-        "total_scored": 0,
-        "go_count": 0,
-        "pivot_count": 0,
-        "hold_count": 0,
-        "no_go_count": 0,
-        "average_score": 0,
-        "red_flag_rate": 0
+    # DB 저장
+    scorecard_data = {
+        "scorecard_id": scorecard_id,
+        "signal_id": scorecard.signal_id,
+        "total_score": total_score,
+        "dimension_scores": scores.model_dump(),
+        "red_flags": red_flags,
+        "recommendation": {
+            "decision": decision,
+            "next_step": next_step,
+            "rationale": scorecard.rationale or ""
+        },
+        "scored_by": "manual"
     }
+
+    db_scorecard = await scorecard_repo.create(db, scorecard_data)
+    await db.commit()
+    await db.refresh(db_scorecard)
+
+    return ScorecardResponse(
+        scorecard_id=db_scorecard.scorecard_id,
+        signal_id=db_scorecard.signal_id,
+        total_score=db_scorecard.total_score,
+        dimension_scores=db_scorecard.dimension_scores,
+        red_flags=db_scorecard.red_flags or [],
+        recommendation=db_scorecard.recommendation,
+        scored_by=db_scorecard.scored_by,
+        scored_at=db_scorecard.scored_at
+    )

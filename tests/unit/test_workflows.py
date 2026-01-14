@@ -2,17 +2,30 @@
 Workflow 단위 테스트
 
 backend/agent_runtime/workflows/wf_seminar_pipeline.py 테스트
+backend/agent_runtime/workflows/wf_inbound_triage.py 테스트
 """
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from backend.agent_runtime.workflows.wf_seminar_pipeline import (
     SeminarPipeline,
     SeminarInput,
     ActivityOutput,
     AARTemplate,
+)
+from backend.agent_runtime.workflows.wf_inbound_triage import (
+    InboundTriagePipeline,
+    InboundInput,
+    InboundOutput,
+    Urgency,
+    SLA_HOURS,
+    calculate_text_similarity,
+    route_to_play,
+    calculate_sla_deadline,
+    create_scorecard_draft_from_signal,
+    determine_next_action,
 )
 
 
@@ -374,3 +387,313 @@ class TestHelperMethods:
 
         description = pipeline._extract_meta(html, "description")
         assert description == ""
+
+
+# ============================================================
+# WF-04: Inbound Triage 테스트
+# ============================================================
+
+class TestTextSimilarity:
+    """텍스트 유사도 계산 테스트"""
+
+    def test_identical_texts(self):
+        """동일 텍스트는 1.0 반환"""
+        text1 = "AI 기반 콜센터 자동화 솔루션"
+        text2 = "AI 기반 콜센터 자동화 솔루션"
+
+        similarity = calculate_text_similarity(text1, text2)
+        assert similarity == 1.0
+
+    def test_similar_texts(self):
+        """유사 텍스트는 높은 점수"""
+        text1 = "AI 기반 콜센터 자동화 솔루션"
+        text2 = "AI 콜센터 자동화 서비스"
+
+        similarity = calculate_text_similarity(text1, text2)
+        assert 0.4 <= similarity < 1.0  # Jaccard 유사도는 단어 기반이므로 0.5 포함
+
+    def test_different_texts(self):
+        """다른 텍스트는 낮은 점수"""
+        text1 = "AI 기반 콜센터"
+        text2 = "금융 데이터 분석"
+
+        similarity = calculate_text_similarity(text1, text2)
+        assert similarity < 0.3
+
+    def test_empty_text(self):
+        """빈 텍스트는 0.0 반환"""
+        assert calculate_text_similarity("", "test") == 0.0
+        assert calculate_text_similarity("test", "") == 0.0
+        assert calculate_text_similarity("", "") == 0.0
+
+
+class TestPlayRouting:
+    """Play 라우팅 테스트"""
+
+    def test_route_to_kt_play(self):
+        """KT 키워드 → KT_Sales_S01"""
+        play_id = route_to_play(
+            "KT 콜센터 AI 적용",
+            "고객 상담 자동화 필요",
+            "KT",
+        )
+        assert play_id == "KT_Sales_S01"
+
+    def test_route_to_ai_play(self):
+        """AI/데이터 키워드 → KT_Desk_D01_AI"""
+        play_id = route_to_play(
+            "데이터 분석 플랫폼",
+            "머신러닝 기반 예측 시스템",
+            "금융",
+        )
+        assert play_id == "KT_Desk_D01_AI"
+
+    def test_route_to_finance_play(self):
+        """금융 키워드 → GRP_Sales_S01_Finance"""
+        play_id = route_to_play(
+            "은행 업무 자동화",
+            "금융 서비스 개선",
+            "신한은행",
+        )
+        assert play_id == "GRP_Sales_S01_Finance"
+
+    def test_route_to_default_play(self):
+        """매칭 키워드 없으면 기본 Play"""
+        play_id = route_to_play(
+            "일반 문의",
+            "특별한 내용 없음",
+            None,
+        )
+        assert play_id == "KT_Inbound_I01"
+
+
+class TestSLACalculation:
+    """SLA 계산 테스트"""
+
+    def test_urgent_sla(self):
+        """URGENT = 24시간"""
+        deadline = calculate_sla_deadline("URGENT")
+        expected = datetime.utcnow() + timedelta(hours=24)
+
+        # 1분 이내 차이
+        assert abs((deadline - expected).total_seconds()) < 60
+
+    def test_normal_sla(self):
+        """NORMAL = 48시간"""
+        deadline = calculate_sla_deadline("NORMAL")
+        expected = datetime.utcnow() + timedelta(hours=48)
+
+        assert abs((deadline - expected).total_seconds()) < 60
+
+    def test_low_sla(self):
+        """LOW = 72시간"""
+        deadline = calculate_sla_deadline("LOW")
+        expected = datetime.utcnow() + timedelta(hours=72)
+
+        assert abs((deadline - expected).total_seconds()) < 60
+
+    def test_invalid_urgency_defaults_to_normal(self):
+        """유효하지 않은 긴급도 → NORMAL"""
+        deadline = calculate_sla_deadline("INVALID")
+        expected = datetime.utcnow() + timedelta(hours=48)
+
+        assert abs((deadline - expected).total_seconds()) < 60
+
+
+class TestScorecardDraftCreation:
+    """Scorecard 초안 생성 테스트"""
+
+    def test_create_scorecard_draft(self):
+        """Scorecard 초안 생성 확인"""
+        signal = {
+            "signal_id": "SIG-2026-TEST001",
+            "title": "AI 콜센터 자동화",
+            "pain": "고객 상담 대기 시간이 너무 길다",
+            "customer_segment": "KT",
+        }
+
+        draft = create_scorecard_draft_from_signal(signal)
+
+        assert draft.scorecard_id.startswith("SCR-")
+        assert draft.signal_id == "SIG-2026-TEST001"
+        assert draft.is_draft is True
+        assert 0 <= draft.total_score <= 100
+        assert draft.decision in ["GO", "PIVOT", "HOLD", "NO_GO"]
+
+    def test_dimension_scores_exist(self):
+        """5개 차원 점수 존재 확인"""
+        signal = {
+            "signal_id": "SIG-2026-TEST002",
+            "title": "테스트",
+            "pain": "테스트 Pain Point",
+        }
+
+        draft = create_scorecard_draft_from_signal(signal)
+
+        assert "problem_severity" in draft.dimension_scores
+        assert "willingness_to_pay" in draft.dimension_scores
+        assert "data_availability" in draft.dimension_scores
+        assert "feasibility" in draft.dimension_scores
+        assert "strategic_fit" in draft.dimension_scores
+
+        # 각 차원 0-20점
+        for dim, score in draft.dimension_scores.items():
+            assert 0 <= score <= 20
+
+
+class TestNextActionDetermination:
+    """다음 액션 결정 테스트"""
+
+    def test_duplicate_action(self):
+        """중복이면 MERGE_OR_CLOSE"""
+        action = determine_next_action("GO", is_duplicate=True)
+        assert action == "MERGE_OR_CLOSE"
+
+    def test_go_action(self):
+        """GO → CREATE_BRIEF"""
+        action = determine_next_action("GO", is_duplicate=False)
+        assert action == "CREATE_BRIEF"
+
+    def test_pivot_action(self):
+        """PIVOT → REVIEW_AND_ENHANCE"""
+        action = determine_next_action("PIVOT", is_duplicate=False)
+        assert action == "REVIEW_AND_ENHANCE"
+
+    def test_hold_action(self):
+        """HOLD → SCHEDULE_FOLLOW_UP"""
+        action = determine_next_action("HOLD", is_duplicate=False)
+        assert action == "SCHEDULE_FOLLOW_UP"
+
+    def test_nogo_action(self):
+        """NO_GO → ARCHIVE"""
+        action = determine_next_action("NO_GO", is_duplicate=False)
+        assert action == "ARCHIVE"
+
+
+class TestInboundTriagePipeline:
+    """InboundTriagePipeline 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_pipeline_run_success(self):
+        """파이프라인 성공 실행"""
+        pipeline = InboundTriagePipeline()
+
+        input_data = InboundInput(
+            title="AI 콜센터 자동화 문의",
+            description="고객 상담 대기 시간을 줄이고 싶습니다",
+            customer_segment="KT",
+            pain="대기 시간이 길어 고객 불만 증가",
+            submitter="홍길동",
+            urgency="NORMAL",
+            source="KT",
+        )
+
+        result = await pipeline.run(input_data)
+
+        # 결과 검증
+        assert result.signal_id.startswith("SIG-")
+        assert result.is_duplicate is False
+        assert result.play_id == "KT_Sales_S01"  # KT 키워드 매칭
+        assert result.scorecard is not None
+        assert result.scorecard["is_draft"] is True
+        assert result.next_action in ["CREATE_BRIEF", "REVIEW_AND_ENHANCE", "SCHEDULE_FOLLOW_UP", "ARCHIVE"]
+        assert result.sla_deadline is not None
+
+    @pytest.mark.asyncio
+    async def test_pipeline_urgent_sla(self):
+        """URGENT 긴급도 SLA 확인"""
+        pipeline = InboundTriagePipeline()
+
+        input_data = InboundInput(
+            title="긴급 요청",
+            description="즉시 처리 필요",
+            urgency="URGENT",
+        )
+
+        result = await pipeline.run(input_data)
+
+        # URGENT는 24시간 SLA
+        deadline = datetime.fromisoformat(result.sla_deadline)
+        expected_min = datetime.utcnow() + timedelta(hours=23)
+        expected_max = datetime.utcnow() + timedelta(hours=25)
+
+        assert expected_min < deadline < expected_max
+
+    @pytest.mark.asyncio
+    async def test_pipeline_with_ai_keywords(self):
+        """AI 키워드 Play 라우팅 확인"""
+        pipeline = InboundTriagePipeline()
+
+        input_data = InboundInput(
+            title="머신러닝 모델 개발",
+            description="데이터 분석 및 AI 적용 문의",
+            source="대외",
+        )
+
+        result = await pipeline.run(input_data)
+
+        assert result.play_id == "KT_Desk_D01_AI"
+
+    @pytest.mark.asyncio
+    async def test_pipeline_signal_creation(self):
+        """Signal 생성 필드 확인"""
+        pipeline = InboundTriagePipeline()
+
+        input_data = InboundInput(
+            title="테스트 Signal",
+            description="테스트 설명",
+            customer_segment="테스트 세그먼트",
+            pain="테스트 Pain",
+            submitter="테스터",
+            urgency="LOW",
+            source="그룹사",
+        )
+
+        # 내부 메서드 직접 테스트
+        play_id = route_to_play(
+            input_data.title,
+            input_data.description,
+            input_data.customer_segment,
+        )
+        signal = await pipeline._create_signal(input_data, play_id)
+
+        assert signal["title"] == "테스트 Signal"
+        assert signal["source"] == "그룹사"
+        assert signal["channel"] == "인바운드"
+        assert signal["pain"] == "테스트 Pain"
+        assert signal["owner"] == "테스터"
+        assert "inbound" in signal["tags"]
+        assert "low" in signal["tags"]
+
+
+class TestInboundTriagePipelineIntegration:
+    """WF-04 통합 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_full_pipeline_flow(self):
+        """전체 파이프라인 흐름 테스트"""
+        pipeline = InboundTriagePipeline()
+
+        input_data = InboundInput(
+            title="금융 AI 서비스 문의",
+            description="은행 업무 자동화를 위한 AI 솔루션이 필요합니다",
+            customer_segment="금융/은행",
+            pain="수동 업무로 인한 비효율",
+            submitter="김은행",
+            urgency="NORMAL",
+            source="그룹사",
+        )
+
+        result = await pipeline.run(input_data)
+
+        # 전체 흐름 검증
+        assert result.signal_id is not None
+        assert result.scorecard is not None
+        assert result.summary["status"] == "triage_completed"
+
+        # Scorecard 검증
+        scorecard = result.scorecard
+        assert scorecard["total_score"] >= 0
+        assert scorecard["total_score"] <= 100
+        assert "recommendation" in scorecard
+        assert scorecard["recommendation"]["decision"] in ["GO", "PIVOT", "HOLD", "NO_GO"]

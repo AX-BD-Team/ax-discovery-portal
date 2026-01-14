@@ -20,6 +20,8 @@ from backend.database.models import (
     OpportunityBrief,
     PlayRecord,
     ActionLog,
+    Entity,
+    Triple,
 )
 
 # this is the Alembic Config object, which provides
