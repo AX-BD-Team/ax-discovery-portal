@@ -27,14 +27,14 @@ export const playsApi = {
     if (params?.page_size) searchParams.append('page_size', params.page_size.toString())
 
     const query = searchParams.toString()
-    return apiClient.get(`api/play-dashboard${query ? `?${query}` : ''}`).json<PlayListResponse>()
+    return apiClient.get(`api/plays${query ? `?${query}` : ''}`).json<PlayListResponse>()
   },
 
   /**
    * Get play by ID
    */
   async getPlay(playId: string): Promise<PlayRecord> {
-    return apiClient.get(`api/play-dashboard/${playId}`).json<PlayRecord>()
+    return apiClient.get(`api/plays/${playId}`).json<PlayRecord>()
   },
 
   /**
@@ -45,21 +45,21 @@ export const playsApi = {
     limit?: number
   ): Promise<{ play_id: string; events: PlayTimelineEvent[] }> {
     const query = limit ? `?limit=${limit}` : ''
-    return apiClient.get(`api/play-dashboard/${playId}/timeline${query}`).json()
+    return apiClient.get(`api/plays/${playId}/timeline${query}`).json()
   },
 
   /**
    * Get KPI digest
    */
   async getKPIDigest(period: 'week' | 'month' = 'week'): Promise<KPIDigest> {
-    return apiClient.get(`api/play-dashboard/kpi/digest?period=${period}`).json<KPIDigest>()
+    return apiClient.get(`api/plays/kpi/digest?period=${period}`).json<KPIDigest>()
   },
 
   /**
    * Get KPI alerts
    */
   async getKPIAlerts(): Promise<KPIAlerts> {
-    return apiClient.get('api/play-dashboard/kpi/alerts').json<KPIAlerts>()
+    return apiClient.get('api/plays/kpi/alerts').json<KPIAlerts>()
   },
 
   /**
@@ -70,13 +70,13 @@ export const playsApi = {
     top_plays: Array<{ play_id: string; score: number }>
     top_contributors: Array<{ name: string; score: number }>
   }> {
-    return apiClient.get(`api/play-dashboard/leaderboard?period=${period}`).json()
+    return apiClient.get(`api/plays/leaderboard?period=${period}`).json()
   },
 
   /**
    * Sync play from Confluence
    */
   async syncPlay(playId: string): Promise<{ status: string; play_id: string; message: string }> {
-    return apiClient.post(`api/play-dashboard/${playId}/sync`).json()
+    return apiClient.post(`api/plays/${playId}/sync`).json()
   },
 }

@@ -6,25 +6,28 @@ Signal 생성/조회/필터링 API
 
 from datetime import datetime
 from typing import Annotated
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.api.deps import get_db
+from backend.database.repositories.signal import signal_repo
+from backend.database.models.signal import SignalSource, SignalChannel, SignalStatus
 
 
 router = APIRouter()
-
-# 인메모리 Activity 저장소
-ACTIVITY_STORE: dict[str, dict] = {}
 
 
 class SignalCreate(BaseModel):
     """Signal 생성 요청"""
     title: str
-    description: str
     source: str  # KT, 그룹사, 대외
     channel: str  # 데스크리서치, 자사활동, 영업PM, 인바운드, 아웃바운드
     play_id: str
+    pain: str  # 필수 필드
     customer_segment: str | None = None
-    pain: str | None = None
+    proposed_value: str | None = None
+    kpi_hypothesis: list[str] | None = None
     evidence: list[dict] | None = None
     tags: list[str] | None = None
     owner: str | None = None
@@ -34,12 +37,18 @@ class SignalResponse(BaseModel):
     """Signal 응답"""
     signal_id: str
     title: str
-    description: str
     source: str
     channel: str
     play_id: str
+    pain: str
     status: str
+    customer_segment: str | None = None
+    proposed_value: str | None = None
+    owner: str | None = None
     created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 class SignalListResponse(BaseModel):
@@ -52,6 +61,7 @@ class SignalListResponse(BaseModel):
 
 @router.get("", response_model=SignalListResponse)
 async def list_signals(
+    db: AsyncSession = Depends(get_db),
     source: Annotated[str | None, Query(description="원천 필터")] = None,
     channel: Annotated[str | None, Query(description="채널 필터")] = None,
     play_id: Annotated[str | None, Query(description="Play ID 필터")] = None,
@@ -60,38 +70,44 @@ async def list_signals(
     page_size: int = 20,
 ):
     """Signal 목록 조회"""
-    # TODO: DB 조회 구현
+    skip = (page - 1) * page_size
+    items, total = await signal_repo.get_multi_filtered(
+        db, source, channel, status, skip, page_size
+    )
+
     return SignalListResponse(
-        items=[],
-        total=0,
+        items=[SignalResponse.model_validate(item) for item in items],
+        total=total,
         page=page,
         page_size=page_size
     )
 
 
 @router.get("/{signal_id}", response_model=SignalResponse)
-async def get_signal(signal_id: str):
+async def get_signal(signal_id: str, db: AsyncSession = Depends(get_db)):
     """Signal 상세 조회"""
-    # TODO: DB 조회 구현
-    raise HTTPException(status_code=404, detail="Signal not found")
+    signal = await signal_repo.get_by_id(db, signal_id)
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+
+    return SignalResponse.model_validate(signal)
 
 
 @router.post("", response_model=SignalResponse)
-async def create_signal(signal: SignalCreate):
+async def create_signal(signal: SignalCreate, db: AsyncSession = Depends(get_db)):
     """Signal 생성"""
-    # TODO: DB 저장 및 Agent 호출
-    signal_id = f"SIG-{datetime.now().year}-001"
-    
-    return SignalResponse(
-        signal_id=signal_id,
-        title=signal.title,
-        description=signal.description,
-        source=signal.source,
-        channel=signal.channel,
-        play_id=signal.play_id,
-        status="NEW",
-        created_at=datetime.utcnow()
-    )
+    # Signal ID 생성
+    signal_id = await signal_repo.generate_signal_id(db)
+
+    # DB 저장
+    signal_data = {
+        "signal_id": signal_id,
+        **signal.model_dump()
+    }
+    db_signal = await signal_repo.create(db, signal_data)
+    await db.commit()
+
+    return SignalResponse.model_validate(db_signal)
 
 
 @router.post("/{signal_id}/triage")
@@ -106,17 +122,14 @@ async def triage_signal(signal_id: str):
 
 
 @router.get("/stats/summary")
-async def get_inbox_stats():
+async def get_inbox_stats(db: AsyncSession = Depends(get_db)):
     """Inbox 통계 요약"""
-    # TODO: 실제 통계 계산
+    stats = await signal_repo.get_stats(db)
+
     return {
-        "total": 0,
-        "new": 0,
-        "scoring": 0,
-        "scored": 0,
-        "brief_created": 0,
-        "by_source": {"KT": 0, "그룹사": 0, "대외": 0},
-        "by_channel": {}
+        "total": stats["total"],
+        "by_status": stats["by_status"],
+        "by_source": stats["by_source"]
     }
 
 
@@ -146,20 +159,8 @@ async def seminar_add_command(
         }
     )
 
-    # Activity 저장 (인메모리)
+    # Activity 정보 추출
     activity = result["activity"]
-    ACTIVITY_STORE[activity.activity_id] = {
-        "activity_id": activity.activity_id,
-        "title": activity.title,
-        "source": activity.source,
-        "channel": activity.channel,
-        "play_id": activity.play_id,
-        "url": activity.url,
-        "date": activity.date,
-        "status": activity.status,
-        "metadata": activity.metadata,
-        "created_at": datetime.utcnow().isoformat()
-    }
 
     # 사용자 친화적 출력
     output = f"""✅ Activity 생성 완료

@@ -62,7 +62,7 @@ app.add_middleware(
 app.include_router(inbox.router, prefix="/api/inbox", tags=["inbox"])
 app.include_router(scorecard.router, prefix="/api/scorecard", tags=["scorecard"])
 app.include_router(brief.router, prefix="/api/brief", tags=["brief"])
-app.include_router(play_dashboard.router, prefix="/api/play-dashboard", tags=["play-dashboard"])
+app.include_router(play_dashboard.router, prefix="/api/plays", tags=["plays"])
 app.include_router(stream.router, tags=["stream"])
 
 
