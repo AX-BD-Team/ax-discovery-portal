@@ -242,7 +242,43 @@ class ConfluenceMCP:
         # TODO: Confluence Database API 구현
         self.logger.info("db_insert_row", database_id=database_id)
         return {"status": "inserted"}
-    
+
+    async def increment_play_activity_count(
+        self,
+        page_id: str,
+        play_id: str
+    ) -> dict[str, Any]:
+        """Play DB 테이블에서 activity_qtd 증가"""
+        self.logger.info("increment_play_activity_count", page_id=page_id, play_id=play_id)
+
+        try:
+            # 1. 페이지 조회
+            page = await self.get_page(page_id)
+            body = page["body"]
+
+            # 2. 정규표현식으로 테이블 행 찾기 & 카운트 증가
+            import re
+            pattern = rf'\|(\s*{re.escape(play_id)}\s*)\|([^|]*)\|([^|]*)\|(\s*\d+\s*)\|'
+
+            def increment_match(match):
+                count = int(match.group(4).strip())
+                return f"|{match.group(1)}|{match.group(2)}|{match.group(3)}| {count + 1} |"
+
+            updated_body = re.sub(pattern, increment_match, body)
+
+            # 3. 페이지 업데이트
+            if updated_body != body:
+                await self.update_page(page_id=page_id, body_md=updated_body)
+                self.logger.info("Play DB updated", play_id=play_id)
+                return {"status": "updated", "play_id": play_id}
+            else:
+                self.logger.warning("Play ID not found in table", play_id=play_id)
+                return {"status": "not_found", "play_id": play_id}
+
+        except Exception as e:
+            self.logger.error("increment_play_activity_count failed", error=str(e))
+            raise
+
     # ========== 유틸리티 ==========
     
     def _markdown_to_confluence(self, md: str) -> str:

@@ -1,0 +1,29 @@
+{
+  "name": "ax-discovery-portal-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AX BD팀 멀티에이전트 기반 사업기회 포착 엔진 - Monorepo",
+  "scripts": {
+    "dev": "pnpm --filter @ax/web dev",
+    "dev:web": "pnpm --filter @ax/web dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @ax/web build",
+    "lint": "pnpm -r lint",
+    "type-check": "pnpm -r type-check",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "backend:dev": "cd backend && uvicorn backend.api.main:app --reload",
+    "backend:test": "cd backend && pytest",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

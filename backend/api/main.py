@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import structlog
 
-from .routers import inbox, scorecard, brief, play_dashboard
+from .routers import inbox, scorecard, brief, play_dashboard, stream
 
 
 logger = structlog.get_logger()
@@ -19,13 +19,13 @@ logger = structlog.get_logger()
 async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 처리"""
     logger.info("Starting AX Discovery Portal API...")
-    
-    # 시작 시 초기화
-    # await init_database()
-    # await init_agent_runtime()
-    
+
+    # Agent Runtime 초기화
+    from backend.agent_runtime.runner import runtime
+    await runtime.initialize()
+
     yield
-    
+
     # 종료 시 정리
     logger.info("Shutting down AX Discovery Portal API...")
 
@@ -38,9 +38,17 @@ app = FastAPI(
 )
 
 # CORS 설정
+# Development: localhost 허용, Production: 환경변수로 제어
+CORS_ORIGINS = [
+    "http://localhost:3000",  # Next.js web
+    "http://localhost:5173",  # Vite dev server (legacy)
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,6 +59,7 @@ app.include_router(inbox.router, prefix="/api/inbox", tags=["inbox"])
 app.include_router(scorecard.router, prefix="/api/scorecard", tags=["scorecard"])
 app.include_router(brief.router, prefix="/api/brief", tags=["brief"])
 app.include_router(play_dashboard.router, prefix="/api/plays", tags=["plays"])
+app.include_router(stream.router, tags=["stream"])
 
 
 @app.get("/")

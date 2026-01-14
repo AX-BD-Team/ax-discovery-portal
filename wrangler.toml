@@ -1,0 +1,39 @@
+# Cloudflare Pages 설정
+# 프로젝트 생성 후 database_id를 업데이트해야 합니다
+#
+# 초기 설정:
+# 1. npx wrangler pages project create ax-discovery-portal
+# 2. npx wrangler d1 create ax-discovery-db
+# 3. 아래 database_id를 실제 값으로 교체
+
+name = "ax-discovery-portal"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "apps/web/.next"
+
+# D1 Database 바인딩
+# 생성 후 database_id를 실제 값으로 교체하세요
+[[d1_databases]]
+binding = "DB"
+database_name = "ax-discovery-db"
+database_id = "YOUR_DATABASE_ID_HERE"
+
+# 마이그레이션 디렉토리
+migrations_dir = "d1-migrations"
+
+# 환경 변수 (프로덕션)
+[vars]
+ENVIRONMENT = "production"
+
+# 프로덕션 환경 설정
+[env.production]
+name = "ax-discovery-portal"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+
+# 프리뷰/스테이징 환경 설정
+[env.preview]
+name = "ax-discovery-portal-preview"
+
+[env.preview.vars]
+ENVIRONMENT = "preview"

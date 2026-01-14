@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@ax/api-client": ["./packages/shared/api-client/src"],
+      "@ax/types": ["./packages/shared/types/src"],
+      "@ax/utils": ["./packages/shared/utils/src"],
+      "@ax/config": ["./packages/shared/config/src"],
+      "@ax/ui": ["./packages/ui/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "build", "backend", ".claude"]
+}

@@ -263,9 +263,45 @@ class SeminarPipeline:
     
     async def _update_confluence(self, activity: ActivityOutput) -> bool:
         """Confluence Live doc 업데이트"""
-        # TODO: ConfluenceSync 에이전트 호출
-        self.logger.info("Updating Confluence", activity_id=activity.activity_id)
-        return False  # 아직 미구현
+        from backend.integrations.mcp_confluence.server import ConfluenceMCP
+        import os
+
+        mcp = ConfluenceMCP()
+
+        try:
+            # 1. Action Log 기록
+            action_log_page_id = os.getenv("CONFLUENCE_ACTION_LOG_PAGE_ID", "")
+            if action_log_page_id:
+                log_entry = f"""
+## {activity.activity_id} - {activity.title}
+
+- **일시**: {activity.date or 'TBD'}
+- **Play**: {activity.play_id}
+- **URL**: {activity.url}
+- **상태**: {activity.status}
+- **생성**: {datetime.now().strftime('%Y-%m-%d %H:%M KST')}
+
+---
+"""
+                await mcp.append_to_page(
+                    page_id=action_log_page_id,
+                    append_md=log_entry
+                )
+
+            # 2. Play DB 업데이트
+            play_db_page_id = os.getenv("CONFLUENCE_PLAY_DB_PAGE_ID", "")
+            if play_db_page_id:
+                await mcp.increment_play_activity_count(
+                    page_id=play_db_page_id,
+                    play_id=activity.play_id
+                )
+
+            self.logger.info("Confluence updated", activity_id=activity.activity_id)
+            return True
+
+        except Exception as e:
+            self.logger.error("Confluence update failed", error=str(e))
+            return False
 
 
 # 워크플로 인스턴스
@@ -280,3 +316,169 @@ async def run_seminar_pipeline(
     """세미나 파이프라인 실행 (편의 함수)"""
     input_data = SeminarInput(url=url, themes=themes, play_id=play_id)
     return await seminar_pipeline.run(input_data)
+
+
+# AG-UI 이벤트 발행을 포함한 파이프라인
+class SeminarPipelineWithEvents(SeminarPipeline):
+    """
+    WF-01: Seminar Pipeline with AG-UI Events
+
+    실시간 이벤트 발행을 포함한 세미나 파이프라인
+    SSE 스트리밍을 통해 클라이언트에 진행 상황 전달
+    """
+
+    # 단계 정의
+    STEPS = [
+        {"id": "METADATA_EXTRACTION", "label": "메타데이터 추출"},
+        {"id": "ACTIVITY_CREATION", "label": "Activity 생성"},
+        {"id": "AAR_TEMPLATE_GENERATION", "label": "AAR 템플릿 생성"},
+        {"id": "CONFLUENCE_UPDATE", "label": "Confluence 업데이트"},
+    ]
+
+    def __init__(self, emitter: "WorkflowEventEmitter"):
+        super().__init__()
+        self.emitter = emitter
+        self.logger = logger.bind(workflow="WF-01", with_events=True)
+
+    async def run(self, input_data: SeminarInput) -> SeminarPipelineResult:
+        """워크플로 실행 (이벤트 발행 포함)"""
+        self.logger.info("Starting seminar pipeline with events", url=input_data.url)
+
+        # 실행 시작 이벤트
+        await self.emitter.emit_run_started(
+            workflow_id="WF-01",
+            input_data={
+                "url": input_data.url,
+                "themes": input_data.themes,
+                "play_id": input_data.play_id,
+            },
+            steps=self.STEPS,
+        )
+
+        try:
+            # Step 1: 메타데이터 추출
+            await self.emitter.emit_step_started(
+                step_id="METADATA_EXTRACTION",
+                step_index=0,
+                step_label="메타데이터 추출",
+                message=f"URL에서 세미나 정보를 추출하고 있습니다: {input_data.url}",
+            )
+            metadata = await self._extract_metadata(input_data.url)
+            await self.emitter.emit_step_finished(
+                step_id="METADATA_EXTRACTION",
+                step_index=0,
+                result={"title": metadata.get("title"), "date": metadata.get("date")},
+            )
+
+            # Step 2: Activity 생성
+            await self.emitter.emit_step_started(
+                step_id="ACTIVITY_CREATION",
+                step_index=1,
+                step_label="Activity 생성",
+                message="Activity를 생성하고 있습니다...",
+            )
+            activity = await self._create_activity(input_data, metadata)
+
+            # Activity 미리보기 Surface 발행
+            await self.emitter.emit_surface(
+                surface_id=f"activity-{activity.activity_id}",
+                surface={
+                    "id": f"activity-{activity.activity_id}",
+                    "type": "activity_preview",
+                    "title": "Activity 생성 완료",
+                    "activity": {
+                        "activity_id": activity.activity_id,
+                        "title": activity.title,
+                        "date": activity.date,
+                        "organizer": activity.metadata.get("organizer"),
+                        "url": activity.url,
+                        "play_id": activity.play_id,
+                        "themes": activity.metadata.get("themes", []),
+                        "source": activity.source,
+                        "channel": activity.channel,
+                        "status": activity.status,
+                    },
+                },
+            )
+            await self.emitter.emit_step_finished(
+                step_id="ACTIVITY_CREATION",
+                step_index=1,
+                result={"activity_id": activity.activity_id},
+            )
+
+            # Step 3: AAR 템플릿 생성
+            await self.emitter.emit_step_started(
+                step_id="AAR_TEMPLATE_GENERATION",
+                step_index=2,
+                step_label="AAR 템플릿 생성",
+                message="AAR(After Action Review) 템플릿을 생성하고 있습니다...",
+            )
+            aar = await self._generate_aar_template(activity, metadata)
+
+            # AAR 템플릿 Surface 발행
+            await self.emitter.emit_surface(
+                surface_id=f"aar-{activity.activity_id}",
+                surface={
+                    "id": f"aar-{activity.activity_id}",
+                    "type": "aar_template",
+                    "title": "AAR 템플릿",
+                    "activityId": aar.activity_id,
+                    "content": aar.content,
+                    "confluenceUrl": aar.confluence_url,
+                },
+            )
+            await self.emitter.emit_step_finished(
+                step_id="AAR_TEMPLATE_GENERATION",
+                step_index=2,
+            )
+
+            # Step 4: Confluence 업데이트
+            await self.emitter.emit_step_started(
+                step_id="CONFLUENCE_UPDATE",
+                step_index=3,
+                step_label="Confluence 업데이트",
+                message="Confluence에 Activity를 기록하고 있습니다...",
+            )
+            confluence_updated = await self._update_confluence(activity)
+            await self.emitter.emit_step_finished(
+                step_id="CONFLUENCE_UPDATE",
+                step_index=3,
+                result={"confluence_updated": confluence_updated},
+            )
+
+            # Signal 초기 후보
+            signals: list[dict[str, Any]] = []
+
+            # 결과 생성
+            result = SeminarPipelineResult(
+                activity=activity,
+                aar_template=aar,
+                signals=signals,
+                confluence_live_doc_updated=confluence_updated,
+            )
+
+            # 실행 완료 이벤트
+            await self.emitter.emit_run_finished(
+                result={
+                    "activity_id": activity.activity_id,
+                    "title": activity.title,
+                    "confluence_updated": confluence_updated,
+                    "signals_count": len(signals),
+                }
+            )
+
+            self.logger.info(
+                "Seminar pipeline with events completed",
+                activity_id=activity.activity_id,
+            )
+            return result
+
+        except Exception as e:
+            self.logger.error("Seminar pipeline error", error=str(e))
+            await self.emitter.emit_run_error(str(e), recoverable=False)
+            raise
+
+
+# 타입 힌트를 위한 import (순환 참조 방지)
+if __name__ != "__main__":
+    from backend.agent_runtime.event_manager import WorkflowEventEmitter

@@ -12,6 +12,9 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
+# 인메모리 Activity 저장소
+ACTIVITY_STORE: dict[str, dict] = {}
+
 
 class SignalCreate(BaseModel):
     """Signal 생성 요청"""
@@ -114,4 +117,66 @@ async def get_inbox_stats():
         "brief_created": 0,
         "by_source": {"KT": 0, "그룹사": 0, "대외": 0},
         "by_channel": {}
+    }
+
+
+@router.post("/seminar", response_model=dict)
+async def seminar_add_command(
+    url: str,
+    themes: str | None = None,
+    play_id: str = "EXT_Desk_D01_Seminar"
+):
+    """
+    /ax:seminar-add 커맨드 핸들러
+
+    Usage: /ax:seminar-add <URL> [--theme <themes>] [--play <play_id>]
+    """
+    from backend.agent_runtime.runner import runtime
+
+    # themes를 리스트로 변환
+    theme_list = [t.strip() for t in themes.split(",")] if themes else None
+
+    # WF-01 실행
+    result = await runtime.run_workflow(
+        "WF-01",
+        {
+            "url": url,
+            "themes": theme_list,
+            "play_id": play_id
+        }
+    )
+
+    # Activity 저장 (인메모리)
+    activity = result["activity"]
+    ACTIVITY_STORE[activity.activity_id] = {
+        "activity_id": activity.activity_id,
+        "title": activity.title,
+        "source": activity.source,
+        "channel": activity.channel,
+        "play_id": activity.play_id,
+        "url": activity.url,
+        "date": activity.date,
+        "status": activity.status,
+        "metadata": activity.metadata,
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+    # 사용자 친화적 출력
+    output = f"""✅ Activity 생성 완료
+
+📅 세미나: {activity.title}
+📍 일시: {activity.date or 'TBD'}
+
+📝 Activity ID: {activity.activity_id}
+📂 Play: {activity.play_id}
+📋 AAR 템플릿이 준비되었습니다.
+
+➡️ 참석 후 AAR 작성을 시작하세요.
+"""
+
+    return {
+        "status": "success",
+        "activity_id": activity.activity_id,
+        "message": output,
+        "confluence_updated": result.get("confluence_updated", False)
     }

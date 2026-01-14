@@ -6,12 +6,22 @@ Claude Agent SDK를 사용한 에이전트 실행 환경
 
 import os
 import asyncio
+import re
+import json
+import uuid
 from typing import Any
 from dataclasses import dataclass
+from pathlib import Path
 import structlog
 
-# Claude Agent SDK import (설치 필요: pip install claude-agent-sdk)
-# from claude_agent_sdk import Agent, Session, Tool
+# Claude Agent SDK
+from claude_agent_sdk import (
+    ClaudeSDKClient,
+    ClaudeAgentOptions,
+    create_sdk_mcp_server,
+    tool,
+)
+from claude_agent_sdk.types import AgentDefinition
 
 logger = structlog.get_logger()
 
@@ -59,49 +69,241 @@ class AgentRuntime:
     async def initialize(self):
         """런타임 초기화"""
         self.logger.info("Initializing agent runtime...")
-        
-        # MCP 서버 연결
-        # await self._connect_mcp_servers()
-        
+
         # 에이전트 로드
         await self._load_agents()
-        
+
         self.logger.info("Agent runtime initialized")
+
+    async def _connect_mcp_servers(self) -> dict:
+        """MCP 서버 설정 반환 (SDK 도구로 변환)"""
+        from backend.integrations.mcp_confluence.server import ConfluenceMCP
+
+        confluence_mcp = ConfluenceMCP()
+
+        # SDK 도구 생성 (각 MCP 메서드를 래핑)
+        @tool(name="confluence.search_pages")
+        async def search_pages(query: str, limit: int = 10):
+            """Confluence 페이지 검색"""
+            return await confluence_mcp.search_pages(query, limit)
+
+        @tool(name="confluence.get_page")
+        async def get_page(page_id: str):
+            """Confluence 페이지 조회"""
+            return await confluence_mcp.get_page(page_id)
+
+        @tool(name="confluence.create_page")
+        async def create_page(title: str, body_md: str, parent_page_id: str | None = None):
+            """Confluence 페이지 생성"""
+            return await confluence_mcp.create_page(title, body_md, parent_page_id)
+
+        @tool(name="confluence.update_page")
+        async def update_page(page_id: str, body_md: str, title: str | None = None):
+            """Confluence 페이지 업데이트"""
+            return await confluence_mcp.update_page(page_id, body_md, title)
+
+        @tool(name="confluence.append_to_page")
+        async def append_to_page(page_id: str, append_md: str):
+            """Confluence 페이지에 내용 추가"""
+            return await confluence_mcp.append_to_page(page_id, append_md)
+
+        @tool(name="confluence.add_labels")
+        async def add_labels(page_id: str, labels: list[str]):
+            """Confluence 페이지에 라벨 추가"""
+            return await confluence_mcp.add_labels(page_id, labels)
+
+        @tool(name="confluence.increment_play_activity_count")
+        async def increment_play_activity_count(page_id: str, play_id: str):
+            """Play DB 테이블에서 activity_qtd 증가"""
+            return await confluence_mcp.increment_play_activity_count(page_id, play_id)
+
+        # SDK MCP 서버 생성
+        try:
+            confluence_server = create_sdk_mcp_server(
+                name="confluence",
+                version="1.0.0",
+                tools=[
+                    search_pages,
+                    get_page,
+                    create_page,
+                    update_page,
+                    append_to_page,
+                    add_labels,
+                    increment_play_activity_count,
+                ]
+            )
+
+            self.logger.info(
+                "MCP servers connected",
+                servers=["confluence"],
+                tools=7
+            )
+
+            return {"confluence": confluence_server}
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to connect MCP servers",
+                error=str(e),
+                exc_info=True
+            )
+            # Fallback: 빈 딕셔너리 반환
+            return {}
         
     async def _load_agents(self):
-        """에이전트 정의 로드"""
-        agent_configs = [
-            AgentConfig(agent_id="orchestrator"),
-            AgentConfig(agent_id="external_scout"),
-            AgentConfig(agent_id="scorecard_evaluator"),
-            AgentConfig(agent_id="brief_writer"),
-            AgentConfig(agent_id="confluence_sync"),
-            AgentConfig(agent_id="governance"),
-        ]
-        
-        for config in agent_configs:
-            # TODO: Claude Agent SDK 에이전트 생성
-            self.agents[config.agent_id] = {
-                "config": config,
-                "agent": None  # Agent 인스턴스
-            }
-            self.logger.info(f"Loaded agent: {config.agent_id}")
+        """에이전트 정의 로드 (.claude/agents/*.md 파싱)"""
+        agents_dir = Path(".claude/agents")
+        agent_files = {
+            "orchestrator": "orchestrator.md",
+            "external_scout": "external_scout.md",
+            "scorecard_evaluator": "scorecard_evaluator.md",
+            "brief_writer": "brief_writer.md",
+            "confluence_sync": "confluence_sync.md",
+            "governance": "governance.md",
+        }
+
+        if not agents_dir.exists():
+            self.logger.warning(f"Agents directory not found: {agents_dir}")
+            return
+
+        for agent_id, filename in agent_files.items():
+            file_path = agents_dir / filename
+
+            try:
+                if not file_path.exists():
+                    self.logger.warning(f"Agent file not found: {file_path}")
+                    continue
+
+                # Markdown 파싱
+                agent_def = await self._parse_agent_definition(file_path)
+                config = AgentConfig(agent_id=agent_id)
+
+                self.agents[agent_id] = {
+                    "config": config,
+                    "definition": agent_def,
+                }
+
+                self.logger.info(
+                    f"Loaded agent: {agent_id}",
+                    tools=agent_def.tools,
+                    model=agent_def.model
+                )
+
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to load agent: {agent_id}",
+                    error=str(e),
+                    exc_info=True
+                )
+
+    async def _parse_agent_definition(self, file_path: Path) -> AgentDefinition:
+        """Markdown 파일에서 AgentDefinition 생성"""
+        content = file_path.read_text(encoding="utf-8")
+
+        # 제목 추출 (첫 번째 # 헤더)
+        title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
+        title = title_match.group(1).strip() if title_match else file_path.stem
+
+        # "## 역할" 섹션 추출
+        role_match = re.search(
+            r"##\s+역할\s*\n+(.*?)(?=\n##|\Z)",
+            content,
+            re.DOTALL
+        )
+        description = role_match.group(1).strip() if role_match else f"{title} agent"
+
+        # 도구 추출
+        tools = self._extract_tools_from_markdown(content)
+
+        # 모델 추출
+        model = self._extract_model_from_markdown(content) or "inherit"
+
+        return AgentDefinition(
+            description=description,
+            prompt=content,  # 전체 Markdown을 시스템 프롬프트로 사용
+            tools=tools,
+            model=model
+        )
+
+    def _extract_tools_from_markdown(self, content: str) -> list[str] | None:
+        """Markdown의 설정 섹션에서 도구 목록 추출"""
+        # "## 설정" 섹션의 JSON 블록 찾기
+        config_match = re.search(
+            r"```json\s*\n(\{.*?\})\s*\n```",
+            content,
+            re.DOTALL
+        )
+
+        if config_match:
+            try:
+                config = json.loads(config_match.group(1))
+
+                # "tools" 또는 "allowed_tools" 키 찾기
+                tools = config.get("tools") or config.get("allowed_tools")
+                return tools if tools else None
+
+            except json.JSONDecodeError as e:
+                self.logger.warning(f"Failed to parse config JSON: {e}")
+
+        return None  # None = 모든 도구 허용
+
+    def _extract_model_from_markdown(self, content: str) -> str | None:
+        """Markdown의 설정 섹션에서 모델 설정 추출"""
+        config_match = re.search(
+            r"```json\s*\n(\{.*?\})\s*\n```",
+            content,
+            re.DOTALL
+        )
+
+        if config_match:
+            try:
+                config = json.loads(config_match.group(1))
+                return config.get("model")
+            except json.JSONDecodeError:
+                pass
+
+        return None
+
+    def _get_agent_definitions(self) -> dict[str, AgentDefinition]:
+        """에이전트 정의 딕셔너리 반환"""
+        return {
+            agent_id: data["definition"]
+            for agent_id, data in self.agents.items()
+            if "definition" in data
+        }
     
     async def create_session(
         self,
         workflow_id: str,
         input_data: dict[str, Any]
     ) -> str:
-        """세션 생성"""
-        session_id = f"sess_{workflow_id}_{id(input_data)}"
-        
+        """세션 생성 (ClaudeSDKClient 인스턴스 포함)"""
+        session_id = f"sess_{workflow_id}_{uuid.uuid4().hex[:8]}"
+
+        # MCP 서버 설정
+        mcp_servers = await self._connect_mcp_servers()
+
+        # SDK 옵션
+        options = ClaudeAgentOptions(
+            model=self.model,
+            mcp_servers=mcp_servers,
+            allowed_tools=["Read", "Write", "Bash", "Glob", "Grep"],
+            agents=self._get_agent_definitions(),
+            cwd=os.getcwd()
+        )
+
+        # SDK 클라이언트
+        client = ClaudeSDKClient(options=options)
+
         self.sessions[session_id] = {
             "workflow_id": workflow_id,
             "input_data": input_data,
             "status": "created",
+            "client": client,
+            "options": options,
             "created_at": asyncio.get_event_loop().time()
         }
-        
+
         self.logger.info(f"Session created: {session_id}")
         return session_id
     
@@ -109,13 +311,36 @@ class AgentRuntime:
         """세션 재개"""
         if session_id not in self.sessions:
             raise ValueError(f"Session not found: {session_id}")
-        
+
         session = self.sessions[session_id]
         session["status"] = "resumed"
-        
+
         self.logger.info(f"Session resumed: {session_id}")
         return session
-    
+
+    async def _cleanup_old_sessions(self):
+        """1시간 이상 된 세션 정리"""
+        current_time = asyncio.get_event_loop().time()
+        timeout = 3600  # 1시간
+
+        to_delete = []
+        for session_id, session in self.sessions.items():
+            if current_time - session["created_at"] > timeout:
+                # SDK 클라이언트 정리
+                if "client" in session:
+                    try:
+                        await session["client"].disconnect()
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to disconnect client for session: {session_id}",
+                            error=str(e)
+                        )
+                to_delete.append(session_id)
+
+        for session_id in to_delete:
+            del self.sessions[session_id]
+            self.logger.info(f"Cleaned up session: {session_id}")
+
     async def run_workflow(
         self,
         workflow_id: str,
@@ -165,17 +390,23 @@ class AgentRuntime:
     ) -> dict[str, Any]:
         """WF-01: Seminar Pipeline"""
         self.logger.info("Running WF-01: Seminar Pipeline")
-        
-        # 1. External Scout로 메타데이터 추출
-        # 2. Activity 생성
-        # 3. AAR 템플릿 생성
-        # 4. Confluence 기록
-        
+
+        from backend.agent_runtime.workflows.wf_seminar_pipeline import (
+            seminar_pipeline,
+            SeminarInput
+        )
+
+        # 실제 워크플로 실행
+        seminar_input = SeminarInput(**input_data)
+        result = await seminar_pipeline.run(seminar_input)
+
         return {
             "workflow_id": "WF-01",
             "status": "completed",
-            "activity_id": "ACT-2025-001",
-            "signals": []
+            "activity": result.activity,
+            "aar_template": result.aar_template,
+            "signals": result.signals,
+            "confluence_updated": result.confluence_live_doc_updated
         }
     
     async def _run_interview_to_brief(

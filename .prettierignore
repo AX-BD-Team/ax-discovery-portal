@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+build
+coverage
+*.pyc
+__pycache__
+.pytest_cache
+backend
+.claude
+pnpm-lock.yaml
