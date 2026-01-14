@@ -11,11 +11,10 @@ compatibility_date = "2024-01-01"
 pages_build_output_dir = "apps/web/.next"
 
 # D1 Database 바인딩
-# 생성 후 database_id를 실제 값으로 교체하세요
 [[d1_databases]]
 binding = "DB"
 database_name = "ax-discovery-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "631b77f1-274d-4254-ba42-53b5cec41408"
 
 # 마이그레이션 디렉토리
 migrations_dir = "d1-migrations"
