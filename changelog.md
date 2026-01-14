@@ -72,6 +72,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-01-14
+
+### Added - AXIS 디자인 시스템 (SSDD 완료)
+
+#### Phase 1: 타입/이벤트 스키마 정의
+
+- `packages/shared/types/src/agui-events.ts` - AG-UI 이벤트 타입 (18종)
+- `packages/shared/types/src/a2ui-surfaces.ts` - A2UI Surface 타입 (10종)
+
+#### Phase 2: 백엔드 SSE 구현
+
+- `backend/agent_runtime/event_manager.py` - 세션 이벤트 관리자
+- `backend/agent_runtime/event_types.py` - Python 이벤트 dataclass
+- `backend/api/routers/stream.py` - SSE 엔드포인트 (`/api/stream/workflow/WF-01`)
+- `pyproject.toml`에 `sse-starlette>=2.2.1` 의존성 추가
+
+#### Phase 3: Agentic UI 컴포넌트 (8종)
+
+- `AgentRunContainer` - 워크플로 실행 컨테이너
+- `StepIndicator` - 단계 진행률 표시
+- `StreamingText` - 실시간 텍스트 스트리밍
+- `SurfaceRenderer` - A2UI Surface 렌더링
+- `ActivityPreviewCard` - Activity 미리보기 (WF-01)
+- `AARTemplateCard` - AAR 템플릿 표시
+- `ApprovalDialog` - Human-in-the-Loop 승인
+- `ToolCallCard` - 도구 호출 상태
+
+#### Phase 4: 프론트엔드 통합
+
+- `packages/shared/api-client/src/hooks/useAgentStream.ts` - SSE 구독 훅
+- `apps/web/src/stores/agentStore.ts` - Zustand 상태 관리
+- `apps/web/src/app/seminar/page.tsx` - 세미나 등록 페이지
+
+#### Phase 5: WF-01 이벤트 통합
+
+- `wf_seminar_pipeline.py`에 `SeminarPipelineWithEvents` 클래스 추가
+- 단계별 이벤트 발행 (run_started, step_started/finished, surface, run_finished)
+
+#### Phase 6: Human-in-the-Loop
+
+- `ApprovalDialog` - 위험도 4단계 표시 + 변경사항 diff
+- `ToolCallCard` - 도구 호출 상태 표시 + 인자/결과
+
+### Added - 모노레포 구조
+
+- pnpm + Turbo 기반 모노레포 설정
+- `apps/web` - Next.js 15 웹앱
+- `packages/ui` - @ax/ui 컴포넌트 라이브러리
+- `packages/shared/types` - @ax/types 타입 정의
+- `packages/shared/api-client` - @ax/api-client API 클라이언트
+- `packages/shared/utils` - @ax/utils 유틸리티
+- `packages/shared/config` - @ax/config 설정
+
+### Added - CI/CD
+
+- `.github/workflows/frontend.yml` - 프론트엔드 CI/CD
+- `.github/workflows/ci-backend.yml` - 백엔드 CI
+- `.github/workflows/cd-backend.yml` - 백엔드 CD
+
+### Added - 페이지
+
+- `/` - 메인 대시보드
+- `/inbox` - Signal 관리 (Triage)
+- `/seminar` - 세미나 등록 (WF-01)
+- `/plays` - Play 대시보드
+
+---
+
 ## [Unreleased]
 
 ### In Planning
