@@ -64,3 +64,4 @@ public/worker-*.js
 # Claude Code (keep configuration, ignore state)
 .claude/state/
 .claude/cache/
+.claude/settings.local.json
