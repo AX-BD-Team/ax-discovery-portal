@@ -1,5 +1,6 @@
 'use client'
 
+import { use } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { inboxApi, scorecardApi, briefApi } from '@ax/api-client'
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Separator } from '@ax/ui'
@@ -9,10 +10,11 @@ import { ArrowLeft, TrendingUp, FileText, ExternalLink, Calendar, User, Tag } fr
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export default function SignalDetailPage({ params }: { params: { id: string } }) {
+export default function SignalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const queryClient = useQueryClient()
-  const signalId = params.id
+  const signalId = id
 
   // Fetch signal
   const { data: signal, isLoading } = useQuery({

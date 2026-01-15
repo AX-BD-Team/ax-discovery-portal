@@ -1,5 +1,6 @@
 'use client'
 
+import { use } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { scorecardApi, inboxApi, briefApi } from '@ax/api-client'
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Separator } from '@ax/ui'
@@ -9,10 +10,11 @@ import { ArrowLeft, FileText, AlertTriangle, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export default function ScorecardDetailPage({ params }: { params: { id: string } }) {
+export default function ScorecardDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const queryClient = useQueryClient()
-  const signalId = params.id
+  const signalId = id
 
   // Fetch scorecard
   const { data: scorecard, isLoading: isLoadingScorecard } = useQuery({

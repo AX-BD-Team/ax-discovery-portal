@@ -44,7 +44,7 @@ export default function BriefPage() {
   // Fetch briefs
   const { data: briefs = [], isLoading } = useQuery({
     queryKey: ['briefs'],
-    queryFn: briefApi.getBriefs,
+    queryFn: () => briefApi.getBriefs(),
   })
 
   // Fetch signals for brief generation (SCORED status)

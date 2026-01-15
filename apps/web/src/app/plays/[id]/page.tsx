@@ -1,5 +1,6 @@
 'use client'
 
+import { use } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { playsApi } from '@ax/api-client'
 import {
@@ -28,9 +29,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
-export default function PlayDetailPage({ params }: { params: { id: string } }) {
+export default function PlayDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const queryClient = useQueryClient()
-  const playId = params.id
+  const playId = id
 
   // Fetch play
   const { data: play, isLoading: isLoadingPlay } = useQuery({
