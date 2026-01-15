@@ -31,7 +31,9 @@ export const briefApi = {
     if (params?.page_size) searchParams.append('page_size', params.page_size.toString())
 
     const query = searchParams.toString()
-    const response = await apiClient.get(`api/brief${query ? `?${query}` : ''}`).json<BriefListResponse>()
+    const response = await apiClient
+      .get(`api/brief${query ? `?${query}` : ''}`)
+      .json<BriefListResponse>()
     return response.items
   },
 

@@ -27,8 +27,10 @@ export const scorecardApi = {
   }): Promise<ScorecardListResponse> {
     const searchParams = new URLSearchParams()
     if (params?.decision) searchParams.append('decision', params.decision)
-    if (params?.min_score !== undefined) searchParams.append('min_score', params.min_score.toString())
-    if (params?.max_score !== undefined) searchParams.append('max_score', params.max_score.toString())
+    if (params?.min_score !== undefined)
+      searchParams.append('min_score', params.min_score.toString())
+    if (params?.max_score !== undefined)
+      searchParams.append('max_score', params.max_score.toString())
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.page_size) searchParams.append('page_size', params.page_size.toString())
 

@@ -77,7 +77,7 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
   // 이벤트 처리
   const handleEvent = useCallback(
     (event: AgentEvent) => {
-      setEvents((prev) => [...prev, event])
+      setEvents(prev => [...prev, event])
       onEvent?.(event)
 
       // 실행 상태 업데이트
@@ -128,7 +128,7 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
           reconnectAttemptsRef.current = 0
         }
 
-        es.onerror = (e) => {
+        es.onerror = e => {
           const err = new Error('SSE 연결 오류')
           setError(err)
           onError?.(err)
@@ -167,7 +167,7 @@ export function useAgentStream(options: UseAgentStreamOptions): UseAgentStreamRe
           'RENDER_SURFACE',
         ]
 
-        eventTypes.forEach((eventType) => {
+        eventTypes.forEach(eventType => {
           es.addEventListener(eventType, (e: MessageEvent) => {
             try {
               const event = JSON.parse(e.data) as AgentEvent
