@@ -69,12 +69,12 @@ class TestSessionEventManager:
         # 이벤트 발행
         await manager.publish(event)
 
-        # 히스토리 확인
+        # 히스토리 확인 (to_dict()가 camelCase로 변환)
         history = manager.get_history()
         assert len(history) == 1
         assert history[0]["type"] == "RUN_STARTED"
-        assert history[0]["run_id"] == "run-001"
-        assert history[0]["workflow_id"] == "WF-01"
+        assert history[0]["runId"] == "run-001"
+        assert history[0]["workflowId"] == "WF-01"
 
     @pytest.mark.asyncio
     async def test_subscribe_and_stream(self):
@@ -124,6 +124,9 @@ class TestSessionEventManager:
                 is_complete=True,
             )
         )
+
+        # 이벤트가 스트림에서 처리될 시간 확보
+        await asyncio.sleep(0.05)
 
         # 종료 신호 발행
         manager.close()
@@ -183,13 +186,13 @@ class TestWorkflowEventEmitter:
             ],
         )
 
-        # 히스토리 확인
+        # 히스토리 확인 (to_dict()가 camelCase로 변환)
         history = manager.get_history()
         assert len(history) == 1
         assert history[0]["type"] == "RUN_STARTED"
-        assert history[0]["run_id"] == "run-001"
-        assert history[0]["workflow_id"] == "WF-01"
-        assert history[0]["total_steps"] == 2
+        assert history[0]["runId"] == "run-001"
+        assert history[0]["workflowId"] == "WF-01"
+        assert history[0]["totalSteps"] == 2
 
     @pytest.mark.asyncio
     async def test_emit_step_with_duration(self):
@@ -217,17 +220,17 @@ class TestWorkflowEventEmitter:
         history = manager.get_history()
         assert len(history) == 2
 
-        # 시작 이벤트
+        # 시작 이벤트 (to_dict()가 camelCase로 변환)
         start_event = history[0]
         assert start_event["type"] == "STEP_STARTED"
-        assert start_event["step_id"] == "step-1"
-        assert start_event["step_label"] == "Extract metadata"
+        assert start_event["stepId"] == "step-1"
+        assert start_event["stepLabel"] == "Extract metadata"
 
         # 완료 이벤트
         finish_event = history[1]
         assert finish_event["type"] == "STEP_FINISHED"
-        assert finish_event["step_id"] == "step-1"
-        assert finish_event["duration_ms"] >= 10  # 최소 10ms
+        assert finish_event["stepId"] == "step-1"
+        assert finish_event["durationMs"] >= 10  # 최소 10ms
 
     @pytest.mark.asyncio
     async def test_emit_run_finished_with_duration(self):
@@ -246,11 +249,11 @@ class TestWorkflowEventEmitter:
         # 실행 완료
         await emitter.emit_run_finished(result={"status": "success"})
 
-        # 히스토리 확인
+        # 히스토리 확인 (to_dict()가 camelCase로 변환)
         history = manager.get_history()
         finish_event = history[-1]
         assert finish_event["type"] == "RUN_FINISHED"
-        assert finish_event["duration_ms"] >= 10
+        assert finish_event["durationMs"] >= 10
 
     @pytest.mark.asyncio
     async def test_emit_text_message(self):
@@ -265,14 +268,14 @@ class TestWorkflowEventEmitter:
             is_complete=True,
         )
 
-        # 히스토리 확인
+        # 히스토리 확인 (to_dict()가 camelCase로 변환)
         history = manager.get_history()
         assert len(history) == 1
         message_event = history[0]
         assert message_event["type"] == "TEXT_MESSAGE_CONTENT"
-        assert message_event["message_id"] == "msg-001"
+        assert message_event["messageId"] == "msg-001"
         assert message_event["content"] == "Processing seminar data..."
-        assert message_event["is_complete"] is True
+        assert message_event["isComplete"] is True
 
 
 class TestHelperFunctions:
