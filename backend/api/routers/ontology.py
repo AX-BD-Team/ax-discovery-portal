@@ -235,7 +235,9 @@ async def list_entities(
         try:
             type_filter = EntityType(entity_type)
         except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid entity_type: {entity_type}") from None
+            raise HTTPException(
+                status_code=400, detail=f"Invalid entity_type: {entity_type}"
+            ) from None
 
     skip = (page - 1) * page_size
     entities, total = await ontology_repo.list_entities(
@@ -449,7 +451,9 @@ async def get_entity_graph(
             try:
                 predicate_filter.append(PredicateType(p.strip()))
             except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid predicate: {p.strip()}") from None
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid predicate: {p.strip()}"
+                ) from None
 
     graph = await ontology_repo.get_entity_graph(
         db,
