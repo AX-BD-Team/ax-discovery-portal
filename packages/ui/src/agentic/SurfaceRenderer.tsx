@@ -8,18 +8,17 @@
 import * as React from 'react'
 import { cn } from '@ax/utils'
 import type { A2UISurface, SurfaceRendererContext, SurfaceType, SURFACE_CATALOG } from '@ax/types'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/card'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '../components/card'
 import { Badge } from '../components/badge'
 import { Button } from '../components/button'
-import {
-  ExternalLink,
-  Calendar,
-  MapPin,
-  User,
-  Tag,
-  FileText,
-  AlertTriangle,
-} from 'lucide-react'
+import { ExternalLink, Calendar, MapPin, User, Tag, FileText, AlertTriangle } from 'lucide-react'
 
 interface SurfaceRendererProps extends React.HTMLAttributes<HTMLDivElement> {
   /** A2UI Surface 데이터 */
@@ -62,9 +61,7 @@ function ActivityPreviewRenderer({
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-lg">{activity.title}</CardTitle>
-            <CardDescription className="mt-1">
-              {activity.activity_id}
-            </CardDescription>
+            <CardDescription className="mt-1">{activity.activity_id}</CardDescription>
           </div>
           <Badge variant="outline" className="text-green-600 border-green-300">
             {activity.status}
@@ -145,12 +142,7 @@ function AARTemplateRenderer({
             <FileText className="h-4 w-4" />
             AAR 템플릿
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopy}
-            className="h-7 text-xs"
-          >
+          <Button variant="outline" size="sm" onClick={handleCopy} className="h-7 text-xs">
             {copied ? '복사됨!' : '복사'}
           </Button>
         </div>
@@ -181,11 +173,7 @@ function AARTemplateRenderer({
 /**
  * Message Surface 렌더러
  */
-function MessageRenderer({
-  surface,
-}: {
-  surface: Extract<A2UISurface, { type: 'message' }>
-}) {
+function MessageRenderer({ surface }: { surface: Extract<A2UISurface, { type: 'message' }> }) {
   const variantStyles = {
     info: 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200',
     success:
@@ -198,9 +186,7 @@ function MessageRenderer({
 
   return (
     <div className={cn('rounded-lg border p-3 text-sm', variantStyles[surface.variant])}>
-      {surface.variant === 'warning' && (
-        <AlertTriangle className="mb-1 h-4 w-4" />
-      )}
+      {surface.variant === 'warning' && <AlertTriangle className="mb-1 h-4 w-4" />}
       <p>{surface.content}</p>
     </div>
   )
@@ -221,15 +207,11 @@ function CardRenderer({
       {surface.title && (
         <CardHeader>
           <CardTitle>{surface.title}</CardTitle>
-          {surface.description && (
-            <CardDescription>{surface.description}</CardDescription>
-          )}
+          {surface.description && <CardDescription>{surface.description}</CardDescription>}
         </CardHeader>
       )}
       <CardContent>
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          {surface.content}
-        </div>
+        <div className="prose prose-sm dark:prose-invert max-w-none">{surface.content}</div>
         {surface.badges && surface.badges.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {surface.badges.map((badge, i) => (
@@ -247,10 +229,16 @@ function CardRenderer({
       )}
       {surface.actions && surface.actions.length > 0 && (
         <CardFooter className="gap-2">
-          {surface.actions.map((action) => (
+          {surface.actions.map(action => (
             <Button
               key={action.id}
-              variant={action.type === 'destructive' ? 'destructive' : action.type === 'primary' ? 'default' : 'outline'}
+              variant={
+                action.type === 'destructive'
+                  ? 'destructive'
+                  : action.type === 'primary'
+                    ? 'default'
+                    : 'outline'
+              }
               size="sm"
               disabled={action.disabled}
               onClick={() => context?.onAction?.(surface.id, action.id)}
@@ -267,11 +255,7 @@ function CardRenderer({
 /**
  * Progress Surface 렌더러
  */
-function ProgressRenderer({
-  surface,
-}: {
-  surface: Extract<A2UISurface, { type: 'progress' }>
-}) {
+function ProgressRenderer({ surface }: { surface: Extract<A2UISurface, { type: 'progress' }> }) {
   const statusColors = {
     active: 'bg-blue-500',
     success: 'bg-green-500',
@@ -291,13 +275,14 @@ function ProgressRenderer({
       )}
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className={cn('h-full transition-all duration-300', statusColors[surface.status || 'active'])}
+          className={cn(
+            'h-full transition-all duration-300',
+            statusColors[surface.status || 'active']
+          )}
           style={{ width: `${surface.percentage}%` }}
         />
       </div>
-      {surface.message && (
-        <p className="text-xs text-muted-foreground">{surface.message}</p>
-      )}
+      {surface.message && <p className="text-xs text-muted-foreground">{surface.message}</p>}
     </div>
   )
 }
@@ -339,9 +324,7 @@ const SurfaceRenderer = React.forwardRef<HTMLDivElement, SurfaceRendererProps>(
           />
         )}
         {surface.type === 'message' && (
-          <MessageRenderer
-            surface={surface as Extract<A2UISurface, { type: 'message' }>}
-          />
+          <MessageRenderer surface={surface as Extract<A2UISurface, { type: 'message' }>} />
         )}
         {surface.type === 'card' && (
           <CardRenderer
@@ -350,13 +333,11 @@ const SurfaceRenderer = React.forwardRef<HTMLDivElement, SurfaceRendererProps>(
           />
         )}
         {surface.type === 'progress' && (
-          <ProgressRenderer
-            surface={surface as Extract<A2UISurface, { type: 'progress' }>}
-          />
+          <ProgressRenderer surface={surface as Extract<A2UISurface, { type: 'progress' }>} />
         )}
-        {!['activity_preview', 'aar_template', 'message', 'card', 'progress'].includes(surface.type) && (
-          <FallbackRenderer surface={surface} />
-        )}
+        {!['activity_preview', 'aar_template', 'message', 'card', 'progress'].includes(
+          surface.type
+        ) && <FallbackRenderer surface={surface} />}
       </div>
     )
   }

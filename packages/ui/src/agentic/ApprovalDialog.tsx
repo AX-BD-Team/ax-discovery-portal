@@ -138,7 +138,7 @@ function ApprovalDialog({
     setRemainingTime(timeout)
 
     const interval = setInterval(() => {
-      setRemainingTime((prev) => {
+      setRemainingTime(prev => {
         if (!prev || prev <= 1000) {
           clearInterval(interval)
           onReject('타임아웃으로 자동 거부되었습니다')
@@ -181,10 +181,7 @@ function ApprovalDialog({
             <div>
               <DialogTitle>{title}</DialogTitle>
               <div className="mt-1 flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn('text-xs', config.className)}
-                >
+                <Badge variant="outline" className={cn('text-xs', config.className)}>
                   위험도: {config.label}
                 </Badge>
                 {remainingTime && remainingTime > 0 && (
@@ -208,10 +205,7 @@ function ApprovalDialog({
               {changes.map((change, index) => {
                 const changeConfig = changeTypeConfig[change.type]
                 return (
-                  <div
-                    key={index}
-                    className="rounded-lg border bg-muted/50 p-3 text-sm"
-                  >
+                  <div key={index} className="rounded-lg border bg-muted/50 p-3 text-sm">
                     <div className="flex items-center gap-2">
                       <span
                         className={cn(
@@ -251,7 +245,7 @@ function ApprovalDialog({
               rows={2}
               placeholder="거부 사유를 입력하세요..."
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
+              onChange={e => setRejectReason(e.target.value)}
             />
           </div>
         )}
@@ -263,12 +257,7 @@ function ApprovalDialog({
               더 알아보기
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReject}
-            disabled={isApproving}
-          >
+          <Button variant="outline" size="sm" onClick={handleReject} disabled={isApproving}>
             <XCircle className="mr-1.5 h-4 w-4" />
             {showRejectInput ? '거부 확인' : '거부'}
           </Button>

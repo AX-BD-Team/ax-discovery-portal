@@ -22,7 +22,10 @@ interface StreamingTextProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const StreamingText = React.forwardRef<HTMLDivElement, StreamingTextProps>(
-  ({ className, content, isStreaming, typingSpeed = 0, showCursor = true, messageId, ...props }, ref) => {
+  (
+    { className, content, isStreaming, typingSpeed = 0, showCursor = true, messageId, ...props },
+    ref
+  ) => {
     const [displayedContent, setDisplayedContent] = React.useState(content)
 
     // 컨텐츠가 변경될 때 업데이트
@@ -84,7 +87,7 @@ const StreamingTextList = React.forwardRef<HTMLDivElement, StreamingTextListProp
   ({ className, messages, ...props }, ref) => {
     return (
       <div ref={ref} className={cn('flex flex-col gap-2', className)} {...props}>
-        {messages.map((message) => (
+        {messages.map(message => (
           <StreamingText
             key={message.id}
             content={message.content}

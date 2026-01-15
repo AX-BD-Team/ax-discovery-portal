@@ -7,16 +7,16 @@
 
 import * as React from 'react'
 import { cn } from '@ax/utils'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/card'
-import { Button } from '../components/button'
 import {
-  FileText,
-  Copy,
-  Check,
-  ExternalLink,
-  Download,
-  Edit2,
-} from 'lucide-react'
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '../components/card'
+import { Button } from '../components/button'
+import { FileText, Copy, Check, ExternalLink, Download, Edit2 } from 'lucide-react'
 
 interface AARTemplateCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Activity ID */
@@ -93,12 +93,7 @@ const AARTemplateCard = React.forwardRef<HTMLDivElement, AARTemplateCardProps>(
             </CardTitle>
 
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopy}
-                className="h-7 px-2 text-xs"
-              >
+              <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 px-2 text-xs">
                 {copied ? (
                   <>
                     <Check className="mr-1 h-3 w-3" />
@@ -122,9 +117,7 @@ const AARTemplateCard = React.forwardRef<HTMLDivElement, AARTemplateCardProps>(
               </Button>
             </div>
           </div>
-          <CardDescription className="font-mono text-xs">
-            Activity: {activityId}
-          </CardDescription>
+          <CardDescription className="font-mono text-xs">Activity: {activityId}</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -163,12 +156,7 @@ const AARTemplateCard = React.forwardRef<HTMLDivElement, AARTemplateCardProps>(
             </a>
           )}
           {onStartFilling && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onStartFilling}
-              className="ml-auto"
-            >
+            <Button variant="outline" size="sm" onClick={onStartFilling} className="ml-auto">
               <Edit2 className="mr-1.5 h-4 w-4" />
               작성 시작
             </Button>

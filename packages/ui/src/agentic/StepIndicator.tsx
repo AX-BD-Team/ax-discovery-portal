@@ -66,7 +66,10 @@ function formatDuration(ms: number): string {
 }
 
 const StepIndicator = React.forwardRef<HTMLDivElement, StepIndicatorProps>(
-  ({ className, steps, currentStepIndex, orientation = 'vertical', compact = false, ...props }, ref) => {
+  (
+    { className, steps, currentStepIndex, orientation = 'vertical', compact = false, ...props },
+    ref
+  ) => {
     const isHorizontal = orientation === 'horizontal'
 
     return (

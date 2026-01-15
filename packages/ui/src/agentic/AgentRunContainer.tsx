@@ -57,7 +57,21 @@ const statusConfig: Record<RunStatus, { icon: React.ReactNode; label: string; cl
   }
 
 const AgentRunContainer = React.forwardRef<HTMLDivElement, AgentRunContainerProps>(
-  ({ className, runId, sessionId, title, description, status, onCancel, onRetry, children, ...props }, ref) => {
+  (
+    {
+      className,
+      runId,
+      sessionId,
+      title,
+      description,
+      status,
+      onCancel,
+      onRetry,
+      children,
+      ...props
+    },
+    ref
+  ) => {
     const config = statusConfig[status]
 
     return (
@@ -84,9 +98,7 @@ const AgentRunContainer = React.forwardRef<HTMLDivElement, AgentRunContainerProp
             </span>
             <div>
               <h3 className="font-semibold leading-none">{title}</h3>
-              {description && (
-                <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-              )}
+              {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
             </div>
           </div>
 

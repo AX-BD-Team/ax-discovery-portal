@@ -7,16 +7,16 @@
 
 import * as React from 'react'
 import { cn } from '@ax/utils'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/card'
-import { Badge } from '../components/badge'
 import {
-  ExternalLink,
-  Calendar,
-  MapPin,
-  User,
-  Tag,
-  Edit,
-} from 'lucide-react'
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '../components/card'
+import { Badge } from '../components/badge'
+import { ExternalLink, Calendar, MapPin, User, Tag, Edit } from 'lucide-react'
 
 interface ActivityData {
   activity_id: string
@@ -111,11 +111,7 @@ const ActivityPreviewCard = React.forwardRef<HTMLDivElement, ActivityPreviewCard
           {activity.themes && activity.themes.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {activity.themes.map((theme, i) => (
-                <Badge
-                  key={i}
-                  variant="secondary"
-                  className="text-xs"
-                >
+                <Badge key={i} variant="secondary" className="text-xs">
                   <Tag className="mr-1 h-3 w-3" />
                   {theme}
                 </Badge>

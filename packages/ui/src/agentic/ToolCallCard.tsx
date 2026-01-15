@@ -8,15 +8,7 @@
 import * as React from 'react'
 import { cn } from '@ax/utils'
 import { Badge } from '../components/badge'
-import {
-  Loader2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  Wrench,
-} from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Wrench } from 'lucide-react'
 
 type ToolCallStatus = 'pending' | 'running' | 'completed' | 'error'
 
@@ -162,9 +154,7 @@ const ToolCallCard = React.forwardRef<HTMLDivElement, ToolCallCardProps>(
             {/* Error */}
             {status === 'error' && error && (
               <div>
-                <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
-                  오류
-                </p>
+                <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">오류</p>
                 <pre className="rounded bg-red-50 dark:bg-red-950/30 p-2 text-xs text-red-700 dark:text-red-300 overflow-auto max-h-32">
                   {error}
                 </pre>
@@ -201,7 +191,7 @@ const ToolCallList = React.forwardRef<HTMLDivElement, ToolCallListProps>(
 
     return (
       <div ref={ref} className={cn('space-y-2', className)} {...props}>
-        {calls.map((call) => (
+        {calls.map(call => (
           <ToolCallCard
             key={call.id}
             toolName={call.toolName}
