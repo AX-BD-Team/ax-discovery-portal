@@ -138,8 +138,10 @@
   - [x] @ax/config (공통 설정)
   - [x] @ax/ui (shadcn/ui 컴포넌트)
 
+### 추가 완료 항목 ✅ v0.4.0
+- [x] 페이지별 API 연동 완성 (Inbox, Scorecard, Brief, Play, Seminar)
+
 ### 미완료 항목
-- [ ] 페이지별 API 연동 완성 (Scorecard, Brief, Play)
 - [ ] 모바일 앱 (PWA/React Native)
 
 ---
