@@ -6,27 +6,24 @@ backend/agent_runtime/workflows/wf_inbound_triage.py 테스트
 backend/agent_runtime/workflows/wf_kpi_digest.py 테스트
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, patch
 
-from backend.agent_runtime.workflows.wf_seminar_pipeline import (
-    SeminarPipeline,
-    SeminarInput,
-    ActivityOutput,
-    AARTemplate,
-)
+import pytest
+
 from backend.agent_runtime.workflows.wf_inbound_triage import (
-    InboundTriagePipeline,
     InboundInput,
-    InboundOutput,
-    Urgency,
-    SLA_HOURS,
-    calculate_text_similarity,
-    route_to_play,
+    InboundTriagePipeline,
     calculate_sla_deadline,
+    calculate_text_similarity,
     create_scorecard_draft_from_signal,
     determine_next_action,
+    route_to_play,
+)
+from backend.agent_runtime.workflows.wf_seminar_pipeline import (
+    ActivityOutput,
+    SeminarInput,
+    SeminarPipeline,
 )
 
 
@@ -130,14 +127,14 @@ class TestActivityCreation:
         input_data = SeminarInput(
             url="https://example.com/seminar",
             themes=["AI", "Cloud"],
-            play_id="EXT_Desk_D01_Seminar"
+            play_id="EXT_Desk_D01_Seminar",
         )
 
         metadata = {
             "title": "Test Seminar",
             "description": "Test description",
             "date": "2026-03-15",
-            "organizer": "Test Org"
+            "organizer": "Test Org",
         }
 
         # Activity 생성
@@ -186,13 +183,10 @@ class TestAARTemplateGeneration:
             url="https://example.com",
             date="2026-03-15",
             status="REGISTERED",
-            metadata={}
+            metadata={},
         )
 
-        metadata = {
-            "organizer": "Test Org",
-            "description": "Test description"
-        }
+        metadata = {"organizer": "Test Org", "description": "Test description"}
 
         # AAR 템플릿 생성
         aar = await pipeline._generate_aar_template(activity, metadata)
@@ -220,7 +214,7 @@ class TestAARTemplateGeneration:
             url="https://example.com",
             date=None,  # 날짜 없음
             status="REGISTERED",
-            metadata={}
+            metadata={},
         )
 
         aar = await pipeline._generate_aar_template(activity, {})
@@ -250,7 +244,7 @@ class TestConfluenceUpdate:
                 url="https://example.com",
                 date=None,
                 status="REGISTERED",
-                metadata={}
+                metadata={},
             )
 
             # Confluence 업데이트
@@ -281,7 +275,7 @@ class TestConfluenceUpdate:
                 url="https://example.com",
                 date=None,
                 status="REGISTERED",
-                metadata={}
+                metadata={},
             )
 
             # Confluence 업데이트 (실패)
@@ -300,14 +294,13 @@ class TestSeminarPipelineIntegration:
         pipeline = SeminarPipeline()
 
         input_data = SeminarInput(
-            url="https://example.com/seminar",
-            themes=["AI"],
-            play_id="EXT_Desk_D01_Seminar"
+            url="https://example.com/seminar", themes=["AI"], play_id="EXT_Desk_D01_Seminar"
         )
 
-        with patch("httpx.AsyncClient") as MockClient, \
-             patch("backend.integrations.mcp_confluence.server.ConfluenceMCP") as MockMCP:
-
+        with (
+            patch("httpx.AsyncClient") as MockClient,
+            patch("backend.integrations.mcp_confluence.server.ConfluenceMCP") as MockMCP,
+        ):
             # httpx Mock
             mock_client = AsyncMock()
             mock_client.get.return_value = mock_httpx_response
@@ -337,9 +330,10 @@ class TestSeminarPipelineIntegration:
 
         input_data = SeminarInput(url="https://example.com/seminar")
 
-        with patch("httpx.AsyncClient") as MockClient, \
-             patch("backend.integrations.mcp_confluence.server.ConfluenceMCP") as MockMCP:
-
+        with (
+            patch("httpx.AsyncClient") as MockClient,
+            patch("backend.integrations.mcp_confluence.server.ConfluenceMCP") as MockMCP,
+        ):
             # 네트워크 오류 시뮬레이션
             mock_client = AsyncMock()
             mock_client.get.side_effect = Exception("Network error")
@@ -396,6 +390,7 @@ class TestHelperMethods:
 # ============================================================
 # WF-04: Inbound Triage 테스트
 # ============================================================
+
 
 class TestTextSimilarity:
     """텍스트 유사도 계산 테스트"""
@@ -541,7 +536,7 @@ class TestScorecardDraftCreation:
         assert "strategic_fit" in draft.dimension_scores
 
         # 각 차원 0-20점
-        for dim, score in draft.dimension_scores.items():
+        for _dim, score in draft.dimension_scores.items():
             assert 0 <= score <= 20
 
 
@@ -600,7 +595,12 @@ class TestInboundTriagePipeline:
         assert result.play_id == "KT_Sales_S01"  # KT 키워드 매칭
         assert result.scorecard is not None
         assert result.scorecard["is_draft"] is True
-        assert result.next_action in ["CREATE_BRIEF", "REVIEW_AND_ENHANCE", "SCHEDULE_FOLLOW_UP", "ARCHIVE"]
+        assert result.next_action in [
+            "CREATE_BRIEF",
+            "REVIEW_AND_ENHANCE",
+            "SCHEDULE_FOLLOW_UP",
+            "ARCHIVE",
+        ]
         assert result.sla_deadline is not None
 
     @pytest.mark.asyncio
@@ -708,18 +708,18 @@ class TestInboundTriagePipelineIntegration:
 # ============================================================
 
 from backend.agent_runtime.workflows.wf_kpi_digest import (
-    KPIDigestPipeline,
-    KPIInput,
-    KPIDigestOutput,
-    KPITarget,
+    POC_TARGETS,
     Alert,
     AlertSeverity,
     AlertType,
+    KPIDigestOutput,
+    KPIDigestPipeline,
+    KPIInput,
+    KPITarget,
     TopPlay,
-    calculate_period_range,
     calculate_achievement,
+    calculate_period_range,
     determine_severity,
-    POC_TARGETS,
 )
 
 
@@ -1147,7 +1147,11 @@ class TestKPIDigestPipeline:
         assert "total" in result.status_summary
 
         # total = green + yellow + red
-        total = result.status_summary["green"] + result.status_summary["yellow"] + result.status_summary["red"]
+        total = (
+            result.status_summary["green"]
+            + result.status_summary["yellow"]
+            + result.status_summary["red"]
+        )
         assert result.status_summary["total"] == total
 
     @pytest.mark.asyncio

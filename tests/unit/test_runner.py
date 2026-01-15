@@ -4,12 +4,12 @@ Agent Runtime Runner 단위 테스트
 backend/agent_runtime/runner.py 테스트
 """
 
-import pytest
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.agent_runtime.runner import AgentRuntime, AgentConfig
+import pytest
+
+from backend.agent_runtime.runner import AgentConfig, AgentRuntime
 from tests.fixtures.sample_markdown import get_agent_markdown
 
 
@@ -132,7 +132,9 @@ class TestMCPServerConnection:
         runtime = AgentRuntime()
 
         # _connect_mcp_servers를 Mock으로 대체
-        with patch.object(runtime, "_connect_mcp_servers", return_value={"confluence": MagicMock()}):
+        with patch.object(
+            runtime, "_connect_mcp_servers", return_value={"confluence": MagicMock()}
+        ):
             servers = await runtime._connect_mcp_servers()
 
             # 검증: dict 반환
@@ -153,8 +155,7 @@ class TestSessionManagement:
         with patch.object(runtime, "_connect_mcp_servers", return_value={}):
             # 세션 생성 (새 시그니처: workflow_id, input_data)
             session_id = await runtime.create_session(
-                workflow_id="WF-01",
-                input_data={"test": "data"}
+                workflow_id="WF-01", input_data={"test": "data"}
             )
 
             # 검증
@@ -177,7 +178,7 @@ class TestSessionManagement:
             "input_data": {},
             "status": "created",
             "client": MagicMock(),
-            "created_at": asyncio.get_event_loop().time()
+            "created_at": asyncio.get_event_loop().time(),
         }
 
         # 세션 재개
@@ -215,7 +216,7 @@ class TestSessionManagement:
             "input_data": {},
             "status": "created",
             "created_at": current_time - 7200,  # 2시간 전
-            "client": mock_client
+            "client": mock_client,
         }
 
         # 최근 세션 생성 (10분 전 = 600초 전)
@@ -225,7 +226,7 @@ class TestSessionManagement:
             "input_data": {},
             "status": "created",
             "created_at": current_time - 600,  # 10분 전
-            "client": MagicMock()
+            "client": MagicMock(),
         }
 
         # 정리 실행

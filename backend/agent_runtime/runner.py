@@ -4,20 +4,21 @@ Agent Runtime Runner
 Claude Agent SDK를 사용한 에이전트 실행 환경
 """
 
-import os
 import asyncio
-import re
 import json
+import os
+import re
 import uuid
-from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
 import structlog
 
 # Claude Agent SDK
 from claude_agent_sdk import (
-    ClaudeSDKClient,
     ClaudeAgentOptions,
+    ClaudeSDKClient,
     create_sdk_mcp_server,
     tool,
 )
@@ -29,6 +30,7 @@ logger = structlog.get_logger()
 @dataclass
 class AgentConfig:
     """에이전트 설정"""
+
     agent_id: str
     model: str = "claude-sonnet-4-20250514"
     max_iterations: int = 100
@@ -40,6 +42,7 @@ class AgentConfig:
 @dataclass
 class WorkflowConfig:
     """워크플로 설정"""
+
     workflow_id: str
     agents: list[str]
     timeout: int = 7200
@@ -49,23 +52,23 @@ class WorkflowConfig:
 class AgentRuntime:
     """
     Claude Agent SDK 기반 에이전트 실행 환경
-    
+
     Features:
     - 멀티에이전트 오케스트레이션
     - 세션 관리 (생성/재개)
     - MCP 도구 연동
     - 훅 (pre/post tool use)
     """
-    
+
     def __init__(self):
         self.logger = logger.bind(component="agent_runtime")
         self.sessions: dict[str, Any] = {}
         self.agents: dict[str, Any] = {}
-        
+
         # 환경 변수
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self.model = os.getenv("AGENT_MODEL", "claude-sonnet-4-20250514")
-        
+
     async def initialize(self):
         """런타임 초기화"""
         self.logger.info("Initializing agent runtime...")
@@ -130,26 +133,18 @@ class AgentRuntime:
                     append_to_page,
                     add_labels,
                     increment_play_activity_count,
-                ]
+                ],
             )
 
-            self.logger.info(
-                "MCP servers connected",
-                servers=["confluence"],
-                tools=7
-            )
+            self.logger.info("MCP servers connected", servers=["confluence"], tools=7)
 
             return {"confluence": confluence_server}
 
         except Exception as e:
-            self.logger.error(
-                "Failed to connect MCP servers",
-                error=str(e),
-                exc_info=True
-            )
+            self.logger.error("Failed to connect MCP servers", error=str(e), exc_info=True)
             # Fallback: 빈 딕셔너리 반환
             return {}
-        
+
     async def _load_agents(self):
         """에이전트 정의 로드 (.claude/agents/*.md 파싱)"""
         agents_dir = Path(".claude/agents")
@@ -184,17 +179,11 @@ class AgentRuntime:
                 }
 
                 self.logger.info(
-                    f"Loaded agent: {agent_id}",
-                    tools=agent_def.tools,
-                    model=agent_def.model
+                    f"Loaded agent: {agent_id}", tools=agent_def.tools, model=agent_def.model
                 )
 
             except Exception as e:
-                self.logger.error(
-                    f"Failed to load agent: {agent_id}",
-                    error=str(e),
-                    exc_info=True
-                )
+                self.logger.error(f"Failed to load agent: {agent_id}", error=str(e), exc_info=True)
 
     async def _parse_agent_definition(self, file_path: Path) -> AgentDefinition:
         """Markdown 파일에서 AgentDefinition 생성"""
@@ -205,11 +194,7 @@ class AgentRuntime:
         title = title_match.group(1).strip() if title_match else file_path.stem
 
         # "## 역할" 섹션 추출
-        role_match = re.search(
-            r"##\s+역할\s*\n+(.*?)(?=\n##|\Z)",
-            content,
-            re.DOTALL
-        )
+        role_match = re.search(r"##\s+역할\s*\n+(.*?)(?=\n##|\Z)", content, re.DOTALL)
         description = role_match.group(1).strip() if role_match else f"{title} agent"
 
         # 도구 추출
@@ -222,17 +207,13 @@ class AgentRuntime:
             description=description,
             prompt=content,  # 전체 Markdown을 시스템 프롬프트로 사용
             tools=tools,
-            model=model
+            model=model,
         )
 
     def _extract_tools_from_markdown(self, content: str) -> list[str] | None:
         """Markdown의 설정 섹션에서 도구 목록 추출"""
         # "## 설정" 섹션의 JSON 블록 찾기
-        config_match = re.search(
-            r"```json\s*\n(\{.*?\})\s*\n```",
-            content,
-            re.DOTALL
-        )
+        config_match = re.search(r"```json\s*\n(\{.*?\})\s*\n```", content, re.DOTALL)
 
         if config_match:
             try:
@@ -249,11 +230,7 @@ class AgentRuntime:
 
     def _extract_model_from_markdown(self, content: str) -> str | None:
         """Markdown의 설정 섹션에서 모델 설정 추출"""
-        config_match = re.search(
-            r"```json\s*\n(\{.*?\})\s*\n```",
-            content,
-            re.DOTALL
-        )
+        config_match = re.search(r"```json\s*\n(\{.*?\})\s*\n```", content, re.DOTALL)
 
         if config_match:
             try:
@@ -271,12 +248,8 @@ class AgentRuntime:
             for agent_id, data in self.agents.items()
             if "definition" in data
         }
-    
-    async def create_session(
-        self,
-        workflow_id: str,
-        input_data: dict[str, Any]
-    ) -> str:
+
+    async def create_session(self, workflow_id: str, input_data: dict[str, Any]) -> str:
         """세션 생성 (ClaudeSDKClient 인스턴스 포함)"""
         session_id = f"sess_{workflow_id}_{uuid.uuid4().hex[:8]}"
 
@@ -289,7 +262,7 @@ class AgentRuntime:
             mcp_servers=mcp_servers,
             allowed_tools=["Read", "Write", "Bash", "Glob", "Grep"],
             agents=self._get_agent_definitions(),
-            cwd=os.getcwd()
+            cwd=os.getcwd(),
         )
 
         # SDK 클라이언트
@@ -301,12 +274,12 @@ class AgentRuntime:
             "status": "created",
             "client": client,
             "options": options,
-            "created_at": asyncio.get_event_loop().time()
+            "created_at": asyncio.get_event_loop().time(),
         }
 
         self.logger.info(f"Session created: {session_id}")
         return session_id
-    
+
     async def resume_session(self, session_id: str) -> dict[str, Any]:
         """세션 재개"""
         if session_id not in self.sessions:
@@ -332,8 +305,7 @@ class AgentRuntime:
                         await session["client"].disconnect()
                     except Exception as e:
                         self.logger.warning(
-                            f"Failed to disconnect client for session: {session_id}",
-                            error=str(e)
+                            f"Failed to disconnect client for session: {session_id}", error=str(e)
                         )
                 to_delete.append(session_id)
 
@@ -342,35 +314,32 @@ class AgentRuntime:
             self.logger.info(f"Cleaned up session: {session_id}")
 
     async def run_workflow(
-        self,
-        workflow_id: str,
-        input_data: dict[str, Any],
-        session_id: str | None = None
+        self, workflow_id: str, input_data: dict[str, Any], session_id: str | None = None
     ) -> dict[str, Any]:
         """워크플로 실행"""
         self.logger.info(f"Running workflow: {workflow_id}")
-        
+
         # 세션 생성/재개
         if session_id:
-            session = await self.resume_session(session_id)
+            await self.resume_session(session_id)
         else:
             session_id = await self.create_session(workflow_id, input_data)
-        
+
         # 워크플로 라우팅
         workflow_handler = self._get_workflow_handler(workflow_id)
-        
+
         if workflow_handler is None:
             raise ValueError(f"Unknown workflow: {workflow_id}")
-        
+
         # 워크플로 실행
         result = await workflow_handler(input_data, session_id)
-        
+
         # 세션 업데이트
         self.sessions[session_id]["status"] = "completed"
         self.sessions[session_id]["result"] = result
-        
+
         return result
-    
+
     def _get_workflow_handler(self, workflow_id: str):
         """워크플로 핸들러 반환"""
         handlers = {
@@ -382,18 +351,16 @@ class AgentRuntime:
             "WF-06": self._run_confluence_sync,
         }
         return handlers.get(workflow_id)
-    
+
     async def _run_seminar_pipeline(
-        self,
-        input_data: dict[str, Any],
-        session_id: str
+        self, input_data: dict[str, Any], session_id: str
     ) -> dict[str, Any]:
         """WF-01: Seminar Pipeline"""
         self.logger.info("Running WF-01: Seminar Pipeline")
 
         from backend.agent_runtime.workflows.wf_seminar_pipeline import (
+            SeminarInput,
             seminar_pipeline,
-            SeminarInput
         )
 
         # 실제 워크플로 실행
@@ -406,60 +373,46 @@ class AgentRuntime:
             "activity": result.activity,
             "aar_template": result.aar_template,
             "signals": result.signals,
-            "confluence_updated": result.confluence_live_doc_updated
+            "confluence_updated": result.confluence_live_doc_updated,
         }
-    
+
     async def _run_interview_to_brief(
-        self,
-        input_data: dict[str, Any],
-        session_id: str
+        self, input_data: dict[str, Any], session_id: str
     ) -> dict[str, Any]:
         """WF-02: Interview to Brief"""
         self.logger.info("Running WF-02: Interview to Brief")
-        
+
         # 1. Interview Miner로 Signal 추출
         # 2. Scorecard Evaluator로 평가
         # 3. Brief Writer로 Brief 생성
         # 4. 승인 요청
-        
+
         return {
             "workflow_id": "WF-02",
             "status": "pending_approval",
             "signal_id": None,
-            "brief_id": None
+            "brief_id": None,
         }
-    
-    async def _run_voc_mining(
-        self,
-        input_data: dict[str, Any],
-        session_id: str
-    ) -> dict[str, Any]:
+
+    async def _run_voc_mining(self, input_data: dict[str, Any], session_id: str) -> dict[str, Any]:
         """WF-03: VoC Mining"""
         self.logger.info("Running WF-03: VoC Mining")
         return {"workflow_id": "WF-03", "status": "completed"}
-    
+
     async def _run_inbound_triage(
-        self,
-        input_data: dict[str, Any],
-        session_id: str
+        self, input_data: dict[str, Any], session_id: str
     ) -> dict[str, Any]:
         """WF-04: Inbound Triage"""
         self.logger.info("Running WF-04: Inbound Triage")
         return {"workflow_id": "WF-04", "status": "completed"}
-    
-    async def _run_kpi_digest(
-        self,
-        input_data: dict[str, Any],
-        session_id: str
-    ) -> dict[str, Any]:
+
+    async def _run_kpi_digest(self, input_data: dict[str, Any], session_id: str) -> dict[str, Any]:
         """WF-05: KPI Digest"""
         self.logger.info("Running WF-05: KPI Digest")
         return {"workflow_id": "WF-05", "status": "completed"}
-    
+
     async def _run_confluence_sync(
-        self,
-        input_data: dict[str, Any],
-        session_id: str
+        self, input_data: dict[str, Any], session_id: str
     ) -> dict[str, Any]:
         """WF-06: Confluence Sync"""
         self.logger.info("Running WF-06: Confluence Sync")

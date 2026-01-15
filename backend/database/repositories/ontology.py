@@ -4,15 +4,15 @@ Ontology Repository
 Entity와 Triple에 대한 CRUD 작업 및 그래프 탐색 기능
 """
 
-from typing import Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
-from sqlalchemy import select, func, and_, or_, text
+
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.database.models.entity import Entity, EntityType
-from backend.database.models.triple import Triple, PredicateType
+from backend.database.models.triple import PredicateType, Triple
 
 
 class OntologyRepository:
@@ -53,26 +53,16 @@ class OntologyRepository:
         await db.flush()
         return entity
 
-    async def get_entity(
-        self,
-        db: AsyncSession,
-        entity_id: str
-    ) -> Optional[Entity]:
+    async def get_entity(self, db: AsyncSession, entity_id: str) -> Entity | None:
         """엔티티 조회"""
-        result = await db.execute(
-            select(Entity).where(Entity.entity_id == entity_id)
-        )
+        result = await db.execute(select(Entity).where(Entity.entity_id == entity_id))
         return result.scalar_one_or_none()
 
     async def get_entity_by_external_ref(
-        self,
-        db: AsyncSession,
-        external_ref_id: str
-    ) -> Optional[Entity]:
+        self, db: AsyncSession, external_ref_id: str
+    ) -> Entity | None:
         """외부 참조 ID로 엔티티 조회"""
-        result = await db.execute(
-            select(Entity).where(Entity.external_ref_id == external_ref_id)
-        )
+        result = await db.execute(select(Entity).where(Entity.external_ref_id == external_ref_id))
         return result.scalar_one_or_none()
 
     async def list_entities(
@@ -92,10 +82,7 @@ class OntologyRepository:
             conditions.append(Entity.entity_type == entity_type)
         if search:
             conditions.append(
-                or_(
-                    Entity.name.ilike(f"%{search}%"),
-                    Entity.description.ilike(f"%{search}%")
-                )
+                or_(Entity.name.ilike(f"%{search}%"), Entity.description.ilike(f"%{search}%"))
             )
 
         if conditions:
@@ -111,12 +98,7 @@ class OntologyRepository:
 
         return list(result.scalars().all()), total
 
-    async def update_entity(
-        self,
-        db: AsyncSession,
-        entity_id: str,
-        **kwargs
-    ) -> Optional[Entity]:
+    async def update_entity(self, db: AsyncSession, entity_id: str, **kwargs) -> Entity | None:
         """엔티티 업데이트"""
         entity = await self.get_entity(db, entity_id)
         if not entity:
@@ -126,15 +108,11 @@ class OntologyRepository:
             if hasattr(entity, key) and value is not None:
                 setattr(entity, key, value)
 
-        entity.updated_at = datetime.now(timezone.utc)
+        entity.updated_at = datetime.now(UTC)
         await db.flush()
         return entity
 
-    async def delete_entity(
-        self,
-        db: AsyncSession,
-        entity_id: str
-    ) -> bool:
+    async def delete_entity(self, db: AsyncSession, entity_id: str) -> bool:
         """엔티티 삭제 (관련 Triple도 CASCADE 삭제)"""
         entity = await self.get_entity(db, entity_id)
         if not entity:
@@ -179,11 +157,7 @@ class OntologyRepository:
         await db.flush()
         return triple
 
-    async def get_triple(
-        self,
-        db: AsyncSession,
-        triple_id: str
-    ) -> Optional[Triple]:
+    async def get_triple(self, db: AsyncSession, triple_id: str) -> Triple | None:
         """Triple 조회"""
         result = await db.execute(
             select(Triple)
@@ -203,10 +177,7 @@ class OntologyRepository:
         limit: int = 100,
     ) -> tuple[list[Triple], int]:
         """Triple 쿼리 (SPO 패턴)"""
-        query = select(Triple).options(
-            selectinload(Triple.subject),
-            selectinload(Triple.object)
-        )
+        query = select(Triple).options(selectinload(Triple.subject), selectinload(Triple.object))
 
         conditions = [Triple.confidence >= min_confidence]
 
@@ -230,11 +201,7 @@ class OntologyRepository:
         result = await db.execute(query)
         return list(result.scalars().all()), total
 
-    async def delete_triple(
-        self,
-        db: AsyncSession,
-        triple_id: str
-    ) -> bool:
+    async def delete_triple(self, db: AsyncSession, triple_id: str) -> bool:
         """Triple 삭제"""
         triple = await self.get_triple(db, triple_id)
         if not triple:
@@ -281,9 +248,7 @@ class OntologyRepository:
             # 현재 frontier에서 나가는/들어오는 관계 조회
             for node_id in current_frontier:
                 # 나가는 관계
-                outgoing, _ = await self.query_triples(
-                    db, subject_id=node_id, limit=100
-                )
+                outgoing, _ = await self.query_triples(db, subject_id=node_id, limit=100)
                 for triple in outgoing:
                     if predicates is None or triple.predicate in predicates:
                         all_edges.append(triple)
@@ -291,9 +256,7 @@ class OntologyRepository:
                             next_frontier.add(triple.object_id)
 
                 # 들어오는 관계
-                incoming, _ = await self.query_triples(
-                    db, object_id=node_id, limit=100
-                )
+                incoming, _ = await self.query_triples(db, object_id=node_id, limit=100)
                 for triple in incoming:
                     if predicates is None or triple.predicate in predicates:
                         all_edges.append(triple)
@@ -341,9 +304,7 @@ class OntologyRepository:
                 continue
 
             # 나가는 관계
-            outgoing, _ = await self.query_triples(
-                db, subject_id=current_id, limit=100
-            )
+            outgoing, _ = await self.query_triples(db, subject_id=current_id, limit=100)
 
             for triple in outgoing:
                 if triple.object_id == target_id:
@@ -364,10 +325,7 @@ class OntologyRepository:
         """유사 엔티티 검색 (similar_to 관계 기반)"""
         # similar_to 관계로 연결된 엔티티
         triples, _ = await self.query_triples(
-            db,
-            subject_id=entity_id,
-            predicate=PredicateType.SIMILAR_TO,
-            limit=limit
+            db, subject_id=entity_id, predicate=PredicateType.SIMILAR_TO, limit=limit
         )
 
         results = []
@@ -378,10 +336,7 @@ class OntologyRepository:
 
         # 역방향도 검색 (양방향 관계)
         reverse_triples, _ = await self.query_triples(
-            db,
-            object_id=entity_id,
-            predicate=PredicateType.SIMILAR_TO,
-            limit=limit
+            db, object_id=entity_id, predicate=PredicateType.SIMILAR_TO, limit=limit
         )
 
         for triple in reverse_triples:
@@ -415,10 +370,7 @@ class OntologyRepository:
 
             # leads_to 관계의 subject 찾기 (역추적)
             triples, _ = await self.query_triples(
-                db,
-                object_id=current_id,
-                predicate=PredicateType.LEADS_TO,
-                limit=1
+                db, object_id=current_id, predicate=PredicateType.LEADS_TO, limit=1
             )
 
             if not triples:
@@ -439,8 +391,7 @@ class OntologyRepository:
         entity_by_type = {}
         for entity_type in EntityType:
             count = await db.scalar(
-                select(func.count()).select_from(Entity)
-                .where(Entity.entity_type == entity_type)
+                select(func.count()).select_from(Entity).where(Entity.entity_type == entity_type)
             )
             entity_by_type[entity_type.value] = count or 0
 
@@ -450,15 +401,12 @@ class OntologyRepository:
         triple_by_predicate = {}
         for predicate in PredicateType:
             count = await db.scalar(
-                select(func.count()).select_from(Triple)
-                .where(Triple.predicate == predicate)
+                select(func.count()).select_from(Triple).where(Triple.predicate == predicate)
             )
             triple_by_predicate[predicate.value] = count or 0
 
         # 평균 신뢰도
-        avg_confidence = await db.scalar(
-            select(func.avg(Triple.confidence)).select_from(Triple)
-        )
+        avg_confidence = await db.scalar(select(func.avg(Triple.confidence)).select_from(Triple))
 
         return {
             "entity_count": entity_count or 0,

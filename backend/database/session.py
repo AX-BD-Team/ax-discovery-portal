@@ -3,16 +3,16 @@
 """
 
 import os
-from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from collections.abc import AsyncGenerator
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 logger = structlog.get_logger()
 
 # 환경변수에서 데이터베이스 URL 가져오기
 DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://user:password@localhost:5432/ax_discovery"
+    "DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5432/ax_discovery"
 )
 
 # 비동기 엔진 생성
@@ -21,16 +21,12 @@ engine = create_async_engine(
     echo=True,  # 개발 환경에서 SQL 로그 출력
     pool_pre_ping=True,  # 연결 상태 체크
     pool_size=5,
-    max_overflow=10
+    max_overflow=10,
 )
 
 # 비동기 세션 팩토리
 SessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False
+    engine, class_=AsyncSession, expire_on_commit=False, autocommit=False, autoflush=False
 )
 
 

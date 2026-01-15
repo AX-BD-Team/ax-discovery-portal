@@ -56,7 +56,19 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in default argument (FastAPI Depends pattern)
+    "N806",   # variable in function should be lowercase (Mock naming)
+    "SIM102", # nested if (readability preference)
+    "SIM105", # contextlib.suppress (intentional try-except-pass)
+    "SIM117", # nested with statements (readability preference)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]  # allow imports not at top in test files
+"backend/database/models/*" = ["F821"]  # SQLAlchemy string references for relationships
+"backend/api/main.py" = ["E402"]  # load_dotenv() must run before other imports
 
 [tool.hatch.build.targets.wheel]
 packages = ["backend"]

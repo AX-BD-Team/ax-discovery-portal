@@ -5,16 +5,17 @@ Signal 평가 스코어카드 테이블 정의
 """
 
 import enum
-from typing import Optional
-from sqlalchemy import String, Float, ForeignKey, Enum, Index, JSON, DateTime
+from datetime import UTC, datetime
+
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime, timezone
 
 from backend.database.base import Base
 
 
 class Decision(enum.Enum):
     """판정 결과"""
+
     GO = "GO"
     PIVOT = "PIVOT"
     HOLD = "HOLD"
@@ -23,6 +24,7 @@ class Decision(enum.Enum):
 
 class NextStep(enum.Enum):
     """다음 단계"""
+
     BRIEF = "BRIEF"
     VALIDATION = "VALIDATION"
     PILOT_READY = "PILOT_READY"
@@ -47,7 +49,7 @@ class Scorecard(Base):
         String(50),
         ForeignKey("signals.signal_id", ondelete="CASCADE"),
         nullable=False,
-        unique=True  # 1:1 관계
+        unique=True,  # 1:1 관계
     )
 
     # 점수
@@ -55,15 +57,13 @@ class Scorecard(Base):
     dimension_scores: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     # 판정
-    red_flags: Mapped[Optional[list]] = mapped_column(JSON)
+    red_flags: Mapped[list | None] = mapped_column(JSON)
     recommendation: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     # 메타데이터
-    scored_by: Mapped[Optional[str]] = mapped_column(String(100))
+    scored_by: Mapped[str | None] = mapped_column(String(100))
     scored_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
 
     # Relationships

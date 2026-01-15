@@ -159,6 +159,6 @@ def get_agent_markdown(agent_name: str) -> str:
         "confluence_sync": CONFLUENCE_SYNC_MD,
         "governance": GOVERNANCE_MD,
         "no_config": NO_CONFIG_MD,
-        "invalid_json": INVALID_JSON_MD
+        "invalid_json": INVALID_JSON_MD,
     }
     return markdown_map.get(agent_name, "")

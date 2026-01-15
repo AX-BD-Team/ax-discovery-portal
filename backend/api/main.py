@@ -5,12 +5,17 @@ FastAPI 기반 백엔드 서버
 """
 
 from contextlib import asynccontextmanager
+
+# .env 파일 로드
+from dotenv import load_dotenv
+
+load_dotenv()
+
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import structlog
 
-from .routers import inbox, scorecard, brief, play_dashboard, stream, workflows, ontology, xai
-
+from .routers import brief, inbox, ontology, play_dashboard, scorecard, stream, workflows, xai
 
 logger = structlog.get_logger()
 
@@ -22,6 +27,7 @@ async def lifespan(app: FastAPI):
 
     # Agent Runtime 초기화
     from backend.agent_runtime.runner import runtime
+
     await runtime.initialize()
 
     yield
@@ -83,14 +89,11 @@ async def health():
     return {
         "status": "healthy",
         "version": "0.1.0",
-        "components": {
-            "database": "ok",
-            "agent_runtime": "ok",
-            "confluence": "ok"
-        }
+        "components": {"database": "ok", "agent_runtime": "ok", "confluence": "ok"},
     }
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

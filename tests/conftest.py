@@ -4,12 +4,12 @@ pytest 공용 fixtures
 모든 테스트에서 사용할 수 있는 공통 fixture 정의
 """
 
-import os
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from backend.database.base import Base
@@ -25,7 +25,9 @@ def mock_env(monkeypatch):
     monkeypatch.setenv("CONFLUENCE_API_TOKEN", "test-token")
     monkeypatch.setenv("CONFLUENCE_USER_EMAIL", "test@example.com")
     monkeypatch.setenv("CONFLUENCE_SPACE_KEY", "TEST")
-    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/test_ax_discovery")
+    monkeypatch.setenv(
+        "DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/test_ax_discovery"
+    )
     return monkeypatch
 
 
@@ -41,7 +43,7 @@ def sample_agent_markdown(tmp_path: Path) -> Path:
         "scorecard_evaluator",
         "brief_writer",
         "confluence_sync",
-        "governance"
+        "governance",
     ]
 
     for agent_name in agent_names:
@@ -57,47 +59,30 @@ def mock_confluence_mcp():
     mock = AsyncMock()
 
     # search_pages
-    mock.search_pages.return_value = {
-        "pages": [],
-        "total": 0
-    }
+    mock.search_pages.return_value = {"pages": [], "total": 0}
 
     # get_page
     mock.get_page.return_value = {
         "page_id": "12345",
         "title": "Test Page",
         "content": "<p>Test content</p>",
-        "version": 1
+        "version": 1,
     }
 
     # create_page
-    mock.create_page.return_value = {
-        "page_id": "67890",
-        "title": "New Page",
-        "version": 1
-    }
+    mock.create_page.return_value = {"page_id": "67890", "title": "New Page", "version": 1}
 
     # update_page
-    mock.update_page.return_value = {
-        "page_id": "12345",
-        "title": "Updated Page",
-        "version": 2
-    }
+    mock.update_page.return_value = {"page_id": "12345", "title": "Updated Page", "version": 2}
 
     # append_to_page
-    mock.append_to_page.return_value = {
-        "page_id": "12345",
-        "version": 2
-    }
+    mock.append_to_page.return_value = {"page_id": "12345", "version": 2}
 
     # delete_page
     mock.delete_page.return_value = {"success": True}
 
     # list_spaces
-    mock.list_spaces.return_value = {
-        "spaces": [{"key": "TEST", "name": "Test Space"}],
-        "total": 1
-    }
+    mock.list_spaces.return_value = {"spaces": [{"key": "TEST", "name": "Test Space"}], "total": 1}
 
     return mock
 
@@ -110,7 +95,7 @@ async def test_db_engine():
         "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        echo=True
+        echo=True,
     )
 
     # 테이블 생성
@@ -126,11 +111,7 @@ async def test_db_engine():
 @pytest.fixture
 async def test_db_session(test_db_engine) -> AsyncGenerator[AsyncSession, None]:
     """테스트용 데이터베이스 세션"""
-    SessionLocal = async_sessionmaker(
-        test_db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False
-    )
+    SessionLocal = async_sessionmaker(test_db_engine, class_=AsyncSession, expire_on_commit=False)
 
     async with SessionLocal() as session:
         yield session
@@ -144,7 +125,7 @@ async def agent_runtime_instance(mock_env, sample_agent_markdown, monkeypatch):
     # .claude/agents 경로를 tmp_path로 변경
     monkeypatch.setattr(
         "backend.agent_runtime.runner.Path",
-        lambda x: sample_agent_markdown.parent if ".claude" in str(x) else Path(x)
+        lambda x: sample_agent_markdown.parent if ".claude" in str(x) else Path(x),
     )
 
     runtime = AgentRuntime()
@@ -161,10 +142,7 @@ async def agent_runtime_instance(mock_env, sample_agent_markdown, monkeypatch):
 def mock_claude_sdk_client():
     """ClaudeSDKClient Mock"""
     mock_client = MagicMock()
-    mock_client.chat = AsyncMock(return_value={
-        "role": "assistant",
-        "content": "Test response"
-    })
+    mock_client.chat = AsyncMock(return_value={"role": "assistant", "content": "Test response"})
     return mock_client
 
 

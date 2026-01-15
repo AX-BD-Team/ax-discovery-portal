@@ -5,9 +5,9 @@ Entity 모델
 """
 
 import enum
-from typing import Optional
-from datetime import datetime, timezone
-from sqlalchemy import String, Text, Float, Enum, Index, JSON, DateTime
+from datetime import UTC, datetime
+
+from sqlalchemy import JSON, DateTime, Enum, Float, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database.base import Base
@@ -15,6 +15,7 @@ from backend.database.base import Base
 
 class EntityType(enum.Enum):
     """엔티티 유형 (12종)"""
+
     # Core Entities
     SIGNAL = "Signal"
     TOPIC = "Topic"
@@ -50,43 +51,38 @@ class Entity(Base):
     entity_id: Mapped[str] = mapped_column(String(50), primary_key=True)
 
     # 엔티티 유형
-    entity_type: Mapped[EntityType] = mapped_column(
-        Enum(EntityType),
-        nullable=False
-    )
+    entity_type: Mapped[EntityType] = mapped_column(Enum(EntityType), nullable=False)
 
     # 기본 정보
     name: Mapped[str] = mapped_column(String(500), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
 
     # 임베딩 (벡터 검색용) - JSON으로 저장, 실제 검색은 Vectorize 사용
-    embedding: Mapped[Optional[list]] = mapped_column(JSON)
+    embedding: Mapped[list | None] = mapped_column(JSON)
 
     # 신뢰도 (0.0 ~ 1.0)
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
 
     # 메타데이터 (유형별 추가 속성)
-    properties: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    properties: Mapped[dict | None] = mapped_column(JSON, default=dict)
 
     # 외부 참조 ID (기존 테이블과의 연결)
     # 예: Signal 엔티티면 signals 테이블의 signal_id
-    external_ref_id: Mapped[Optional[str]] = mapped_column(String(100))
+    external_ref_id: Mapped[str | None] = mapped_column(String(100))
 
     # 생성/수정 시각
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-        nullable=False
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
     )
 
     # 생성자 (user_id 또는 agent_id)
-    created_by: Mapped[Optional[str]] = mapped_column(String(100))
+    created_by: Mapped[str | None] = mapped_column(String(100))
 
     # Indexes
     __table_args__ = (

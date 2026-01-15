@@ -6,7 +6,8 @@ Signal 모델
 
 import enum
 from typing import Optional
-from sqlalchemy import String, Text, Float, Enum, Index, JSON
+
+from sqlalchemy import JSON, Enum, Float, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.base import Base, TimestampMixin
@@ -14,6 +15,7 @@ from backend.database.base import Base, TimestampMixin
 
 class SignalSource(enum.Enum):
     """Signal 원천 (3원천)"""
+
     KT = "KT"
     GROUP = "그룹사"
     EXTERNAL = "대외"
@@ -21,6 +23,7 @@ class SignalSource(enum.Enum):
 
 class SignalChannel(enum.Enum):
     """Signal 채널 (5채널)"""
+
     DESK_RESEARCH = "데스크리서치"
     INTERNAL_ACTIVITY = "자사활동"
     SALES_PM = "영업PM"
@@ -30,6 +33,7 @@ class SignalChannel(enum.Enum):
 
 class SignalStatus(enum.Enum):
     """Signal 상태"""
+
     NEW = "NEW"
     SCORING = "SCORING"
     SCORED = "SCORED"
@@ -58,37 +62,29 @@ class Signal(Base, TimestampMixin):
     play_id: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # 고객 및 Pain Point
-    customer_segment: Mapped[Optional[str]] = mapped_column(String(200))
+    customer_segment: Mapped[str | None] = mapped_column(String(200))
     pain: Mapped[str] = mapped_column(Text, nullable=False)
-    proposed_value: Mapped[Optional[str]] = mapped_column(Text)
+    proposed_value: Mapped[str | None] = mapped_column(Text)
 
     # KPI 및 근거
-    kpi_hypothesis: Mapped[Optional[list]] = mapped_column(JSON)
-    evidence: Mapped[Optional[list]] = mapped_column(JSON)
-    tags: Mapped[Optional[list]] = mapped_column(JSON)
+    kpi_hypothesis: Mapped[list | None] = mapped_column(JSON)
+    evidence: Mapped[list | None] = mapped_column(JSON)
+    tags: Mapped[list | None] = mapped_column(JSON)
 
     # 상태 및 메타데이터
     status: Mapped[SignalStatus] = mapped_column(
-        Enum(SignalStatus),
-        default=SignalStatus.NEW,
-        nullable=False
+        Enum(SignalStatus), default=SignalStatus.NEW, nullable=False
     )
-    owner: Mapped[Optional[str]] = mapped_column(String(100))
-    confidence: Mapped[Optional[float]] = mapped_column(Float)
+    owner: Mapped[str | None] = mapped_column(String(100))
+    confidence: Mapped[float | None] = mapped_column(Float)
 
     # Relationships
     scorecard: Mapped[Optional["Scorecard"]] = relationship(
-        "Scorecard",
-        back_populates="signal",
-        uselist=False,
-        cascade="all, delete-orphan"
+        "Scorecard", back_populates="signal", uselist=False, cascade="all, delete-orphan"
     )
 
     brief: Mapped[Optional["OpportunityBrief"]] = relationship(
-        "OpportunityBrief",
-        back_populates="signal",
-        uselist=False,
-        cascade="all, delete-orphan"
+        "OpportunityBrief", back_populates="signal", uselist=False, cascade="all, delete-orphan"
     )
 
     # Indexes

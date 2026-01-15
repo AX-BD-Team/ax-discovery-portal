@@ -6,24 +6,25 @@ AG-UI 프로토콜 기반 실시간 이벤트 스트리밍 지원
 """
 
 import asyncio
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
 from datetime import datetime
+from typing import Any
+
 import structlog
 
 from .event_types import (
     AgentEvent,
-    BaseAgentEvent,
-    RunStartedEvent,
-    RunFinishedEvent,
-    RunErrorEvent,
-    StepStartedEvent,
-    StepFinishedEvent,
-    StepErrorEvent,
-    TextMessageContentEvent,
-    RenderSurfaceEvent,
     ApprovalRequestedEvent,
-    SeminarPipelineStep,
+    BaseAgentEvent,
     ImpactLevel,
+    RenderSurfaceEvent,
+    RunErrorEvent,
+    RunFinishedEvent,
+    RunStartedEvent,
+    StepErrorEvent,
+    StepFinishedEvent,
+    StepStartedEvent,
+    TextMessageContentEvent,
 )
 
 logger = structlog.get_logger()
@@ -93,9 +94,7 @@ class SessionEventManager:
         """구독 해제"""
         if queue in self.subscribers:
             self.subscribers.remove(queue)
-            self.logger.info(
-                "Subscriber removed", total_subscribers=len(self.subscribers)
-            )
+            self.logger.info("Subscriber removed", total_subscribers=len(self.subscribers))
 
     async def stream(
         self, queue: asyncio.Queue[dict[str, Any]]
@@ -116,7 +115,7 @@ class SessionEventManager:
                     if event.get("type") in ("RUN_FINISHED", "RUN_ERROR"):
                         break
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # 주기적으로 keep-alive 이벤트 발송 (SSE 연결 유지)
                     yield {"type": "KEEP_ALIVE", "timestamp": datetime.utcnow().isoformat() + "Z"}
 
@@ -163,9 +162,7 @@ class WorkflowEventEmitter:
         """실행 완료 이벤트 발행"""
         duration_ms = 0
         if self._run_start_time:
-            duration_ms = int(
-                (datetime.utcnow() - self._run_start_time).total_seconds() * 1000
-            )
+            duration_ms = int((datetime.utcnow() - self._run_start_time).total_seconds() * 1000)
 
         event = RunFinishedEvent(
             run_id=self.run_id,
@@ -214,8 +211,7 @@ class WorkflowEventEmitter:
         duration_ms = 0
         if step_id in self._step_start_times:
             duration_ms = int(
-                (datetime.utcnow() - self._step_start_times[step_id]).total_seconds()
-                * 1000
+                (datetime.utcnow() - self._step_start_times[step_id]).total_seconds() * 1000
             )
 
         event = StepFinishedEvent(

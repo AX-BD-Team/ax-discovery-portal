@@ -5,11 +5,11 @@ CRUD 저장소 패턴
 """
 
 from .base import CRUDBase
-from .signal import signal_repo, SignalRepository
-from .scorecard import scorecard_repo, ScorecardRepository
-from .brief import brief_repo, BriefRepository
-from .play_record import play_record_repo, PlayRecordRepository
-from .ontology import ontology_repo, OntologyRepository
+from .brief import BriefRepository, brief_repo
+from .ontology import OntologyRepository, ontology_repo
+from .play_record import PlayRecordRepository, play_record_repo
+from .scorecard import ScorecardRepository, scorecard_repo
+from .signal import SignalRepository, signal_repo
 
 __all__ = [
     # Base

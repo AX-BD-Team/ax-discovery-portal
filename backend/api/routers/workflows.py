@@ -6,34 +6,34 @@ Workflows Router
 """
 
 from typing import Any
-from fastapi import APIRouter, HTTPException, Depends
+
+import structlog
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
 
-from backend.api.deps import get_db
-from backend.agent_runtime.workflows.wf_interview_to_brief import (
-    InterviewInput,
-    InterviewToBriefPipeline,
-    InterviewToBriefPipelineWithDB,
-)
-from backend.agent_runtime.workflows.wf_inbound_triage import (
-    InboundInput,
-    InboundTriagePipeline,
-    InboundTriagePipelineWithDB,
-)
-from backend.agent_runtime.workflows.wf_kpi_digest import (
-    KPIInput,
-    KPIDigestPipeline,
-    KPIDigestPipelineWithDB,
-)
 from backend.agent_runtime.event_manager import (
     SessionEventManager,
     WorkflowEventEmitter,
     generate_run_id,
     generate_session_id,
 )
-
+from backend.agent_runtime.workflows.wf_inbound_triage import (
+    InboundInput,
+    InboundTriagePipeline,
+    InboundTriagePipelineWithDB,
+)
+from backend.agent_runtime.workflows.wf_interview_to_brief import (
+    InterviewInput,
+    InterviewToBriefPipeline,
+    InterviewToBriefPipelineWithDB,
+)
+from backend.agent_runtime.workflows.wf_kpi_digest import (
+    KPIDigestPipeline,
+    KPIDigestPipelineWithDB,
+    KPIInput,
+)
+from backend.api.deps import get_db
 
 logger = structlog.get_logger()
 
@@ -44,8 +44,10 @@ router = APIRouter()
 # Request/Response Models
 # ============================================================
 
+
 class InterviewRequest(BaseModel):
     """WF-02 인터뷰 파이프라인 요청"""
+
     content: str  # 인터뷰 노트 내용 (필수)
     play_id: str | None = None
     customer: str | None = None
@@ -58,6 +60,7 @@ class InterviewRequest(BaseModel):
 
 class SignalSummary(BaseModel):
     """Signal 요약"""
+
     signal_id: str
     title: str
     pain: str
@@ -66,6 +69,7 @@ class SignalSummary(BaseModel):
 
 class ScorecardSummary(BaseModel):
     """Scorecard 요약"""
+
     scorecard_id: str
     signal_id: str
     total_score: int
@@ -75,6 +79,7 @@ class ScorecardSummary(BaseModel):
 
 class BriefSummary(BaseModel):
     """Brief 요약"""
+
     brief_id: str
     signal_id: str
     title: str
@@ -83,6 +88,7 @@ class BriefSummary(BaseModel):
 
 class InterviewResponse(BaseModel):
     """WF-02 인터뷰 파이프라인 응답"""
+
     status: str
     signals: list[dict[str, Any]]
     scorecards: list[dict[str, Any]]
@@ -93,6 +99,7 @@ class InterviewResponse(BaseModel):
 
 class InboundTriageRequest(BaseModel):
     """WF-04 인바운드 Triage 요청"""
+
     title: str  # 제목 (필수)
     description: str  # 설명 (필수)
     customer_segment: str | None = None
@@ -105,6 +112,7 @@ class InboundTriageRequest(BaseModel):
 
 class InboundTriageResponse(BaseModel):
     """WF-04 인바운드 Triage 응답"""
+
     status: str
     signal: dict[str, Any] | None
     is_duplicate: bool
@@ -119,11 +127,9 @@ class InboundTriageResponse(BaseModel):
 # WF-02: Interview-to-Brief
 # ============================================================
 
+
 @router.post("/interview-to-brief", response_model=InterviewResponse)
-async def run_interview_to_brief(
-    request: InterviewRequest,
-    db: AsyncSession = Depends(get_db)
-):
+async def run_interview_to_brief(request: InterviewRequest, db: AsyncSession = Depends(get_db)):
     """
     WF-02: Interview-to-Brief 파이프라인 실행
 
@@ -175,11 +181,7 @@ async def run_interview_to_brief(
         result = await pipeline.run(input_data)
 
         # DB 저장
-        saved = await pipeline.save_to_db(
-            result.signals,
-            result.scorecards,
-            result.briefs
-        )
+        saved = await pipeline.save_to_db(result.signals, result.scorecards, result.briefs)
 
         # 세션 정리
         SessionEventManager.remove(session_id)
@@ -241,11 +243,9 @@ async def preview_interview_signals(
 # WF-04: Inbound Triage
 # ============================================================
 
+
 @router.post("/inbound-triage", response_model=InboundTriageResponse)
-async def run_inbound_triage(
-    request: InboundTriageRequest,
-    db: AsyncSession = Depends(get_db)
-):
+async def run_inbound_triage(request: InboundTriageRequest, db: AsyncSession = Depends(get_db)):
     """
     WF-04: Inbound Triage 파이프라인 실행
 
@@ -301,10 +301,7 @@ async def run_inbound_triage(
 
         # DB 저장 (중복이 아닐 경우)
         if not result.is_duplicate and result.signal:
-            saved = await pipeline.save_to_db(
-                result.signal,
-                result.scorecard
-            )
+            saved = await pipeline.save_to_db(result.signal, result.scorecard)
             logger.info(
                 "Pipeline completed with DB save",
                 signal_id=saved.get("signal_id"),
@@ -346,12 +343,13 @@ async def preview_inbound_triage(
 
     중복 체크 및 Play 라우팅 결과만 확인
     """
-    from backend.agent_runtime.workflows.wf_inbound_triage import (
-        route_to_play,
-        Urgency,
-        SLA_HOURS,
-    )
     from datetime import datetime, timedelta
+
+    from backend.agent_runtime.workflows.wf_inbound_triage import (
+        SLA_HOURS,
+        Urgency,
+        route_to_play,
+    )
 
     # Play 라우팅
     play_id = route_to_play(title, description)
@@ -381,8 +379,10 @@ async def preview_inbound_triage(
 # WF-05: KPI Digest
 # ============================================================
 
+
 class KPIDigestRequest(BaseModel):
     """WF-05 KPI Digest 요청"""
+
     period: str = "week"  # week, month
     play_ids: list[str] | None = None  # None이면 전체
     notify: bool = False  # Teams/Slack 알림 여부
@@ -391,6 +391,7 @@ class KPIDigestRequest(BaseModel):
 
 class KPIDigestResponse(BaseModel):
     """WF-05 KPI Digest 응답"""
+
     period: str
     period_start: str
     period_end: str
@@ -406,9 +407,7 @@ class KPIDigestResponse(BaseModel):
 
 @router.get("/kpi-digest", response_model=KPIDigestResponse)
 async def get_kpi_digest(
-    period: str = "week",
-    notify: bool = False,
-    db: AsyncSession = Depends(get_db)
+    period: str = "week", notify: bool = False, db: AsyncSession = Depends(get_db)
 ):
     """
     WF-05: KPI Digest 리포트 생성

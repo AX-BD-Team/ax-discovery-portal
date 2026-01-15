@@ -5,12 +5,10 @@ XAI (Explainable AI) API Router
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
 
 from backend.api.deps import get_db
-from backend.database.models.entity import EntityType
 from backend.database.models.triple import PredicateType
 from backend.database.repositories.ontology import ontology_repo
 
@@ -19,8 +17,10 @@ router = APIRouter(prefix="/xai", tags=["XAI"])
 
 # ==================== Pydantic Schemas ====================
 
+
 class EvidenceItem(BaseModel):
     """증거 항목"""
+
     evidence_id: str
     evidence_type: str
     title: str
@@ -31,6 +31,7 @@ class EvidenceItem(BaseModel):
 
 class ReasoningStepResponse(BaseModel):
     """추론 단계"""
+
     step_number: int
     premise: str
     inference: str
@@ -42,6 +43,7 @@ class ReasoningStepResponse(BaseModel):
 
 class ReasoningPathResponse(BaseModel):
     """추론 경로"""
+
     path_id: str | None
     final_conclusion: str
     steps: list[ReasoningStepResponse]
@@ -50,6 +52,7 @@ class ReasoningPathResponse(BaseModel):
 
 class DimensionExplanation(BaseModel):
     """차원별 설명"""
+
     dimension: str
     score: float
     max_score: float
@@ -59,6 +62,7 @@ class DimensionExplanation(BaseModel):
 
 class ScorecardExplanationResponse(BaseModel):
     """Scorecard 평가 설명"""
+
     scorecard_id: str
     signal_id: str
     total_score: float
@@ -70,6 +74,7 @@ class ScorecardExplanationResponse(BaseModel):
 
 class TraceItem(BaseModel):
     """추적 항목"""
+
     hop: int
     entity_id: str
     entity_type: str
@@ -80,6 +85,7 @@ class TraceItem(BaseModel):
 
 class TraceResponse(BaseModel):
     """Signal 추적 응답"""
+
     signal_id: str
     traces: list[TraceItem]
     total_hops: int
@@ -87,6 +93,7 @@ class TraceResponse(BaseModel):
 
 class ConfidenceFactor(BaseModel):
     """신뢰도 요인"""
+
     factor_name: str
     factor_type: str  # positive, negative, neutral
     impact: float
@@ -95,6 +102,7 @@ class ConfidenceFactor(BaseModel):
 
 class ConfidenceResponse(BaseModel):
     """신뢰도 분석 응답"""
+
     entity_id: str
     overall_confidence: float
     factors: list[ConfidenceFactor]
@@ -103,6 +111,7 @@ class ConfidenceResponse(BaseModel):
 
 class EvidenceChainResponse(BaseModel):
     """Evidence Chain 응답"""
+
     target_id: str
     target_type: str
     evidence_chain: list[EvidenceItem]
@@ -110,6 +119,7 @@ class EvidenceChainResponse(BaseModel):
 
 
 # ==================== XAI Endpoints ====================
+
 
 @router.get("/explain/scorecard/{scorecard_id}", response_model=ScorecardExplanationResponse)
 async def explain_scorecard(
@@ -159,14 +169,20 @@ async def explain_scorecard(
     for triple in evidence_triples:
         evidence_entity = await ontology_repo.get_entity(db, triple.object_id)
         if evidence_entity:
-            evidence_items.append(EvidenceItem(
-                evidence_id=evidence_entity.entity_id,
-                evidence_type=evidence_entity.properties.get("type", "UNKNOWN") if evidence_entity.properties else "UNKNOWN",
-                title=evidence_entity.name,
-                source=evidence_entity.properties.get("source") if evidence_entity.properties else None,
-                credibility=evidence_entity.confidence,
-                summary=evidence_entity.description,
-            ))
+            evidence_items.append(
+                EvidenceItem(
+                    evidence_id=evidence_entity.entity_id,
+                    evidence_type=evidence_entity.properties.get("type", "UNKNOWN")
+                    if evidence_entity.properties
+                    else "UNKNOWN",
+                    title=evidence_entity.name,
+                    source=evidence_entity.properties.get("source")
+                    if evidence_entity.properties
+                    else None,
+                    credibility=evidence_entity.confidence,
+                    summary=evidence_entity.description,
+                )
+            )
 
     # 추론 경로 조회
     reasoning_path = await ontology_repo.get_reasoning_path(
@@ -180,44 +196,74 @@ async def explain_scorecard(
         for i, triple in enumerate(reasoning_path):
             step_entity = await ontology_repo.get_entity(db, triple.subject_id)
             if step_entity:
-                steps.append(ReasoningStepResponse(
-                    step_number=i + 1,
-                    premise=step_entity.properties.get("premise", "") if step_entity.properties else "",
-                    inference=step_entity.properties.get("inference", "") if step_entity.properties else "",
-                    conclusion=step_entity.properties.get("conclusion", "") if step_entity.properties else "",
-                    evidence_ids=triple.evidence_ids or [],
-                    confidence=triple.confidence,
-                    reasoning_type=step_entity.properties.get("type", "DEDUCTIVE") if step_entity.properties else "DEDUCTIVE",
-                ))
+                steps.append(
+                    ReasoningStepResponse(
+                        step_number=i + 1,
+                        premise=step_entity.properties.get("premise", "")
+                        if step_entity.properties
+                        else "",
+                        inference=step_entity.properties.get("inference", "")
+                        if step_entity.properties
+                        else "",
+                        conclusion=step_entity.properties.get("conclusion", "")
+                        if step_entity.properties
+                        else "",
+                        evidence_ids=triple.evidence_ids or [],
+                        confidence=triple.confidence,
+                        reasoning_type=step_entity.properties.get("type", "DEDUCTIVE")
+                        if step_entity.properties
+                        else "DEDUCTIVE",
+                    )
+                )
 
         reasoning_response = ReasoningPathResponse(
             path_id=reasoning_path[0].reasoning_path_id if reasoning_path else None,
             final_conclusion=scorecard_entity.description or "",
             steps=steps,
-            total_confidence=sum(t.confidence for t in reasoning_path) / len(reasoning_path) if reasoning_path else 0,
+            total_confidence=sum(t.confidence for t in reasoning_path) / len(reasoning_path)
+            if reasoning_path
+            else 0,
         )
 
     # 차원별 설명 (메타데이터에서 추출)
     dimension_explanations = []
-    dimensions = ["problem_severity", "willingness_to_pay", "data_availability", "feasibility", "strategic_fit"]
+    dimensions = [
+        "problem_severity",
+        "willingness_to_pay",
+        "data_availability",
+        "feasibility",
+        "strategic_fit",
+    ]
 
     for dim in dimensions:
-        dim_score = scorecard_entity.properties.get(f"{dim}_score", 0) if scorecard_entity.properties else 0
-        dim_reasoning = scorecard_entity.properties.get(f"{dim}_reasoning", "") if scorecard_entity.properties else ""
+        dim_score = (
+            scorecard_entity.properties.get(f"{dim}_score", 0) if scorecard_entity.properties else 0
+        )
+        dim_reasoning = (
+            scorecard_entity.properties.get(f"{dim}_reasoning", "")
+            if scorecard_entity.properties
+            else ""
+        )
 
-        dimension_explanations.append(DimensionExplanation(
-            dimension=dim,
-            score=dim_score,
-            max_score=20,
-            evidence=[e for e in evidence_items if dim in (e.evidence_type or "").lower()],
-            reasoning=dim_reasoning,
-        ))
+        dimension_explanations.append(
+            DimensionExplanation(
+                dimension=dim,
+                score=dim_score,
+                max_score=20,
+                evidence=[e for e in evidence_items if dim in (e.evidence_type or "").lower()],
+                reasoning=dim_reasoning,
+            )
+        )
 
     return ScorecardExplanationResponse(
         scorecard_id=scorecard_id,
         signal_id=signal_id,
-        total_score=scorecard_entity.properties.get("total_score", 0) if scorecard_entity.properties else 0,
-        decision=scorecard_entity.properties.get("decision", "UNKNOWN") if scorecard_entity.properties else "UNKNOWN",
+        total_score=scorecard_entity.properties.get("total_score", 0)
+        if scorecard_entity.properties
+        else 0,
+        decision=scorecard_entity.properties.get("decision", "UNKNOWN")
+        if scorecard_entity.properties
+        else "UNKNOWN",
         dimension_explanations=dimension_explanations,
         reasoning_path=reasoning_response,
         overall_confidence=scorecard_entity.confidence,
@@ -268,14 +314,16 @@ async def trace_signal_origin(
             for triple in triples:
                 target_entity = await ontology_repo.get_entity(db, triple.object_id)
                 if target_entity and target_entity.entity_id not in visited:
-                    traces.append(TraceItem(
-                        hop=hop + 1,
-                        entity_id=target_entity.entity_id,
-                        entity_type=target_entity.entity_type.value,
-                        entity_name=target_entity.name,
-                        relation=predicate.value,
-                        confidence=triple.confidence,
-                    ))
+                    traces.append(
+                        TraceItem(
+                            hop=hop + 1,
+                            entity_id=target_entity.entity_id,
+                            entity_type=target_entity.entity_type.value,
+                            entity_name=target_entity.name,
+                            relation=predicate.value,
+                            confidence=triple.confidence,
+                        )
+                    )
                     current_entities.append((target_entity, hop + 1))
 
     return TraceResponse(
@@ -313,19 +361,23 @@ async def calculate_confidence(
     evidence_count = len(evidence_triples)
     if evidence_count > 0:
         avg_evidence_confidence = sum(t.confidence for t in evidence_triples) / evidence_count
-        factors.append(ConfidenceFactor(
-            factor_name="Evidence Support",
-            factor_type="positive" if avg_evidence_confidence > 0.7 else "neutral",
-            impact=avg_evidence_confidence * 0.4,
-            description=f"{evidence_count}개의 증거 자료 (평균 신뢰도: {avg_evidence_confidence:.2f})",
-        ))
+        factors.append(
+            ConfidenceFactor(
+                factor_name="Evidence Support",
+                factor_type="positive" if avg_evidence_confidence > 0.7 else "neutral",
+                impact=avg_evidence_confidence * 0.4,
+                description=f"{evidence_count}개의 증거 자료 (평균 신뢰도: {avg_evidence_confidence:.2f})",
+            )
+        )
     else:
-        factors.append(ConfidenceFactor(
-            factor_name="Evidence Support",
-            factor_type="negative",
-            impact=-0.2,
-            description="증거 자료 없음",
-        ))
+        factors.append(
+            ConfidenceFactor(
+                factor_name="Evidence Support",
+                factor_type="negative",
+                impact=-0.2,
+                description="증거 자료 없음",
+            )
+        )
         recommendations.append("증거 자료(Evidence)를 추가하여 신뢰도를 높이세요")
 
     # 관계 기반 신뢰도
@@ -343,48 +395,57 @@ async def calculate_confidence(
     total_relations = len(all_triples) + len(incoming_triples)
     if total_relations > 0:
         avg_relation_confidence = (
-            sum(t.confidence for t in all_triples) +
-            sum(t.confidence for t in incoming_triples)
+            sum(t.confidence for t in all_triples) + sum(t.confidence for t in incoming_triples)
         ) / total_relations
 
-        factors.append(ConfidenceFactor(
-            factor_name="Relationship Network",
-            factor_type="positive" if total_relations > 3 else "neutral",
-            impact=min(total_relations * 0.05, 0.3),
-            description=f"{total_relations}개의 관계 연결 (평균 신뢰도: {avg_relation_confidence:.2f})",
-        ))
+        factors.append(
+            ConfidenceFactor(
+                factor_name="Relationship Network",
+                factor_type="positive" if total_relations > 3 else "neutral",
+                impact=min(total_relations * 0.05, 0.3),
+                description=f"{total_relations}개의 관계 연결 (평균 신뢰도: {avg_relation_confidence:.2f})",
+            )
+        )
     else:
-        factors.append(ConfidenceFactor(
-            factor_name="Relationship Network",
-            factor_type="negative",
-            impact=-0.1,
-            description="관계 연결 없음 (고립된 엔티티)",
-        ))
+        factors.append(
+            ConfidenceFactor(
+                factor_name="Relationship Network",
+                factor_type="negative",
+                impact=-0.1,
+                description="관계 연결 없음 (고립된 엔티티)",
+            )
+        )
         recommendations.append("다른 엔티티와의 관계를 추가하여 컨텍스트를 강화하세요")
 
     # 메타데이터 완성도
     properties_fields = entity.properties or {}
     if len(properties_fields) > 5:
-        factors.append(ConfidenceFactor(
-            factor_name="Metadata Completeness",
-            factor_type="positive",
-            impact=0.1,
-            description=f"{len(properties_fields)}개의 메타데이터 필드",
-        ))
+        factors.append(
+            ConfidenceFactor(
+                factor_name="Metadata Completeness",
+                factor_type="positive",
+                impact=0.1,
+                description=f"{len(properties_fields)}개의 메타데이터 필드",
+            )
+        )
     elif len(properties_fields) > 0:
-        factors.append(ConfidenceFactor(
-            factor_name="Metadata Completeness",
-            factor_type="neutral",
-            impact=0.05,
-            description=f"{len(properties_fields)}개의 메타데이터 필드 (보통)",
-        ))
+        factors.append(
+            ConfidenceFactor(
+                factor_name="Metadata Completeness",
+                factor_type="neutral",
+                impact=0.05,
+                description=f"{len(properties_fields)}개의 메타데이터 필드 (보통)",
+            )
+        )
     else:
-        factors.append(ConfidenceFactor(
-            factor_name="Metadata Completeness",
-            factor_type="negative",
-            impact=-0.05,
-            description="메타데이터 없음",
-        ))
+        factors.append(
+            ConfidenceFactor(
+                factor_name="Metadata Completeness",
+                factor_type="negative",
+                impact=-0.05,
+                description="메타데이터 없음",
+            )
+        )
         recommendations.append("메타데이터를 추가하여 엔티티 정보를 풍부하게 하세요")
 
     # 전체 신뢰도 계산
@@ -428,14 +489,20 @@ async def get_evidence_chain(
     for triple in evidence_triples:
         evidence_entity = await ontology_repo.get_entity(db, triple.object_id)
         if evidence_entity:
-            evidence_chain.append(EvidenceItem(
-                evidence_id=evidence_entity.entity_id,
-                evidence_type=evidence_entity.properties.get("type", "UNKNOWN") if evidence_entity.properties else "UNKNOWN",
-                title=evidence_entity.name,
-                source=evidence_entity.properties.get("source") if evidence_entity.properties else None,
-                credibility=evidence_entity.confidence,
-                summary=evidence_entity.description,
-            ))
+            evidence_chain.append(
+                EvidenceItem(
+                    evidence_id=evidence_entity.entity_id,
+                    evidence_type=evidence_entity.properties.get("type", "UNKNOWN")
+                    if evidence_entity.properties
+                    else "UNKNOWN",
+                    title=evidence_entity.name,
+                    source=evidence_entity.properties.get("source")
+                    if evidence_entity.properties
+                    else None,
+                    credibility=evidence_entity.confidence,
+                    summary=evidence_entity.description,
+                )
+            )
             total_credibility += evidence_entity.confidence
 
     # 평균 신뢰도 계산
@@ -472,15 +539,25 @@ async def get_reasoning_path(
     for i, triple in enumerate(path_triples):
         step_entity = await ontology_repo.get_entity(db, triple.subject_id)
         if step_entity:
-            steps.append(ReasoningStepResponse(
-                step_number=i + 1,
-                premise=step_entity.properties.get("premise", "") if step_entity.properties else "",
-                inference=step_entity.properties.get("inference", "") if step_entity.properties else "",
-                conclusion=step_entity.properties.get("conclusion", "") if step_entity.properties else "",
-                evidence_ids=triple.evidence_ids or [],
-                confidence=triple.confidence,
-                reasoning_type=step_entity.properties.get("type", "DEDUCTIVE") if step_entity.properties else "DEDUCTIVE",
-            ))
+            steps.append(
+                ReasoningStepResponse(
+                    step_number=i + 1,
+                    premise=step_entity.properties.get("premise", "")
+                    if step_entity.properties
+                    else "",
+                    inference=step_entity.properties.get("inference", "")
+                    if step_entity.properties
+                    else "",
+                    conclusion=step_entity.properties.get("conclusion", "")
+                    if step_entity.properties
+                    else "",
+                    evidence_ids=triple.evidence_ids or [],
+                    confidence=triple.confidence,
+                    reasoning_type=step_entity.properties.get("type", "DEDUCTIVE")
+                    if step_entity.properties
+                    else "DEDUCTIVE",
+                )
+            )
             total_confidence += triple.confidence
 
     avg_confidence = total_confidence / len(steps) if steps else 0.0

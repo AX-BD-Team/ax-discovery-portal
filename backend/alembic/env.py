@@ -8,21 +8,12 @@ import asyncio
 import os
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
-from alembic import context
 
 # Import Base and all models
 from backend.database.base import Base
-from backend.database.models import (
-    Signal,
-    Scorecard,
-    OpportunityBrief,
-    PlayRecord,
-    ActionLog,
-    Entity,
-    Triple,
-)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -46,8 +37,7 @@ target_metadata = Base.metadata
 def get_url():
     """환경변수에서 DATABASE_URL 가져오기"""
     return os.getenv(
-        "DATABASE_URL",
-        "postgresql+asyncpg://user:password@localhost:5432/ax_discovery"
+        "DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5432/ax_discovery"
     )
 
 

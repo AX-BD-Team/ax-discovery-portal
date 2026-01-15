@@ -14,10 +14,11 @@ WF-02: Interview to Brief
 4. 승인 시 Confluence 페이지 생성 + Play DB 업데이트
 """
 
-from typing import Any
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime
 from enum import Enum
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -27,8 +28,10 @@ logger = structlog.get_logger()
 # Pydantic Models
 # ============================================================
 
+
 class InterviewSource(str, Enum):
     """인터뷰 원천"""
+
     SALES_PM = "영업PM"
     CUSTOMER = "고객"
     PARTNER = "파트너"
@@ -38,6 +41,7 @@ class InterviewSource(str, Enum):
 @dataclass
 class InterviewInput:
     """인터뷰 입력"""
+
     content: str  # 인터뷰 노트 텍스트 또는 문서 링크
     play_id: str | None = None
     customer: str | None = None
@@ -50,6 +54,7 @@ class InterviewInput:
 @dataclass
 class ExtractedSignal:
     """인터뷰에서 추출된 Signal"""
+
     title: str
     pain: str
     current_workflow: str | None = None
@@ -60,6 +65,7 @@ class ExtractedSignal:
 @dataclass
 class ScorecardResult:
     """Scorecard 평가 결과"""
+
     scorecard_id: str
     signal_id: str
     total_score: int
@@ -73,6 +79,7 @@ class ScorecardResult:
 @dataclass
 class BriefDraft:
     """Brief 초안"""
+
     brief_id: str
     signal_id: str
     title: str
@@ -88,6 +95,7 @@ class BriefDraft:
 @dataclass
 class InterviewOutput:
     """인터뷰 파이프라인 출력"""
+
     signals: list[dict[str, Any]]
     scorecards: list[dict[str, Any]]
     briefs: list[dict[str, Any]]
@@ -109,10 +117,7 @@ RED_FLAG_CONDITIONS = [
 ]
 
 
-def evaluate_dimension_score(
-    dimension: str,
-    signal_data: dict[str, Any]
-) -> int:
+def evaluate_dimension_score(dimension: str, signal_data: dict[str, Any]) -> int:
     """차원별 점수 평가 (0-20점)
 
     실제 구현에서는 LLM을 사용하여 평가
@@ -127,7 +132,9 @@ def evaluate_dimension_score(
 
     if dimension == "problem_severity":
         # Pain 명확성 기준
-        if len(pain) > 100 and any(word in pain.lower() for word in ["비용", "시간", "손실", "문제", "어려움"]):
+        if len(pain) > 100 and any(
+            word in pain.lower() for word in ["비용", "시간", "손실", "문제", "어려움"]
+        ):
             return 16
         elif len(pain) > 50:
             return 13
@@ -200,25 +207,25 @@ def get_recommendation(total_score: int, red_flags: list[str]) -> dict[str, str]
         return {
             "decision": "GO",
             "next_step": "BRIEF",
-            "rationale": f"총점 {total_score}점으로 기준(70점) 충족, Red Flag 없음"
+            "rationale": f"총점 {total_score}점으로 기준(70점) 충족, Red Flag 없음",
         }
     elif total_score >= 50 and len(red_flags) <= 1:
         return {
             "decision": "PIVOT",
             "next_step": "NEED_MORE_EVIDENCE",
-            "rationale": f"총점 {total_score}점, 추가 조사 필요"
+            "rationale": f"총점 {total_score}점, 추가 조사 필요",
         }
     elif total_score >= 30:
         return {
             "decision": "HOLD",
             "next_step": "NEED_MORE_EVIDENCE",
-            "rationale": f"총점 {total_score}점, Red Flag {len(red_flags)}개로 보류"
+            "rationale": f"총점 {total_score}점, Red Flag {len(red_flags)}개로 보류",
         }
     else:
         return {
             "decision": "NO_GO",
             "next_step": "DROP",
-            "rationale": f"총점 {total_score}점으로 기준 미달"
+            "rationale": f"총점 {total_score}점으로 기준 미달",
         }
 
 
@@ -226,10 +233,9 @@ def get_recommendation(total_score: int, red_flags: list[str]) -> dict[str, str]
 # Signal 추출 로직
 # ============================================================
 
+
 def extract_signals_from_interview(
-    content: str,
-    play_id: str | None,
-    customer: str | None
+    content: str, play_id: str | None, customer: str | None
 ) -> list[ExtractedSignal]:
     """인터뷰 노트에서 Signal 추출
 
@@ -240,8 +246,17 @@ def extract_signals_from_interview(
 
     # Pain Point 키워드 기반 추출
     pain_keywords = [
-        "문제", "어려움", "불편", "비용", "시간", "손실",
-        "니즈", "필요", "원함", "개선", "효율"
+        "문제",
+        "어려움",
+        "불편",
+        "비용",
+        "시간",
+        "손실",
+        "니즈",
+        "필요",
+        "원함",
+        "개선",
+        "효율",
     ]
 
     # 간단한 문장 분리
@@ -258,21 +273,23 @@ def extract_signals_from_interview(
     # 최대 3개 Signal 추출
     for i, pain in enumerate(potential_pains[:3]):
         signal = ExtractedSignal(
-            title=f"인터뷰 Signal #{i+1}",
+            title=f"인터뷰 Signal #{i + 1}",
             pain=pain,
             current_workflow=None,
             kpi_hypothesis=[],
-            confidence=0.6 + (0.1 if len(pain) > 50 else 0)
+            confidence=0.6 + (0.1 if len(pain) > 50 else 0),
         )
         signals.append(signal)
 
     # Signal이 없으면 기본 1개 생성
     if not signals:
-        signals.append(ExtractedSignal(
-            title="인터뷰에서 추출한 Signal",
-            pain=content[:200] if len(content) > 200 else content,
-            confidence=0.5
-        ))
+        signals.append(
+            ExtractedSignal(
+                title="인터뷰에서 추출한 Signal",
+                pain=content[:200] if len(content) > 200 else content,
+                confidence=0.5,
+            )
+        )
 
     return signals
 
@@ -281,10 +298,8 @@ def extract_signals_from_interview(
 # Brief 생성 로직
 # ============================================================
 
-def generate_brief_draft(
-    signal_data: dict[str, Any],
-    scorecard: ScorecardResult
-) -> BriefDraft:
+
+def generate_brief_draft(signal_data: dict[str, Any], scorecard: ScorecardResult) -> BriefDraft:
     """Brief 초안 생성"""
 
     brief_id = f"BRF-{datetime.now().year}-{datetime.now().strftime('%m%d%H%M')}"
@@ -297,33 +312,30 @@ def generate_brief_draft(
             "segment": signal_data.get("customer_segment", ""),
             "buyer_role": "",
             "users": "",
-            "account": signal_data.get("customer_or_account", "")
+            "account": signal_data.get("customer_or_account", ""),
         },
         problem={
             "pain": signal_data.get("pain", ""),
             "why_now": scorecard.rationale,
-            "current_process": signal_data.get("current_workflow", "")
+            "current_process": signal_data.get("current_workflow", ""),
         },
-        solution_hypothesis={
-            "approach": "",
-            "integration_points": [],
-            "data_needed": []
-        },
+        solution_hypothesis={"approach": "", "integration_points": [], "data_needed": []},
         kpis=signal_data.get("kpi_hypothesis", []),
         evidence=[e.get("url", "") for e in signal_data.get("evidence", []) if isinstance(e, dict)],
         validation_plan={
             "questions": ["고객이 실제로 이 문제를 해결하고자 하는가?"],
             "method": "5DAY_SPRINT",
             "success_criteria": ["Pain Point 재확인", "Buyer 식별"],
-            "timebox_days": 5
+            "timebox_days": 5,
         },
-        status="DRAFT"
+        status="DRAFT",
     )
 
 
 # ============================================================
 # 메인 파이프라인
 # ============================================================
+
 
 class InterviewToBriefPipeline:
     """
@@ -348,7 +360,7 @@ class InterviewToBriefPipeline:
         self.logger.info(
             "Starting Interview-to-Brief Pipeline",
             play_id=input_data.play_id,
-            customer=input_data.customer
+            customer=input_data.customer,
         )
 
         # 1. 인터뷰 노트에서 Signal 추출
@@ -363,20 +375,14 @@ class InterviewToBriefPipeline:
             scorecards.append(scorecard)
 
             if scorecard["recommendation"]["decision"] in ["GO", "PIVOT"]:
-                go_signals.append({
-                    "signal": signal,
-                    "scorecard": scorecard
-                })
+                go_signals.append({"signal": signal, "scorecard": scorecard})
 
         # 3. GO/PIVOT 판정 Signal에 대해 Brief 생성 (승인 대기)
         briefs = []
         pending_approvals = []
 
         for item in go_signals:
-            brief_draft = await self._generate_brief_draft(
-                item["signal"],
-                item["scorecard"]
-            )
+            brief_draft = await self._generate_brief_draft(item["signal"], item["scorecard"])
             briefs.append(brief_draft)
             pending_approvals.append(brief_draft["brief_id"])
 
@@ -390,31 +396,23 @@ class InterviewToBriefPipeline:
             "briefs_created": len(briefs),
         }
 
-        self.logger.info(
-            "Interview-to-Brief Pipeline completed",
-            **summary
-        )
+        self.logger.info("Interview-to-Brief Pipeline completed", **summary)
 
         return InterviewOutput(
             signals=signals,
             scorecards=scorecards,
             briefs=briefs,
             pending_approvals=pending_approvals,
-            summary=summary
+            summary=summary,
         )
 
-    async def _extract_signals(
-        self,
-        input_data: InterviewInput
-    ) -> list[dict[str, Any]]:
+    async def _extract_signals(self, input_data: InterviewInput) -> list[dict[str, Any]]:
         """인터뷰 노트에서 Signal 추출"""
         self.logger.info("Extracting signals from interview")
 
         # Signal 추출
         extracted = extract_signals_from_interview(
-            input_data.content,
-            input_data.play_id,
-            input_data.customer
+            input_data.content, input_data.play_id, input_data.customer
         )
 
         signals = []
@@ -436,22 +434,19 @@ class InterviewToBriefPipeline:
                         "type": "meeting_note",
                         "title": "인터뷰 노트",
                         "url": "",
-                        "note": f"인터뷰 대상: {input_data.interviewee or 'N/A'}"
+                        "note": f"인터뷰 대상: {input_data.interviewee or 'N/A'}",
                     }
                 ],
                 "status": "NEW",
                 "confidence": ext.confidence,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat(),
             }
             signals.append(signal)
 
         self.logger.info(f"Extracted {len(signals)} signals")
         return signals
 
-    async def _evaluate_signal(
-        self,
-        signal: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _evaluate_signal(self, signal: dict[str, Any]) -> dict[str, Any]:
         """Signal Scorecard 평가"""
         self.logger.info("Evaluating signal", signal_id=signal["signal_id"])
 
@@ -463,7 +458,7 @@ class InterviewToBriefPipeline:
             "willingness_to_pay",
             "data_availability",
             "feasibility",
-            "strategic_fit"
+            "strategic_fit",
         ]
 
         dimension_scores = {}
@@ -485,22 +480,20 @@ class InterviewToBriefPipeline:
             "dimension_scores": dimension_scores,
             "red_flags": red_flags,
             "recommendation": recommendation,
-            "scored_at": datetime.utcnow().isoformat()
+            "scored_at": datetime.utcnow().isoformat(),
         }
 
         self.logger.info(
             "Signal evaluated",
             signal_id=signal["signal_id"],
             total_score=total_score,
-            decision=recommendation["decision"]
+            decision=recommendation["decision"],
         )
 
         return scorecard
 
     async def _generate_brief_draft(
-        self,
-        signal: dict[str, Any],
-        scorecard: dict[str, Any]
+        self, signal: dict[str, Any], scorecard: dict[str, Any]
     ) -> dict[str, Any]:
         """Brief 초안 생성"""
         self.logger.info("Generating brief draft", signal_id=signal["signal_id"])
@@ -515,32 +508,32 @@ class InterviewToBriefPipeline:
                 "segment": signal.get("customer_segment", ""),
                 "buyer_role": "",
                 "users": "",
-                "account": ""
+                "account": "",
             },
             "problem": {
                 "pain": signal.get("pain", ""),
                 "why_now": scorecard["recommendation"]["rationale"],
-                "current_process": signal.get("current_workflow", "")
+                "current_process": signal.get("current_workflow", ""),
             },
-            "solution_hypothesis": {
-                "approach": "",
-                "integration_points": [],
-                "data_needed": []
-            },
+            "solution_hypothesis": {"approach": "", "integration_points": [], "data_needed": []},
             "kpis": signal.get("kpi_hypothesis", []),
-            "evidence": [e.get("url", "") for e in signal.get("evidence", []) if isinstance(e, dict) and e.get("url")],
+            "evidence": [
+                e.get("url", "")
+                for e in signal.get("evidence", [])
+                if isinstance(e, dict) and e.get("url")
+            ],
             "validation_plan": {
                 "questions": ["고객이 실제로 이 문제를 해결하고자 하는가?"],
                 "method": "5DAY_SPRINT",
                 "success_criteria": ["Pain Point 재확인", "Buyer 식별"],
-                "timebox_days": 5
+                "timebox_days": 5,
             },
             "risks": [],
             "status": "DRAFT",
             "owner": "",
             "scorecard_score": scorecard["total_score"],
             "scorecard_decision": scorecard["recommendation"]["decision"],
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
         }
 
         self.logger.info("Brief draft generated", brief_id=brief_id)
@@ -550,6 +543,7 @@ class InterviewToBriefPipeline:
 # ============================================================
 # AG-UI 이벤트 발행 버전
 # ============================================================
+
 
 class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
     """
@@ -566,8 +560,7 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
     async def run(self, input_data: InterviewInput) -> InterviewOutput:
         """워크플로 실행 (이벤트 발행 포함)"""
         self.logger.info(
-            "Starting Interview-to-Brief pipeline with events",
-            play_id=input_data.play_id
+            "Starting Interview-to-Brief pipeline with events", play_id=input_data.play_id
         )
 
         # 실행 시작 이벤트
@@ -653,10 +646,7 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
                 )
 
                 if scorecard["recommendation"]["decision"] in ["GO", "PIVOT"]:
-                    go_signals.append({
-                        "signal": signal,
-                        "scorecard": scorecard
-                    })
+                    go_signals.append({"signal": signal, "scorecard": scorecard})
 
             await self.emitter.emit_step_finished(
                 step_id="SCORECARD_EVALUATION",
@@ -679,10 +669,7 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
             pending_approvals = []
 
             for item in go_signals:
-                brief_draft = await self._generate_brief_draft(
-                    item["signal"],
-                    item["scorecard"]
-                )
+                brief_draft = await self._generate_brief_draft(item["signal"], item["scorecard"])
                 briefs.append(brief_draft)
                 pending_approvals.append(brief_draft["brief_id"])
 
@@ -716,7 +703,7 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
                             {
                                 "type": "create",
                                 "target": "Confluence Page",
-                                "description": f"Brief 페이지: {brief_draft['title']}"
+                                "description": f"Brief 페이지: {brief_draft['title']}",
                             }
                         ],
                     )
@@ -746,9 +733,15 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
             summary = {
                 "total_signals": len(signals),
                 "go_count": sum(1 for s in scorecards if s["recommendation"]["decision"] == "GO"),
-                "pivot_count": sum(1 for s in scorecards if s["recommendation"]["decision"] == "PIVOT"),
-                "hold_count": sum(1 for s in scorecards if s["recommendation"]["decision"] == "HOLD"),
-                "no_go_count": sum(1 for s in scorecards if s["recommendation"]["decision"] == "NO_GO"),
+                "pivot_count": sum(
+                    1 for s in scorecards if s["recommendation"]["decision"] == "PIVOT"
+                ),
+                "hold_count": sum(
+                    1 for s in scorecards if s["recommendation"]["decision"] == "HOLD"
+                ),
+                "no_go_count": sum(
+                    1 for s in scorecards if s["recommendation"]["decision"] == "NO_GO"
+                ),
                 "briefs_created": len(briefs),
             }
 
@@ -763,10 +756,7 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
             # 실행 완료 이벤트
             await self.emitter.emit_run_finished(result=summary)
 
-            self.logger.info(
-                "Interview-to-Brief pipeline with events completed",
-                **summary
-            )
+            self.logger.info("Interview-to-Brief pipeline with events completed", **summary)
 
             return result
 
@@ -780,6 +770,7 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
 # DB 연동 버전
 # ============================================================
 
+
 class InterviewToBriefPipelineWithDB(InterviewToBriefPipelineWithEvents):
     """
     WF-02: Interview to Brief with DB Integration
@@ -787,11 +778,7 @@ class InterviewToBriefPipelineWithDB(InterviewToBriefPipelineWithEvents):
     데이터베이스 연동을 포함한 완전한 파이프라인
     """
 
-    def __init__(
-        self,
-        emitter: "WorkflowEventEmitter",
-        db: "AsyncSession"
-    ):
+    def __init__(self, emitter: "WorkflowEventEmitter", db: "AsyncSession"):
         super().__init__(emitter)
         self.db = db
         self.logger = logger.bind(workflow="WF-02", with_db=True)
@@ -800,20 +787,16 @@ class InterviewToBriefPipelineWithDB(InterviewToBriefPipelineWithEvents):
         self,
         signals: list[dict[str, Any]],
         scorecards: list[dict[str, Any]],
-        briefs: list[dict[str, Any]]
+        briefs: list[dict[str, Any]],
     ) -> dict[str, Any]:
         """결과를 DB에 저장"""
-        from backend.database.repositories.signal import signal_repo
-        from backend.database.repositories.scorecard import scorecard_repo
-        from backend.database.repositories.brief import brief_repo
-        from backend.database.models.signal import SignalStatus
         from backend.database.models.brief import BriefStatus
+        from backend.database.models.signal import SignalStatus
+        from backend.database.repositories.brief import brief_repo
+        from backend.database.repositories.scorecard import scorecard_repo
+        from backend.database.repositories.signal import signal_repo
 
-        saved = {
-            "signals": [],
-            "scorecards": [],
-            "briefs": []
-        }
+        saved = {"signals": [], "scorecards": [], "briefs": []}
 
         # Signal 저장
         for signal_data in signals:
@@ -891,8 +874,7 @@ async def run(input_data: dict[str, Any]) -> dict[str, Any]:
 
 
 async def run_with_events(
-    input_data: dict[str, Any],
-    emitter: "WorkflowEventEmitter"
+    input_data: dict[str, Any], emitter: "WorkflowEventEmitter"
 ) -> dict[str, Any]:
     """이벤트 발행을 포함한 워크플로 실행"""
     interview_input = InterviewInput(
@@ -919,5 +901,6 @@ async def run_with_events(
 
 # 타입 힌트를 위한 import (순환 참조 방지)
 if __name__ != "__main__":
-    from backend.agent_runtime.event_manager import WorkflowEventEmitter
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from backend.agent_runtime.event_manager import WorkflowEventEmitter

@@ -4,8 +4,9 @@
 모든 저장소의 베이스 클래스
 """
 
-from typing import Generic, TypeVar, Type, Optional, Any
-from sqlalchemy import select, func
+from typing import Any, Generic, TypeVar
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.base import Base
@@ -23,18 +24,14 @@ class CRUDBase(Generic[ModelType]):
     D: Delete
     """
 
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: type[ModelType]):
         """
         Args:
             model: SQLAlchemy 모델 클래스
         """
         self.model = model
 
-    async def get(
-        self,
-        db: AsyncSession,
-        id: Any
-    ) -> Optional[ModelType]:
+    async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         """
         ID로 단일 레코드 조회
 
@@ -45,17 +42,10 @@ class CRUDBase(Generic[ModelType]):
         Returns:
             ModelType | None
         """
-        result = await db.execute(
-            select(self.model).where(self.model.id == id)
-        )
+        result = await db.execute(select(self.model).where(self.model.id == id))
         return result.scalar_one_or_none()
 
-    async def get_multi(
-        self,
-        db: AsyncSession,
-        skip: int = 0,
-        limit: int = 100
-    ) -> list[ModelType]:
+    async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> list[ModelType]:
         """
         여러 레코드 조회 (페이지네이션)
 
@@ -67,11 +57,7 @@ class CRUDBase(Generic[ModelType]):
         Returns:
             list[ModelType]
         """
-        result = await db.execute(
-            select(self.model)
-            .offset(skip)
-            .limit(limit)
-        )
+        result = await db.execute(select(self.model).offset(skip).limit(limit))
         return result.scalars().all()
 
     async def count(self, db: AsyncSession) -> int:
@@ -84,16 +70,10 @@ class CRUDBase(Generic[ModelType]):
         Returns:
             int: 레코드 수
         """
-        result = await db.execute(
-            select(func.count()).select_from(self.model)
-        )
+        result = await db.execute(select(func.count()).select_from(self.model))
         return result.scalar()
 
-    async def create(
-        self,
-        db: AsyncSession,
-        obj_in: dict
-    ) -> ModelType:
+    async def create(self, db: AsyncSession, obj_in: dict) -> ModelType:
         """
         새 레코드 생성
 
@@ -110,12 +90,7 @@ class CRUDBase(Generic[ModelType]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def update(
-        self,
-        db: AsyncSession,
-        db_obj: ModelType,
-        obj_in: dict
-    ) -> ModelType:
+    async def update(self, db: AsyncSession, db_obj: ModelType, obj_in: dict) -> ModelType:
         """
         레코드 업데이트
 
@@ -135,11 +110,7 @@ class CRUDBase(Generic[ModelType]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def delete(
-        self,
-        db: AsyncSession,
-        id: Any
-    ) -> bool:
+    async def delete(self, db: AsyncSession, id: Any) -> bool:
         """
         레코드 삭제
 

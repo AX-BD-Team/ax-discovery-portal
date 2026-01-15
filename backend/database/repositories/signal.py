@@ -4,23 +4,20 @@ Signal 저장소
 Signal CRUD 작업
 """
 
-from typing import Optional
 from datetime import datetime
-from sqlalchemy import select, func, and_
+
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models.signal import Signal, SignalSource, SignalChannel, SignalStatus
+from backend.database.models.signal import Signal, SignalSource, SignalStatus
+
 from .base import CRUDBase
 
 
 class SignalRepository(CRUDBase[Signal]):
     """Signal CRUD 저장소"""
 
-    async def get_by_id(
-        self,
-        db: AsyncSession,
-        signal_id: str
-    ) -> Optional[Signal]:
+    async def get_by_id(self, db: AsyncSession, signal_id: str) -> Signal | None:
         """
         signal_id로 Signal 조회
 
@@ -31,19 +28,17 @@ class SignalRepository(CRUDBase[Signal]):
         Returns:
             Signal | None
         """
-        result = await db.execute(
-            select(Signal).where(Signal.signal_id == signal_id)
-        )
+        result = await db.execute(select(Signal).where(Signal.signal_id == signal_id))
         return result.scalar_one_or_none()
 
     async def get_multi_filtered(
         self,
         db: AsyncSession,
-        source: Optional[str] = None,
-        channel: Optional[str] = None,
-        status: Optional[str] = None,
+        source: str | None = None,
+        channel: str | None = None,
+        status: str | None = None,
         skip: int = 0,
-        limit: int = 20
+        limit: int = 20,
     ) -> tuple[list[Signal], int]:
         """
         필터링된 Signal 목록 조회 (+ 총 개수)
@@ -112,11 +107,7 @@ class SignalRepository(CRUDBase[Signal]):
             )
             source_stats[source.value] = count_result.scalar()
 
-        return {
-            "total": total,
-            "by_status": status_stats,
-            "by_source": source_stats
-        }
+        return {"total": total, "by_status": status_stats, "by_source": source_stats}
 
     async def generate_signal_id(self, db: AsyncSession) -> str:
         """

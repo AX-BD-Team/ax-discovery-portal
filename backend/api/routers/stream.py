@@ -6,10 +6,12 @@ SSE(Server-Sent Events) 기반 실시간 이벤트 스트리밍 엔드포인트
 
 import asyncio
 import json
-from typing import Any, AsyncGenerator
-from fastapi import APIRouter, Query, HTTPException
-from sse_starlette.sse import EventSourceResponse
+from collections.abc import AsyncGenerator
+from typing import Any
+
 import structlog
+from fastapi import APIRouter, HTTPException, Query
+from sse_starlette.sse import EventSourceResponse
 
 from backend.agent_runtime.event_manager import (
     SessionEventManager,
@@ -17,21 +19,21 @@ from backend.agent_runtime.event_manager import (
     generate_run_id,
     generate_session_id,
 )
-from backend.agent_runtime.workflows.wf_seminar_pipeline import (
-    SeminarInput,
-    SeminarPipelineWithEvents,
+from backend.agent_runtime.workflows.wf_inbound_triage import (
+    InboundInput,
+    InboundTriagePipelineWithEvents,
 )
 from backend.agent_runtime.workflows.wf_interview_to_brief import (
     InterviewInput,
     InterviewToBriefPipelineWithEvents,
 )
-from backend.agent_runtime.workflows.wf_inbound_triage import (
-    InboundInput,
-    InboundTriagePipelineWithEvents,
-)
 from backend.agent_runtime.workflows.wf_kpi_digest import (
-    KPIInput,
     KPIDigestPipelineWithEvents,
+    KPIInput,
+)
+from backend.agent_runtime.workflows.wf_seminar_pipeline import (
+    SeminarInput,
+    SeminarPipelineWithEvents,
 )
 
 logger = structlog.get_logger()

@@ -4,10 +4,11 @@ Ontology API Router
 온톨로지 Entity/Triple CRUD 및 그래프 탐색 API
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
 
 from backend.api.deps import get_db
 from backend.database.models.entity import EntityType
@@ -19,8 +20,10 @@ router = APIRouter(prefix="/ontology", tags=["Ontology"])
 
 # ==================== Pydantic Schemas ====================
 
+
 class EntityCreate(BaseModel):
     """엔티티 생성 요청"""
+
     entity_type: str = Field(..., description="엔티티 유형")
     name: str = Field(..., max_length=500, description="엔티티 이름")
     description: str | None = Field(None, description="설명")
@@ -31,6 +34,7 @@ class EntityCreate(BaseModel):
 
 class EntityResponse(BaseModel):
     """엔티티 응답"""
+
     entity_id: str
     entity_type: str
     name: str
@@ -48,6 +52,7 @@ class EntityResponse(BaseModel):
 
 class EntityListResponse(BaseModel):
     """엔티티 목록 응답"""
+
     items: list[EntityResponse]
     total: int
     page: int
@@ -56,6 +61,7 @@ class EntityListResponse(BaseModel):
 
 class TripleCreate(BaseModel):
     """관계 생성 요청"""
+
     subject_id: str = Field(..., description="Subject 엔티티 ID")
     predicate: str = Field(..., description="관계 유형")
     object_id: str = Field(..., description="Object 엔티티 ID")
@@ -68,6 +74,7 @@ class TripleCreate(BaseModel):
 
 class TripleResponse(BaseModel):
     """관계 응답"""
+
     triple_id: str
     subject_id: str
     predicate: str
@@ -88,12 +95,14 @@ class TripleResponse(BaseModel):
 
 class TripleListResponse(BaseModel):
     """관계 목록 응답"""
+
     items: list[TripleResponse]
     total: int
 
 
 class GraphNode(BaseModel):
     """그래프 노드"""
+
     id: str
     type: str
     name: str
@@ -102,6 +111,7 @@ class GraphNode(BaseModel):
 
 class GraphEdge(BaseModel):
     """그래프 엣지"""
+
     source: str
     target: str
     predicate: str
@@ -111,6 +121,7 @@ class GraphEdge(BaseModel):
 
 class GraphResponse(BaseModel):
     """그래프 응답"""
+
     center_node_id: str
     nodes: list[GraphNode]
     edges: list[GraphEdge]
@@ -118,6 +129,7 @@ class GraphResponse(BaseModel):
 
 class PathResponse(BaseModel):
     """경로 응답"""
+
     source_id: str
     target_id: str
     path: list[TripleResponse]
@@ -126,12 +138,14 @@ class PathResponse(BaseModel):
 
 class SimilarEntityResponse(BaseModel):
     """유사 엔티티 응답"""
+
     entity: EntityResponse
     similarity: float
 
 
 class StatsResponse(BaseModel):
     """통계 응답"""
+
     entity_count: int
     entity_by_type: dict[str, int]
     triple_count: int
@@ -140,6 +154,7 @@ class StatsResponse(BaseModel):
 
 
 # ==================== Entity Endpoints ====================
+
 
 @router.post("/entities", response_model=EntityResponse)
 async def create_entity(
@@ -153,8 +168,8 @@ async def create_entity(
         raise HTTPException(
             status_code=400,
             detail=f"Invalid entity_type: {entity.entity_type}. "
-                   f"Valid types: {[e.value for e in EntityType]}"
-        )
+            f"Valid types: {[e.value for e in EntityType]}",
+        ) from None
 
     db_entity = await ontology_repo.create_entity(
         db,
@@ -220,10 +235,7 @@ async def list_entities(
         try:
             type_filter = EntityType(entity_type)
         except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid entity_type: {entity_type}"
-            )
+            raise HTTPException(status_code=400, detail=f"Invalid entity_type: {entity_type}") from None
 
     skip = (page - 1) * page_size
     entities, total = await ontology_repo.list_entities(
@@ -272,6 +284,7 @@ async def delete_entity(
 
 # ==================== Triple Endpoints ====================
 
+
 @router.post("/triples", response_model=TripleResponse)
 async def create_triple(
     triple: TripleCreate,
@@ -284,13 +297,15 @@ async def create_triple(
         raise HTTPException(
             status_code=400,
             detail=f"Invalid predicate: {triple.predicate}. "
-                   f"Valid predicates: {[p.value for p in PredicateType]}"
-        )
+            f"Valid predicates: {[p.value for p in PredicateType]}",
+        ) from None
 
     # Subject/Object 존재 확인
     subject = await ontology_repo.get_entity(db, triple.subject_id)
     if not subject:
-        raise HTTPException(status_code=404, detail=f"Subject entity not found: {triple.subject_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Subject entity not found: {triple.subject_id}"
+        )
 
     obj = await ontology_repo.get_entity(db, triple.object_id)
     if not obj:
@@ -340,10 +355,7 @@ async def query_triples(
         try:
             predicate_filter = PredicateType(predicate)
         except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid predicate: {predicate}"
-            )
+            raise HTTPException(status_code=400, detail=f"Invalid predicate: {predicate}") from None
 
     triples, total = await ontology_repo.query_triples(
         db,
@@ -380,7 +392,9 @@ async def query_triples(
                     created_at=t.subject.created_at,
                     updated_at=t.subject.updated_at,
                     created_by=t.subject.created_by,
-                ) if t.subject else None,
+                )
+                if t.subject
+                else None,
                 object=EntityResponse(
                     entity_id=t.object.entity_id,
                     entity_type=t.object.entity_type.value,
@@ -392,7 +406,9 @@ async def query_triples(
                     created_at=t.object.created_at,
                     updated_at=t.object.updated_at,
                     created_by=t.object.created_by,
-                ) if t.object else None,
+                )
+                if t.object
+                else None,
             )
             for t in triples
         ],
@@ -416,6 +432,7 @@ async def delete_triple(
 
 # ==================== Graph Query Endpoints ====================
 
+
 @router.get("/graph/{entity_id}", response_model=GraphResponse)
 async def get_entity_graph(
     entity_id: str,
@@ -432,10 +449,7 @@ async def get_entity_graph(
             try:
                 predicate_filter.append(PredicateType(p.strip()))
             except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid predicate: {p.strip()}"
-                )
+                raise HTTPException(status_code=400, detail=f"Invalid predicate: {p.strip()}") from None
 
     graph = await ontology_repo.get_entity_graph(
         db,
@@ -556,6 +570,7 @@ async def find_similar_entities(
 
 
 # ==================== Statistics Endpoint ====================
+
 
 @router.get("/stats", response_model=StatsResponse)
 async def get_ontology_stats(

@@ -5,16 +5,17 @@ Action Log DB 레코드 테이블 정의
 """
 
 import enum
-from typing import Optional
-from sqlalchemy import String, Text, Enum, Index, JSON, DateTime
+from datetime import UTC, datetime
+
+from sqlalchemy import JSON, DateTime, Enum, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime, timezone
 
 from backend.database.base import Base
 
 
 class ActionType(enum.Enum):
     """액션 유형"""
+
     ACTIVITY = "ACTIVITY"
     SIGNAL = "SIGNAL"
     SCORECARD = "SCORECARD"
@@ -40,26 +41,24 @@ class ActionLog(Base):
     play_id: Mapped[str] = mapped_column(String(100), nullable=False)
     action_type: Mapped[ActionType] = mapped_column(Enum(ActionType), nullable=False)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
-    url: Mapped[Optional[str]] = mapped_column(String(500))
+    description: Mapped[str | None] = mapped_column(Text)
+    url: Mapped[str | None] = mapped_column(String(500))
 
     # 관련 ID들 (JSON)
-    related_ids: Mapped[Optional[dict]] = mapped_column(JSON)
+    related_ids: Mapped[dict | None] = mapped_column(JSON)
 
     # 수행자 정보
-    actor: Mapped[Optional[str]] = mapped_column(String(100))
-    agent_id: Mapped[Optional[str]] = mapped_column(String(100))
-    session_id: Mapped[Optional[str]] = mapped_column(String(100))
-    workflow_id: Mapped[Optional[str]] = mapped_column(String(100))
+    actor: Mapped[str | None] = mapped_column(String(100))
+    agent_id: Mapped[str | None] = mapped_column(String(100))
+    session_id: Mapped[str | None] = mapped_column(String(100))
+    workflow_id: Mapped[str | None] = mapped_column(String(100))
 
     # 추가 메타데이터
-    extra_data: Mapped[Optional[dict]] = mapped_column(JSON)
+    extra_data: Mapped[dict | None] = mapped_column(JSON)
 
     # 타임스탬프
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
 
     # Indexes

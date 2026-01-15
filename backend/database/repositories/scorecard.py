@@ -4,23 +4,20 @@ Scorecard 저장소
 Scorecard CRUD 작업
 """
 
-from typing import Optional
 from datetime import datetime
-from sqlalchemy import select, func, case
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models.scorecard import Scorecard, Decision
+from backend.database.models.scorecard import Scorecard
+
 from .base import CRUDBase
 
 
 class ScorecardRepository(CRUDBase[Scorecard]):
     """Scorecard CRUD 저장소"""
 
-    async def get_by_id(
-        self,
-        db: AsyncSession,
-        scorecard_id: str
-    ) -> Optional[Scorecard]:
+    async def get_by_id(self, db: AsyncSession, scorecard_id: str) -> Scorecard | None:
         """
         scorecard_id로 Scorecard 조회
 
@@ -31,16 +28,10 @@ class ScorecardRepository(CRUDBase[Scorecard]):
         Returns:
             Scorecard | None
         """
-        result = await db.execute(
-            select(Scorecard).where(Scorecard.scorecard_id == scorecard_id)
-        )
+        result = await db.execute(select(Scorecard).where(Scorecard.scorecard_id == scorecard_id))
         return result.scalar_one_or_none()
 
-    async def get_by_signal_id(
-        self,
-        db: AsyncSession,
-        signal_id: str
-    ) -> Optional[Scorecard]:
+    async def get_by_signal_id(self, db: AsyncSession, signal_id: str) -> Scorecard | None:
         """
         signal_id로 Scorecard 조회 (1:1 관계)
 
@@ -51,9 +42,7 @@ class ScorecardRepository(CRUDBase[Scorecard]):
         Returns:
             Scorecard | None
         """
-        result = await db.execute(
-            select(Scorecard).where(Scorecard.signal_id == signal_id)
-        )
+        result = await db.execute(select(Scorecard).where(Scorecard.signal_id == signal_id))
         return result.scalar_one_or_none()
 
     async def generate_scorecard_id(self, db: AsyncSession) -> str:
@@ -88,11 +77,11 @@ class ScorecardRepository(CRUDBase[Scorecard]):
     async def get_multi_filtered(
         self,
         db: AsyncSession,
-        decision: Optional[str] = None,
-        min_score: Optional[float] = None,
-        max_score: Optional[float] = None,
+        decision: str | None = None,
+        min_score: float | None = None,
+        max_score: float | None = None,
         skip: int = 0,
-        limit: int = 20
+        limit: int = 20,
     ) -> tuple[list[Scorecard], int]:
         """
         필터링된 Scorecard 목록 조회
@@ -115,12 +104,8 @@ class ScorecardRepository(CRUDBase[Scorecard]):
         # 필터 적용
         if decision:
             # recommendation JSON 필드에서 decision 추출하여 필터링
-            query = query.where(
-                Scorecard.recommendation["decision"].astext == decision
-            )
-            count_query = count_query.where(
-                Scorecard.recommendation["decision"].astext == decision
-            )
+            query = query.where(Scorecard.recommendation["decision"].astext == decision)
+            count_query = count_query.where(Scorecard.recommendation["decision"].astext == decision)
 
         if min_score is not None:
             query = query.where(Scorecard.total_score >= min_score)
@@ -157,10 +142,7 @@ class ScorecardRepository(CRUDBase[Scorecard]):
         avg_score_result = await db.execute(select(func.avg(Scorecard.total_score)))
         avg_score = avg_score_result.scalar() or 0
 
-        return {
-            "total": total,
-            "average_score": round(avg_score, 2)
-        }
+        return {"total": total, "average_score": round(avg_score, 2)}
 
     async def get_distribution_stats(self, db: AsyncSession) -> dict:
         """
@@ -181,35 +163,35 @@ class ScorecardRepository(CRUDBase[Scorecard]):
                 "hold_count": 0,
                 "no_go_count": 0,
                 "average_score": 0,
-                "red_flag_rate": 0
+                "red_flag_rate": 0,
             }
 
         # 판정별 개수 (JSON 필드에서 decision 추출)
         go_result = await db.execute(
-            select(func.count()).select_from(Scorecard).where(
-                Scorecard.recommendation["decision"].astext == "GO"
-            )
+            select(func.count())
+            .select_from(Scorecard)
+            .where(Scorecard.recommendation["decision"].astext == "GO")
         )
         go_count = go_result.scalar() or 0
 
         pivot_result = await db.execute(
-            select(func.count()).select_from(Scorecard).where(
-                Scorecard.recommendation["decision"].astext == "PIVOT"
-            )
+            select(func.count())
+            .select_from(Scorecard)
+            .where(Scorecard.recommendation["decision"].astext == "PIVOT")
         )
         pivot_count = pivot_result.scalar() or 0
 
         hold_result = await db.execute(
-            select(func.count()).select_from(Scorecard).where(
-                Scorecard.recommendation["decision"].astext == "HOLD"
-            )
+            select(func.count())
+            .select_from(Scorecard)
+            .where(Scorecard.recommendation["decision"].astext == "HOLD")
         )
         hold_count = hold_result.scalar() or 0
 
         no_go_result = await db.execute(
-            select(func.count()).select_from(Scorecard).where(
-                Scorecard.recommendation["decision"].astext == "NO_GO"
-            )
+            select(func.count())
+            .select_from(Scorecard)
+            .where(Scorecard.recommendation["decision"].astext == "NO_GO")
         )
         no_go_count = no_go_result.scalar() or 0
 
@@ -220,10 +202,9 @@ class ScorecardRepository(CRUDBase[Scorecard]):
         # Red-flag이 있는 Scorecard 비율
         # red_flags가 비어있지 않은 (NULL이 아니고 빈 배열이 아닌) Scorecard 수
         red_flag_result = await db.execute(
-            select(func.count()).select_from(Scorecard).where(
-                Scorecard.red_flags.isnot(None),
-                func.json_array_length(Scorecard.red_flags) > 0
-            )
+            select(func.count())
+            .select_from(Scorecard)
+            .where(Scorecard.red_flags.isnot(None), func.json_array_length(Scorecard.red_flags) > 0)
         )
         red_flag_count = red_flag_result.scalar() or 0
         red_flag_rate = round((red_flag_count / total) * 100, 1) if total > 0 else 0
@@ -235,7 +216,7 @@ class ScorecardRepository(CRUDBase[Scorecard]):
             "hold_count": hold_count,
             "no_go_count": no_go_count,
             "average_score": round(avg_score, 1),
-            "red_flag_rate": red_flag_rate
+            "red_flag_rate": red_flag_rate,
         }
 
 

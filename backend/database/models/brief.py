@@ -5,8 +5,8 @@ OpportunityBrief 모델
 """
 
 import enum
-from typing import Optional
-from sqlalchemy import String, Text, ForeignKey, Enum, Index, JSON
+
+from sqlalchemy import JSON, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.base import Base, TimestampMixin
@@ -14,6 +14,7 @@ from backend.database.base import Base, TimestampMixin
 
 class ValidationMethod(enum.Enum):
     """검증 방법"""
+
     FIVE_DAY_SPRINT = "5DAY_SPRINT"
     INTERVIEW = "INTERVIEW"
     DATA_ANALYSIS = "DATA_ANALYSIS"
@@ -23,6 +24,7 @@ class ValidationMethod(enum.Enum):
 
 class BriefStatus(enum.Enum):
     """Brief 상태"""
+
     DRAFT = "DRAFT"
     REVIEW = "REVIEW"
     APPROVED = "APPROVED"
@@ -48,7 +50,7 @@ class OpportunityBrief(Base, TimestampMixin):
         String(50),
         ForeignKey("signals.signal_id", ondelete="CASCADE"),
         nullable=False,
-        unique=True  # 1:1 관계
+        unique=True,  # 1:1 관계
     )
 
     # 기본 정보
@@ -71,19 +73,17 @@ class OpportunityBrief(Base, TimestampMixin):
     validation_plan: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     # MVP 범위 (JSON, optional)
-    mvp_scope: Mapped[Optional[dict]] = mapped_column(JSON)
+    mvp_scope: Mapped[dict | None] = mapped_column(JSON)
 
     # 리스크
-    risks: Mapped[Optional[list]] = mapped_column(JSON)
+    risks: Mapped[list | None] = mapped_column(JSON)
 
     # 상태 및 메타데이터
     status: Mapped[BriefStatus] = mapped_column(
-        Enum(BriefStatus),
-        default=BriefStatus.DRAFT,
-        nullable=False
+        Enum(BriefStatus), default=BriefStatus.DRAFT, nullable=False
     )
     owner: Mapped[str] = mapped_column(String(100), nullable=False)
-    confluence_url: Mapped[Optional[str]] = mapped_column(String(500))
+    confluence_url: Mapped[str | None] = mapped_column(String(500))
 
     # Relationships
     signal: Mapped["Signal"] = relationship("Signal", back_populates="brief")

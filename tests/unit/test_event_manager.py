@@ -4,10 +4,9 @@ Event Manager 단위 테스트
 backend/agent_runtime/event_manager.py 테스트
 """
 
-import pytest
 import asyncio
-from datetime import datetime
-from unittest.mock import MagicMock
+
+import pytest
 
 from backend.agent_runtime.event_manager import (
     SessionEventManager,
@@ -17,8 +16,6 @@ from backend.agent_runtime.event_manager import (
 )
 from backend.agent_runtime.event_types import (
     RunStartedEvent,
-    StepStartedEvent,
-    StepFinishedEvent,
     TextMessageContentEvent,
 )
 
@@ -239,9 +236,7 @@ class TestWorkflowEventEmitter:
         emitter = WorkflowEventEmitter(manager, "run-003")
 
         # 실행 시작
-        await emitter.emit_run_started(
-            workflow_id="WF-01", input_data={}, steps=[]
-        )
+        await emitter.emit_run_started(workflow_id="WF-01", input_data={}, steps=[])
 
         # 약간의 대기
         await asyncio.sleep(0.01)

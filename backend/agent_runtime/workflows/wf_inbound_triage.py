@@ -20,12 +20,13 @@ SLA:
 - LOW: 72시간
 """
 
-from typing import Any
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any
+
 import structlog
-import re
 
 logger = structlog.get_logger()
 
@@ -34,20 +35,23 @@ logger = structlog.get_logger()
 # Enums & Constants
 # ============================================================
 
+
 class Urgency(str, Enum):
     """긴급도"""
+
     URGENT = "URGENT"  # 24h SLA
     NORMAL = "NORMAL"  # 48h SLA
-    LOW = "LOW"        # 72h SLA
+    LOW = "LOW"  # 72h SLA
 
 
 class TriageAction(str, Enum):
     """Triage 후 다음 액션"""
-    CREATE_BRIEF = "CREATE_BRIEF"           # GO → Brief 생성
+
+    CREATE_BRIEF = "CREATE_BRIEF"  # GO → Brief 생성
     REVIEW_AND_ENHANCE = "REVIEW_AND_ENHANCE"  # PIVOT → 추가 조사
     SCHEDULE_FOLLOW_UP = "SCHEDULE_FOLLOW_UP"  # HOLD → 후속 일정
-    ARCHIVE = "ARCHIVE"                      # NO_GO → 아카이브
-    MERGE_OR_CLOSE = "MERGE_OR_CLOSE"        # 중복 → 병합/종료
+    ARCHIVE = "ARCHIVE"  # NO_GO → 아카이브
+    MERGE_OR_CLOSE = "MERGE_OR_CLOSE"  # 중복 → 병합/종료
 
 
 # SLA 시간 (시간 단위)
@@ -76,9 +80,11 @@ PLAY_ROUTING_RULES = [
 # Data Classes
 # ============================================================
 
+
 @dataclass
 class InboundInput:
     """Intake Form 입력"""
+
     title: str
     description: str
     customer_segment: str | None = None
@@ -93,6 +99,7 @@ class InboundInput:
 @dataclass
 class DuplicateCheckResult:
     """중복 체크 결과"""
+
     is_duplicate: bool
     duplicate_of: str | None = None
     similarity_score: float = 0.0
@@ -102,6 +109,7 @@ class DuplicateCheckResult:
 @dataclass
 class ScorecardDraft:
     """Scorecard 초안"""
+
     scorecard_id: str
     signal_id: str
     total_score: int
@@ -116,6 +124,7 @@ class ScorecardDraft:
 @dataclass
 class InboundOutput:
     """Inbound Triage 출력"""
+
     signal_id: str
     is_duplicate: bool
     duplicate_of: str | None
@@ -130,6 +139,7 @@ class InboundOutput:
 # 유틸리티 함수
 # ============================================================
 
+
 def calculate_text_similarity(text1: str, text2: str) -> float:
     """간단한 텍스트 유사도 계산 (Jaccard 유사도)
 
@@ -139,8 +149,8 @@ def calculate_text_similarity(text1: str, text2: str) -> float:
         return 0.0
 
     # 소문자 변환 및 단어 분리
-    words1 = set(re.findall(r'\w+', text1.lower()))
-    words2 = set(re.findall(r'\w+', text2.lower()))
+    words1 = set(re.findall(r"\w+", text1.lower()))
+    words2 = set(re.findall(r"\w+", text2.lower()))
 
     if not words1 or not words2:
         return 0.0
@@ -182,14 +192,15 @@ def calculate_sla_deadline(urgency: str) -> datetime:
 # Scorecard 초안 생성 로직
 # ============================================================
 
+
 def create_scorecard_draft_from_signal(signal: dict[str, Any]) -> ScorecardDraft:
     """Signal로부터 Scorecard 초안 생성
 
     WF-02의 평가 로직을 재사용하되, is_draft=True로 표시
     """
     from backend.agent_runtime.workflows.wf_interview_to_brief import (
-        evaluate_dimension_score,
         detect_red_flags,
+        evaluate_dimension_score,
         get_recommendation,
     )
 
@@ -201,7 +212,7 @@ def create_scorecard_draft_from_signal(signal: dict[str, Any]) -> ScorecardDraft
         "willingness_to_pay",
         "data_availability",
         "feasibility",
-        "strategic_fit"
+        "strategic_fit",
     ]
 
     dimension_scores = {}
@@ -247,6 +258,7 @@ def determine_next_action(decision: str, is_duplicate: bool) -> str:
 # ============================================================
 # 메인 파이프라인
 # ============================================================
+
 
 class InboundTriagePipeline:
     """
@@ -412,6 +424,7 @@ class InboundTriagePipeline:
 # ============================================================
 # AG-UI 이벤트 발행 버전
 # ============================================================
+
 
 class InboundTriagePipelineWithEvents(InboundTriagePipeline):
     """
@@ -687,6 +700,7 @@ class InboundTriagePipelineWithEvents(InboundTriagePipeline):
 # DB 연동 버전
 # ============================================================
 
+
 class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
     """
     WF-04: Inbound Triage with DB Integration
@@ -694,11 +708,7 @@ class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
     데이터베이스 연동을 포함한 완전한 파이프라인
     """
 
-    def __init__(
-        self,
-        emitter: "WorkflowEventEmitter",
-        db: "AsyncSession"
-    ):
+    def __init__(self, emitter: "WorkflowEventEmitter", db: "AsyncSession"):
         super().__init__(emitter)
         self.db = db
         self.logger = logger.bind(workflow="WF-04", with_db=True)
@@ -708,13 +718,10 @@ class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
         signal: dict[str, Any],
     ) -> DuplicateCheckResult:
         """DB 기반 중복 체크"""
+
         from backend.database.repositories.signal import signal_repo
-        from datetime import timedelta
 
-        # 최근 30일 Signal 조회
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-
-        # 같은 Play ID의 Signal 조회
+        # 같은 Play ID의 Signal 조회 (최근 데이터 기반)
         items, _ = await signal_repo.get_multi_filtered(
             self.db,
             channel="인바운드",
@@ -746,11 +753,13 @@ class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
             avg_sim = (title_sim * 0.4) + (pain_sim * 0.6)
 
             if avg_sim > 0.5:  # 50% 이상 유사
-                similar_signals.append({
-                    "signal_id": existing.signal_id,
-                    "title": existing.title,
-                    "similarity": avg_sim,
-                })
+                similar_signals.append(
+                    {
+                        "signal_id": existing.signal_id,
+                        "title": existing.title,
+                        "similarity": avg_sim,
+                    }
+                )
 
             if avg_sim > max_similarity:
                 max_similarity = avg_sim
@@ -779,9 +788,9 @@ class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
         scorecard: dict[str, Any] | None,
     ) -> dict[str, Any]:
         """결과를 DB에 저장"""
-        from backend.database.repositories.signal import signal_repo
-        from backend.database.repositories.scorecard import scorecard_repo
         from backend.database.models.signal import SignalStatus
+        from backend.database.repositories.scorecard import scorecard_repo
+        from backend.database.repositories.signal import signal_repo
 
         saved = {
             "signal_id": None,
@@ -855,8 +864,7 @@ async def run(input_data: dict[str, Any]) -> dict[str, Any]:
 
 
 async def run_with_events(
-    input_data: dict[str, Any],
-    emitter: "WorkflowEventEmitter"
+    input_data: dict[str, Any], emitter: "WorkflowEventEmitter"
 ) -> dict[str, Any]:
     """이벤트 발행을 포함한 워크플로 실행"""
     inbound_input = InboundInput(
@@ -888,5 +896,6 @@ async def run_with_events(
 
 # 타입 힌트를 위한 import (순환 참조 방지)
 if __name__ != "__main__":
-    from backend.agent_runtime.event_manager import WorkflowEventEmitter
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from backend.agent_runtime.event_manager import WorkflowEventEmitter

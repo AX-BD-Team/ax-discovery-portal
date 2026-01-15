@@ -4,23 +4,20 @@ PlayRecord 저장소
 Play 진행현황 CRUD 작업
 """
 
-from typing import Optional
-from datetime import date, datetime, timedelta
-from sqlalchemy import select, func, and_, or_
+from datetime import date, timedelta
+
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models.play_record import PlayRecord, PlayStatus
+from backend.database.models.play_record import PlayRecord
+
 from .base import CRUDBase
 
 
 class PlayRecordRepository(CRUDBase[PlayRecord]):
     """PlayRecord CRUD 저장소"""
 
-    async def get_by_id(
-        self,
-        db: AsyncSession,
-        play_id: str
-    ) -> Optional[PlayRecord]:
+    async def get_by_id(self, db: AsyncSession, play_id: str) -> PlayRecord | None:
         """
         play_id로 PlayRecord 조회
 
@@ -31,9 +28,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         Returns:
             PlayRecord | None
         """
-        result = await db.execute(
-            select(PlayRecord).where(PlayRecord.play_id == play_id)
-        )
+        result = await db.execute(select(PlayRecord).where(PlayRecord.play_id == play_id))
         return result.scalar_one_or_none()
 
     async def get_all(self, db: AsyncSession) -> list[PlayRecord]:
@@ -49,11 +44,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         result = await db.execute(select(PlayRecord))
         return result.scalars().all()
 
-    async def increment_activity(
-        self,
-        db: AsyncSession,
-        play_id: str
-    ) -> Optional[PlayRecord]:
+    async def increment_activity(self, db: AsyncSession, play_id: str) -> PlayRecord | None:
         """
         Play의 activity_qtd 증가
 
@@ -71,11 +62,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             await db.refresh(play_record)
         return play_record
 
-    async def increment_signal(
-        self,
-        db: AsyncSession,
-        play_id: str
-    ) -> Optional[PlayRecord]:
+    async def increment_signal(self, db: AsyncSession, play_id: str) -> PlayRecord | None:
         """
         Play의 signal_qtd 증가
 
@@ -93,11 +80,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             await db.refresh(play_record)
         return play_record
 
-    async def increment_brief(
-        self,
-        db: AsyncSession,
-        play_id: str
-    ) -> Optional[PlayRecord]:
+    async def increment_brief(self, db: AsyncSession, play_id: str) -> PlayRecord | None:
         """
         Play의 brief_qtd 증가
 
@@ -118,10 +101,10 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
     async def get_multi_filtered(
         self,
         db: AsyncSession,
-        status: Optional[str] = None,
-        owner: Optional[str] = None,
+        status: str | None = None,
+        owner: str | None = None,
         skip: int = 0,
-        limit: int = 50
+        limit: int = 50,
     ) -> tuple[list[PlayRecord], int]:
         """
         필터링된 PlayRecord 목록 조회
@@ -200,14 +183,10 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             "total_signal": total_signal,
             "total_brief": total_brief,
             "total_s2": total_s2,
-            "total_s3": total_s3
+            "total_s3": total_s3,
         }
 
-    async def get_kpi_digest(
-        self,
-        db: AsyncSession,
-        period: str = "week"
-    ) -> dict:
+    async def get_kpi_digest(self, db: AsyncSession, period: str = "week") -> dict:
         """
         KPI 요약 리포트
 
@@ -226,7 +205,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             "activity_target": 20,
             "signal_target": 30,
             "brief_target": 6,
-            "s2_target": "2~4"
+            "s2_target": "2~4",
         }
 
         # 상태별 Play 수
@@ -253,10 +232,10 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             "status_summary": {
                 "green": green_result.scalar() or 0,
                 "yellow": yellow_result.scalar() or 0,
-                "red": red_result.scalar() or 0
+                "red": red_result.scalar() or 0,
             },
             "avg_signal_to_brief_days": 0,  # TODO: 실제 리드타임 계산
-            "avg_brief_to_s2_days": 0  # TODO: 실제 리드타임 계산
+            "avg_brief_to_s2_days": 0,  # TODO: 실제 리드타임 계산
         }
 
     async def get_alerts(self, db: AsyncSession) -> dict:
@@ -269,24 +248,17 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         today = date.today()
 
         # Yellow Play 목록
-        yellow_result = await db.execute(
-            select(PlayRecord).where(PlayRecord.status == "Y")
-        )
+        yellow_result = await db.execute(select(PlayRecord).where(PlayRecord.status == "Y"))
         yellow_plays = [p.play_id for p in yellow_result.scalars().all()]
 
         # Red Play 목록
-        red_result = await db.execute(
-            select(PlayRecord).where(PlayRecord.status == "R")
-        )
+        red_result = await db.execute(select(PlayRecord).where(PlayRecord.status == "R"))
         red_plays = [p.play_id for p in red_result.scalars().all()]
 
         # 기한 초과 Play (due_date < today)
         overdue_result = await db.execute(
             select(PlayRecord).where(
-                and_(
-                    PlayRecord.due_date.isnot(None),
-                    PlayRecord.due_date < today
-                )
+                and_(PlayRecord.due_date.isnot(None), PlayRecord.due_date < today)
             )
         )
         overdue_plays = [
@@ -300,7 +272,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             select(PlayRecord).where(
                 or_(
                     PlayRecord.last_activity_date.is_(None),
-                    PlayRecord.last_activity_date < stale_date
+                    PlayRecord.last_activity_date < stale_date,
                 )
             )
         )
@@ -311,7 +283,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             "yellow_plays": yellow_plays,
             "red_plays": red_plays,
             "overdue_plays": overdue_plays,
-            "stale_plays": stale_plays
+            "stale_plays": stale_plays,
         }
 
     async def update_status(
@@ -319,9 +291,9 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         db: AsyncSession,
         play_id: str,
         status: str,
-        next_action: Optional[str] = None,
-        due_date: Optional[date] = None
-    ) -> Optional[PlayRecord]:
+        next_action: str | None = None,
+        due_date: date | None = None,
+    ) -> PlayRecord | None:
         """
         Play 상태 업데이트
 
@@ -348,12 +320,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         await db.flush()
         return play_record
 
-    async def get_timeline(
-        self,
-        db: AsyncSession,
-        play_id: str,
-        limit: int = 20
-    ) -> list[dict]:
+    async def get_timeline(self, db: AsyncSession, play_id: str, limit: int = 20) -> list[dict]:
         """
         Play 타임라인 조회 (Activity/Signal/Brief 이력)
 
@@ -362,11 +329,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         # TODO: ActionLog 테이블에서 play_id 관련 이벤트 조회
         return []
 
-    async def get_leaderboard(
-        self,
-        db: AsyncSession,
-        period: str = "week"
-    ) -> dict:
+    async def get_leaderboard(self, db: AsyncSession, period: str = "week") -> dict:
         """
         Play 성과 순위
 
@@ -375,16 +338,14 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         """
         # Signal 수 기준 상위 Play
         top_plays_result = await db.execute(
-            select(PlayRecord)
-            .order_by(PlayRecord.signal_qtd.desc())
-            .limit(10)
+            select(PlayRecord).order_by(PlayRecord.signal_qtd.desc()).limit(10)
         )
         top_plays = [
             {
                 "play_id": p.play_id,
                 "play_name": p.play_name,
                 "signal_qtd": p.signal_qtd,
-                "brief_qtd": p.brief_qtd
+                "brief_qtd": p.brief_qtd,
             }
             for p in top_plays_result.scalars().all()
         ]
@@ -392,7 +353,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         return {
             "period": period,
             "top_plays": top_plays,
-            "top_contributors": []  # TODO: 담당자별 집계
+            "top_contributors": [],  # TODO: 담당자별 집계
         }
 
 

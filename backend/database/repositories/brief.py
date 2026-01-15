@@ -4,23 +4,20 @@ OpportunityBrief 저장소
 Brief CRUD 작업
 """
 
-from typing import Optional
 from datetime import datetime
-from sqlalchemy import select, func, and_
+
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models.brief import OpportunityBrief, BriefStatus
+from backend.database.models.brief import BriefStatus, OpportunityBrief
+
 from .base import CRUDBase
 
 
 class BriefRepository(CRUDBase[OpportunityBrief]):
     """OpportunityBrief CRUD 저장소"""
 
-    async def get_by_id(
-        self,
-        db: AsyncSession,
-        brief_id: str
-    ) -> Optional[OpportunityBrief]:
+    async def get_by_id(self, db: AsyncSession, brief_id: str) -> OpportunityBrief | None:
         """
         brief_id로 Brief 조회
 
@@ -36,11 +33,7 @@ class BriefRepository(CRUDBase[OpportunityBrief]):
         )
         return result.scalar_one_or_none()
 
-    async def get_by_signal_id(
-        self,
-        db: AsyncSession,
-        signal_id: str
-    ) -> Optional[OpportunityBrief]:
+    async def get_by_signal_id(self, db: AsyncSession, signal_id: str) -> OpportunityBrief | None:
         """
         signal_id로 Brief 조회 (1:1 관계)
 
@@ -59,10 +52,10 @@ class BriefRepository(CRUDBase[OpportunityBrief]):
     async def get_multi_filtered(
         self,
         db: AsyncSession,
-        status: Optional[str] = None,
-        owner: Optional[str] = None,
+        status: str | None = None,
+        owner: str | None = None,
         skip: int = 0,
-        limit: int = 20
+        limit: int = 20,
     ) -> tuple[list[OpportunityBrief], int]:
         """
         필터링된 Brief 목록 조회 (+ 총 개수)
@@ -85,7 +78,9 @@ class BriefRepository(CRUDBase[OpportunityBrief]):
             filters.append(OpportunityBrief.owner == owner)
 
         # 쿼리 실행
-        query = select(OpportunityBrief).where(and_(*filters)) if filters else select(OpportunityBrief)
+        query = (
+            select(OpportunityBrief).where(and_(*filters)) if filters else select(OpportunityBrief)
+        )
         query = query.order_by(OpportunityBrief.created_at.desc()).offset(skip).limit(limit)
 
         result = await db.execute(query)
@@ -145,22 +140,21 @@ class BriefRepository(CRUDBase[OpportunityBrief]):
         status_stats = {}
         for status in BriefStatus:
             count_result = await db.execute(
-                select(func.count()).select_from(OpportunityBrief).where(OpportunityBrief.status == status)
+                select(func.count())
+                .select_from(OpportunityBrief)
+                .where(OpportunityBrief.status == status)
             )
             status_stats[status.value] = count_result.scalar() or 0
 
-        return {
-            "total": total,
-            "by_status": status_stats
-        }
+        return {"total": total, "by_status": status_stats}
 
     async def update_status(
         self,
         db: AsyncSession,
         brief_id: str,
         status: BriefStatus,
-        confluence_url: Optional[str] = None
-    ) -> Optional[OpportunityBrief]:
+        confluence_url: str | None = None,
+    ) -> OpportunityBrief | None:
         """
         Brief 상태 업데이트
 

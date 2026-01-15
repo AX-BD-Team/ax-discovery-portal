@@ -12,6 +12,7 @@ from typing import Any
 
 class AgentEventType(str, Enum):
     """이벤트 타입 열거형"""
+
     # 실행 제어
     RUN_STARTED = "RUN_STARTED"
     RUN_FINISHED = "RUN_FINISHED"
@@ -40,6 +41,7 @@ class AgentEventType(str, Enum):
 
 class RunStatus(str, Enum):
     """실행 상태"""
+
     IDLE = "idle"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -49,6 +51,7 @@ class RunStatus(str, Enum):
 
 class StepStatus(str, Enum):
     """단계 상태"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -58,6 +61,7 @@ class StepStatus(str, Enum):
 
 class ImpactLevel(str, Enum):
     """위험도 수준"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -66,6 +70,7 @@ class ImpactLevel(str, Enum):
 
 class SeminarPipelineStep(str, Enum):
     """WF-01 세미나 파이프라인 단계"""
+
     METADATA_EXTRACTION = "METADATA_EXTRACTION"
     ACTIVITY_CREATION = "ACTIVITY_CREATION"
     AAR_TEMPLATE_GENERATION = "AAR_TEMPLATE_GENERATION"
@@ -76,6 +81,7 @@ class SeminarPipelineStep(str, Enum):
 @dataclass
 class StepInfo:
     """단계 정보"""
+
     id: str
     label: str
     status: StepStatus = StepStatus.PENDING
@@ -88,6 +94,7 @@ class StepInfo:
 @dataclass
 class BaseAgentEvent:
     """기본 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.RUN_STARTED)
     run_id: str = ""
     session_id: str = ""
@@ -106,8 +113,7 @@ class BaseAgentEvent:
             if key not in ("type", "run_id", "session_id", "timestamp"):
                 # snake_case -> camelCase 변환
                 camel_key = "".join(
-                    word.capitalize() if i > 0 else word
-                    for i, word in enumerate(key.split("_"))
+                    word.capitalize() if i > 0 else word for i, word in enumerate(key.split("_"))
                 )
                 if isinstance(value, Enum):
                     result[camel_key] = value.value
@@ -115,8 +121,7 @@ class BaseAgentEvent:
                     result[camel_key] = value.to_dict()
                 elif isinstance(value, list):
                     result[camel_key] = [
-                        item.to_dict() if hasattr(item, "to_dict") else item
-                        for item in value
+                        item.to_dict() if hasattr(item, "to_dict") else item for item in value
                     ]
                 else:
                     result[camel_key] = value
@@ -126,6 +131,7 @@ class BaseAgentEvent:
 @dataclass
 class RunStartedEvent(BaseAgentEvent):
     """실행 시작 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.RUN_STARTED)
     workflow_id: str = ""
     input_data: dict[str, Any] = field(default_factory=dict)
@@ -136,6 +142,7 @@ class RunStartedEvent(BaseAgentEvent):
 @dataclass
 class RunFinishedEvent(BaseAgentEvent):
     """실행 완료 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.RUN_FINISHED)
     result: dict[str, Any] = field(default_factory=dict)
     duration_ms: int = 0
@@ -144,6 +151,7 @@ class RunFinishedEvent(BaseAgentEvent):
 @dataclass
 class RunErrorEvent(BaseAgentEvent):
     """실행 오류 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.RUN_ERROR)
     error: str = ""
     error_code: str | None = None
@@ -153,6 +161,7 @@ class RunErrorEvent(BaseAgentEvent):
 @dataclass
 class StepStartedEvent(BaseAgentEvent):
     """단계 시작 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.STEP_STARTED)
     step_id: str = ""
     step_index: int = 0
@@ -163,6 +172,7 @@ class StepStartedEvent(BaseAgentEvent):
 @dataclass
 class StepFinishedEvent(BaseAgentEvent):
     """단계 완료 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.STEP_FINISHED)
     step_id: str = ""
     step_index: int = 0
@@ -173,6 +183,7 @@ class StepFinishedEvent(BaseAgentEvent):
 @dataclass
 class StepErrorEvent(BaseAgentEvent):
     """단계 오류 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.STEP_ERROR)
     step_id: str = ""
     step_index: int = 0
@@ -183,6 +194,7 @@ class StepErrorEvent(BaseAgentEvent):
 @dataclass
 class TextMessageContentEvent(BaseAgentEvent):
     """텍스트 메시지 내용 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.TEXT_MESSAGE_CONTENT)
     message_id: str = ""
     content: str = ""
@@ -192,6 +204,7 @@ class TextMessageContentEvent(BaseAgentEvent):
 @dataclass
 class RenderSurfaceEvent(BaseAgentEvent):
     """Surface 렌더링 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.RENDER_SURFACE)
     surface_id: str = ""
     surface: dict[str, Any] = field(default_factory=dict)
@@ -200,6 +213,7 @@ class RenderSurfaceEvent(BaseAgentEvent):
 @dataclass
 class ApprovalRequestedEvent(BaseAgentEvent):
     """승인 요청 이벤트"""
+
     type: AgentEventType = field(default=AgentEventType.APPROVAL_REQUESTED)
     approval_id: str = ""
     title: str = ""

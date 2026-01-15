@@ -25,10 +25,11 @@ PoC 목표:
 - Brief→S2 ≤14일
 """
 
-from typing import Any
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -38,8 +39,10 @@ logger = structlog.get_logger()
 # Enums & Constants
 # ============================================================
 
+
 class AlertSeverity(str, Enum):
     """경고 심각도"""
+
     INFO = "INFO"
     YELLOW = "YELLOW"
     RED = "RED"
@@ -47,6 +50,7 @@ class AlertSeverity(str, Enum):
 
 class AlertType(str, Enum):
     """경고 유형"""
+
     UNDER_TARGET = "UNDER_TARGET"
     LEAD_TIME_EXCEEDED = "LEAD_TIME_EXCEEDED"
     PLAY_DELAYED = "PLAY_DELAYED"
@@ -70,9 +74,11 @@ POC_TARGETS = {
 # Data Classes
 # ============================================================
 
+
 @dataclass
 class KPIInput:
     """KPI Digest 입력"""
+
     period: str = "week"  # week, month
     play_ids: list[str] | None = None  # None이면 전체
     notify: bool = False  # Teams/Slack 알림 여부
@@ -82,6 +88,7 @@ class KPIInput:
 @dataclass
 class KPITarget:
     """PoC 목표 기준"""
+
     activity_weekly: int = 20
     signal_weekly: int = 30
     brief_weekly: int = 6
@@ -94,6 +101,7 @@ class KPITarget:
 @dataclass
 class MetricValue:
     """개별 메트릭 값"""
+
     actual: int
     target: int
     achievement: float  # 퍼센트
@@ -103,6 +111,7 @@ class MetricValue:
 @dataclass
 class LeadTimeMetric:
     """리드타임 메트릭"""
+
     avg_days: float
     target_days: int
     on_target: bool
@@ -114,6 +123,7 @@ class LeadTimeMetric:
 @dataclass
 class Alert:
     """경고 항목"""
+
     type: str
     severity: str
     metric: str
@@ -125,6 +135,7 @@ class Alert:
 @dataclass
 class TopPlay:
     """Top Play 항목"""
+
     rank: int
     play_id: str
     play_name: str
@@ -137,6 +148,7 @@ class TopPlay:
 @dataclass
 class KPIDigestOutput:
     """KPI Digest 출력"""
+
     period: str
     period_start: str
     period_end: str
@@ -154,9 +166,10 @@ class KPIDigestOutput:
 # 유틸리티 함수
 # ============================================================
 
+
 def calculate_period_range(period: str) -> tuple[datetime, datetime]:
     """기간 범위 계산"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if period == "week":
         # 이번 주 월요일 00:00 ~ 일요일 23:59
@@ -197,6 +210,7 @@ def determine_severity(achievement: float) -> str:
 # 메인 파이프라인
 # ============================================================
 
+
 class KPIDigestPipeline:
     """
     WF-05: KPI Digest
@@ -226,9 +240,7 @@ class KPIDigestPipeline:
         period_start, period_end = calculate_period_range(input_data.period)
 
         # 2. 메트릭 집계
-        metrics = await self._aggregate_metrics(
-            period_start, period_end, input_data.play_ids
-        )
+        metrics = await self._aggregate_metrics(period_start, period_end, input_data.play_ids)
 
         # 3. 리드타임 계산
         lead_times = await self._calculate_lead_times(period_start, period_end)
@@ -251,8 +263,7 @@ class KPIDigestPipeline:
         confluence_url = None
         if input_data.notify:
             confluence_url = await self._publish_report(
-                input_data.period,
-                metrics, lead_times, alerts, top_plays, recommendations
+                input_data.period, metrics, lead_times, alerts, top_plays, recommendations
             )
             await self._send_notifications(confluence_url, alerts)
 
@@ -268,12 +279,16 @@ class KPIDigestPipeline:
             period_end=period_end.isoformat(),
             metrics=metrics,
             lead_times=lead_times,
-            alerts=[self._alert_to_dict(a) for a in alerts] if alerts and isinstance(alerts[0], Alert) else alerts,
-            top_plays=[self._top_play_to_dict(p) for p in top_plays] if top_plays and isinstance(top_plays[0], TopPlay) else top_plays,
+            alerts=[self._alert_to_dict(a) for a in alerts]
+            if alerts and isinstance(alerts[0], Alert)
+            else alerts,
+            top_plays=[self._top_play_to_dict(p) for p in top_plays]
+            if top_plays and isinstance(top_plays[0], TopPlay)
+            else top_plays,
             recommendations=recommendations,
             status_summary=status_summary,
             confluence_url=confluence_url,
-            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_at=datetime.now(UTC).isoformat(),
         )
 
     def _alert_to_dict(self, alert: Alert) -> dict[str, Any]:
@@ -300,10 +315,7 @@ class KPIDigestPipeline:
         }
 
     async def _aggregate_metrics(
-        self,
-        start: datetime,
-        end: datetime,
-        play_ids: list[str] | None
+        self, start: datetime, end: datetime, play_ids: list[str] | None
     ) -> dict[str, Any]:
         """메트릭 집계 (Mock 데이터)"""
         # 실제 구현은 DB에서 조회
@@ -373,18 +385,14 @@ class KPIDigestPipeline:
             },
         }
 
-    async def _calculate_lead_times(
-        self,
-        start: datetime,
-        end: datetime
-    ) -> dict[str, Any]:
+    async def _calculate_lead_times(self, start: datetime, end: datetime) -> dict[str, Any]:
         """리드타임 계산 (Mock 데이터)"""
         # 실제 구현은 Signal/Brief 상태 변경 시점 기준으로 계산
 
         signal_to_brief = LeadTimeMetric(
             avg_days=5.2,
             target_days=self.targets.signal_to_brief_days,
-            on_target=5.2 <= self.targets.signal_to_brief_days,
+            on_target=self.targets.signal_to_brief_days >= 5.2,
             min_days=2.0,
             max_days=10.0,
             sample_count=8,
@@ -393,7 +401,7 @@ class KPIDigestPipeline:
         brief_to_s2 = LeadTimeMetric(
             avg_days=11.0,
             target_days=self.targets.brief_to_s2_days,
-            on_target=11.0 <= self.targets.brief_to_s2_days,
+            on_target=self.targets.brief_to_s2_days >= 11.0,
             min_days=5.0,
             max_days=18.0,
             sample_count=3,
@@ -419,9 +427,7 @@ class KPIDigestPipeline:
         }
 
     async def _generate_alerts(
-        self,
-        metrics: dict[str, Any],
-        lead_times: dict[str, Any]
+        self, metrics: dict[str, Any], lead_times: dict[str, Any]
     ) -> list[Alert]:
         """경고 생성"""
         alerts = []
@@ -431,55 +437,57 @@ class KPIDigestPipeline:
             achievement = metrics[key]["achievement"]
             if achievement < 80:
                 severity = determine_severity(achievement)
-                alerts.append(Alert(
-                    type=AlertType.UNDER_TARGET.value,
-                    severity=severity,
-                    metric=key,
-                    message=f"{key.capitalize()} 목표 대비 {achievement:.1f}% 달성",
-                    details={
-                        "actual": metrics[key]["actual"],
-                        "target": metrics[key]["target"],
-                    }
-                ))
+                alerts.append(
+                    Alert(
+                        type=AlertType.UNDER_TARGET.value,
+                        severity=severity,
+                        metric=key,
+                        message=f"{key.capitalize()} 목표 대비 {achievement:.1f}% 달성",
+                        details={
+                            "actual": metrics[key]["actual"],
+                            "target": metrics[key]["target"],
+                        },
+                    )
+                )
 
         # S2 목표 확인
         s2_actual = metrics["s2"]["actual"]
         s2_min = metrics["s2"]["target_min"]
         if s2_actual < s2_min:
-            alerts.append(Alert(
-                type=AlertType.UNDER_TARGET.value,
-                severity=AlertSeverity.YELLOW.value,
-                metric="s2",
-                message=f"S2 {s2_actual}건 (목표: {s2_min}~{metrics['s2']['target_max']}건)",
-                details={
-                    "actual": s2_actual,
-                    "target_min": s2_min,
-                    "target_max": metrics["s2"]["target_max"],
-                }
-            ))
+            alerts.append(
+                Alert(
+                    type=AlertType.UNDER_TARGET.value,
+                    severity=AlertSeverity.YELLOW.value,
+                    metric="s2",
+                    message=f"S2 {s2_actual}건 (목표: {s2_min}~{metrics['s2']['target_max']}건)",
+                    details={
+                        "actual": s2_actual,
+                        "target_min": s2_min,
+                        "target_max": metrics["s2"]["target_max"],
+                    },
+                )
+            )
 
         # 리드타임 초과 경고
         for key, data in lead_times.items():
             if not data["on_target"]:
-                alerts.append(Alert(
-                    type=AlertType.LEAD_TIME_EXCEEDED.value,
-                    severity=AlertSeverity.YELLOW.value,
-                    metric=key,
-                    message=f"{key.replace('_', ' ').title()} 평균 {data['avg_days']:.1f}일 (목표: {data['target_days']}일)",
-                    details={
-                        "avg_days": data["avg_days"],
-                        "target_days": data["target_days"],
-                        "max_days": data.get("max_days", 0),
-                    }
-                ))
+                alerts.append(
+                    Alert(
+                        type=AlertType.LEAD_TIME_EXCEEDED.value,
+                        severity=AlertSeverity.YELLOW.value,
+                        metric=key,
+                        message=f"{key.replace('_', ' ').title()} 평균 {data['avg_days']:.1f}일 (목표: {data['target_days']}일)",
+                        details={
+                            "avg_days": data["avg_days"],
+                            "target_days": data["target_days"],
+                            "max_days": data.get("max_days", 0),
+                        },
+                    )
+                )
 
         return alerts
 
-    async def _get_top_plays(
-        self,
-        start: datetime,
-        end: datetime
-    ) -> list[TopPlay]:
+    async def _get_top_plays(self, start: datetime, end: datetime) -> list[TopPlay]:
         """Top Plays 선정 (Mock 데이터)"""
         # 실제 구현은 DB에서 Signal/Brief 수 기준 정렬
 
@@ -522,24 +530,15 @@ class KPIDigestPipeline:
             "total": 12,
         }
 
-    def _generate_recommendations(
-        self,
-        metrics: dict[str, Any],
-        alerts: list[Alert]
-    ) -> list[str]:
+    def _generate_recommendations(self, metrics: dict[str, Any], alerts: list[Alert]) -> list[str]:
         """추천 사항 생성"""
         recommendations = []
 
         # 경고 기반 추천
-        under_target_metrics = [
-            a.metric for a in alerts
-            if a.type == AlertType.UNDER_TARGET.value
-        ]
+        under_target_metrics = [a.metric for a in alerts if a.type == AlertType.UNDER_TARGET.value]
 
         if "activity" in under_target_metrics:
-            recommendations.append(
-                "📌 Activity 목표 달성을 위해 세미나/인터뷰 추가 계획 필요"
-            )
+            recommendations.append("📌 Activity 목표 달성을 위해 세미나/인터뷰 추가 계획 필요")
 
         if "signal" in under_target_metrics:
             recommendations.append(
@@ -552,30 +551,20 @@ class KPIDigestPipeline:
             )
 
         # 리드타임 초과
-        lead_time_alerts = [
-            a for a in alerts
-            if a.type == AlertType.LEAD_TIME_EXCEEDED.value
-        ]
+        lead_time_alerts = [a for a in alerts if a.type == AlertType.LEAD_TIME_EXCEEDED.value]
 
         if lead_time_alerts:
-            recommendations.append(
-                "⏱️ 리드타임 단축: 병목 구간 분석 및 프로세스 개선 검토"
-            )
+            recommendations.append("⏱️ 리드타임 단축: 병목 구간 분석 및 프로세스 개선 검토")
 
         # 성과 좋을 때
         if not recommendations:
             all_good = all(
-                metrics[k]["achievement"] >= 100
-                for k in ["activity", "signal", "brief"]
+                metrics[k]["achievement"] >= 100 for k in ["activity", "signal", "brief"]
             )
             if all_good:
-                recommendations.append(
-                    "🎉 모든 KPI 목표 달성! 현재 페이스 유지"
-                )
+                recommendations.append("🎉 모든 KPI 목표 달성! 현재 페이스 유지")
             else:
-                recommendations.append(
-                    "✅ 대부분의 KPI가 양호합니다. 지속적인 모니터링 권장"
-                )
+                recommendations.append("✅ 대부분의 KPI가 양호합니다. 지속적인 모니터링 권장")
 
         return recommendations
 
@@ -586,18 +575,14 @@ class KPIDigestPipeline:
         lead_times: dict[str, Any],
         alerts: list[Alert],
         top_plays: list[TopPlay],
-        recommendations: list[str]
+        recommendations: list[str],
     ) -> str:
         """Confluence에 리포트 게시"""
         # TODO: Confluence MCP 연동
         self.logger.info("Publishing KPI report to Confluence")
         return ""
 
-    async def _send_notifications(
-        self,
-        confluence_url: str,
-        alerts: list[Alert]
-    ) -> None:
+    async def _send_notifications(self, confluence_url: str, alerts: list[Alert]) -> None:
         """Teams/Slack 알림 전송"""
         # TODO: Teams MCP 연동
         red_alerts = [a for a in alerts if a.severity == AlertSeverity.RED.value]
@@ -611,6 +596,7 @@ class KPIDigestPipeline:
 # ============================================================
 # AG-UI 이벤트 발행 버전
 # ============================================================
+
 
 class KPIDigestPipelineWithEvents(KPIDigestPipeline):
     """
@@ -666,9 +652,7 @@ class KPIDigestPipelineWithEvents(KPIDigestPipeline):
                 message="Activity, Signal, Brief, S2 메트릭을 집계하고 있습니다...",
             )
 
-            metrics = await self._aggregate_metrics(
-                period_start, period_end, input_data.play_ids
-            )
+            metrics = await self._aggregate_metrics(period_start, period_end, input_data.play_ids)
 
             await self.emitter.emit_surface(
                 surface_id="metrics-summary",
@@ -794,8 +778,7 @@ class KPIDigestPipelineWithEvents(KPIDigestPipeline):
             confluence_url = None
             if input_data.notify:
                 confluence_url = await self._publish_report(
-                    input_data.period,
-                    metrics, lead_times, alerts, top_plays, recommendations
+                    input_data.period, metrics, lead_times, alerts, top_plays, recommendations
                 )
                 await self._send_notifications(confluence_url, alerts)
 
@@ -811,7 +794,7 @@ class KPIDigestPipelineWithEvents(KPIDigestPipeline):
                 recommendations=recommendations,
                 status_summary=status_summary,
                 confluence_url=confluence_url,
-                generated_at=datetime.now(timezone.utc).isoformat(),
+                generated_at=datetime.now(UTC).isoformat(),
             )
 
             # 실행 완료 이벤트
@@ -835,6 +818,7 @@ class KPIDigestPipelineWithEvents(KPIDigestPipeline):
 # DB 연동 버전
 # ============================================================
 
+
 class KPIDigestPipelineWithDB(KPIDigestPipelineWithEvents):
     """
     WF-05: KPI Digest with DB Integration
@@ -842,25 +826,17 @@ class KPIDigestPipelineWithDB(KPIDigestPipelineWithEvents):
     데이터베이스 연동을 포함한 완전한 파이프라인
     """
 
-    def __init__(
-        self,
-        emitter: "WorkflowEventEmitter",
-        db: "AsyncSession"
-    ):
+    def __init__(self, emitter: "WorkflowEventEmitter", db: "AsyncSession"):
         super().__init__(emitter)
         self.db = db
         self.logger = logger.bind(workflow="WF-05", with_db=True)
 
     async def _aggregate_metrics(
-        self,
-        start: datetime,
-        end: datetime,
-        play_ids: list[str] | None
+        self, start: datetime, end: datetime, play_ids: list[str] | None
     ) -> dict[str, Any]:
         """DB 기반 메트릭 집계"""
         from backend.database.repositories.play_record import play_record_repo
         from backend.database.repositories.signal import signal_repo
-        from backend.database.repositories.brief import brief_repo
 
         # PlayRecord에서 전체 통계 가져오기
         stats = await play_record_repo.get_stats(self.db)
@@ -913,16 +889,8 @@ class KPIDigestPipelineWithDB(KPIDigestPipelineWithEvents):
             "by_source": by_source,
         }
 
-    async def _calculate_lead_times(
-        self,
-        start: datetime,
-        end: datetime
-    ) -> dict[str, Any]:
+    async def _calculate_lead_times(self, start: datetime, end: datetime) -> dict[str, Any]:
         """DB 기반 리드타임 계산"""
-        from backend.database.repositories.signal import signal_repo
-        from backend.database.repositories.brief import brief_repo
-        from backend.database.models.signal import SignalStatus
-        from backend.database.models.brief import BriefStatus
 
         # Signal → Brief 리드타임 (Brief가 있는 Signal 기준)
         # TODO: 실제 구현은 Signal.created_at과 Brief.created_at 차이 계산
@@ -933,8 +901,14 @@ class KPIDigestPipelineWithDB(KPIDigestPipelineWithEvents):
         brief_to_s2_days = []
 
         # Mock 데이터 (실제 구현 시 DB 쿼리로 대체)
-        signal_to_brief_avg = 5.2 if not signal_to_brief_days else sum(signal_to_brief_days) / len(signal_to_brief_days)
-        brief_to_s2_avg = 11.0 if not brief_to_s2_days else sum(brief_to_s2_days) / len(brief_to_s2_days)
+        signal_to_brief_avg = (
+            5.2
+            if not signal_to_brief_days
+            else sum(signal_to_brief_days) / len(signal_to_brief_days)
+        )
+        brief_to_s2_avg = (
+            11.0 if not brief_to_s2_days else sum(brief_to_s2_days) / len(brief_to_s2_days)
+        )
 
         return {
             "signal_to_brief": {
@@ -951,11 +925,7 @@ class KPIDigestPipelineWithDB(KPIDigestPipelineWithEvents):
             },
         }
 
-    async def _get_top_plays(
-        self,
-        start: datetime,
-        end: datetime
-    ) -> list[TopPlay]:
+    async def _get_top_plays(self, start: datetime, end: datetime) -> list[TopPlay]:
         """DB 기반 Top Plays 선정"""
         from backend.database.repositories.play_record import play_record_repo
 
@@ -963,15 +933,17 @@ class KPIDigestPipelineWithDB(KPIDigestPipelineWithEvents):
 
         top_plays = []
         for i, play_data in enumerate(leaderboard.get("top_plays", [])[:5]):
-            top_plays.append(TopPlay(
-                rank=i + 1,
-                play_id=play_data["play_id"],
-                play_name=play_data.get("play_name", play_data["play_id"]),
-                signal_count=play_data.get("signal_qtd", 0),
-                brief_count=play_data.get("brief_qtd", 0),
-                s2_count=0,  # TODO: S2 count 추가
-                owner=None,
-            ))
+            top_plays.append(
+                TopPlay(
+                    rank=i + 1,
+                    play_id=play_data["play_id"],
+                    play_name=play_data.get("play_name", play_data["play_id"]),
+                    signal_count=play_data.get("signal_qtd", 0),
+                    brief_count=play_data.get("brief_qtd", 0),
+                    s2_count=0,  # TODO: S2 count 추가
+                    owner=None,
+                )
+            )
 
         return top_plays
 
@@ -1036,8 +1008,7 @@ async def run(input_data: dict[str, Any]) -> dict[str, Any]:
 
 
 async def run_with_events(
-    input_data: dict[str, Any],
-    emitter: "WorkflowEventEmitter"
+    input_data: dict[str, Any], emitter: "WorkflowEventEmitter"
 ) -> dict[str, Any]:
     """이벤트 발행을 포함한 워크플로 실행"""
     kpi_input = KPIInput(
@@ -1067,5 +1038,6 @@ async def run_with_events(
 
 # 타입 힌트를 위한 import (순환 참조 방지)
 if __name__ != "__main__":
-    from backend.agent_runtime.event_manager import WorkflowEventEmitter
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from backend.agent_runtime.event_manager import WorkflowEventEmitter
