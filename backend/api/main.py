@@ -77,6 +77,7 @@ async def root():
 
 
 @app.get("/health")
+@app.head("/health")
 async def health():
     """상세 헬스체크"""
     return {
