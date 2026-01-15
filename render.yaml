@@ -17,7 +17,7 @@ services:
 
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.7"
       - key: APP_ENV
         value: production
       - key: DEBUG
@@ -59,7 +59,7 @@ services:
 
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.7"
       - key: APP_ENV
         value: staging
       - key: DEBUG
