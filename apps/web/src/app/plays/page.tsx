@@ -22,10 +22,12 @@ import {
 import { Search, TrendingUp, Activity, Target, Award } from 'lucide-react'
 import { PlayCard } from './components/play-card'
 import { KPIDigestCard } from './components/kpi-digest-card'
+import { PlayDetailModal } from './components/play-detail-modal'
 
 export default function PlaysPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'G' | 'Y' | 'R' | 'ALL'>('ALL')
+  const [selectedPlayId, setSelectedPlayId] = useState<string | null>(null)
 
   // Fetch plays
   const { data: playsResponse, isLoading } = useQuery({
@@ -219,11 +221,18 @@ export default function PlaysPage() {
         ) : (
           <div className="space-y-4">
             {filteredPlays.map(play => (
-              <PlayCard key={play.play_id} play={play} />
+              <PlayCard key={play.play_id} play={play} onViewDetail={setSelectedPlayId} />
             ))}
           </div>
         )}
       </div>
+
+      {/* Detail Modal */}
+      <PlayDetailModal
+        playId={selectedPlayId}
+        open={!!selectedPlayId}
+        onOpenChange={(open) => !open && setSelectedPlayId(null)}
+      />
     </div>
   )
 }

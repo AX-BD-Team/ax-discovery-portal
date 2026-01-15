@@ -8,9 +8,10 @@ import Link from 'next/link'
 
 interface BriefCardProps {
   brief: Brief
+  onViewDetail?: (briefId: string) => void
 }
 
-export function BriefCard({ brief }: BriefCardProps) {
+export function BriefCard({ brief, onViewDetail }: BriefCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
@@ -61,11 +62,9 @@ export function BriefCard({ brief }: BriefCardProps) {
               {formatRelativeTime(brief.created_at)}
             </p>
           </div>
-          <Link href={`/brief/${brief.brief_id}`}>
-            <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={() => onViewDetail?.(brief.brief_id)}>
               <ExternalLink className="h-4 w-4" />
             </Button>
-          </Link>
         </div>
       </CardHeader>
       <CardContent>

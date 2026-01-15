@@ -28,6 +28,7 @@ import { SIGNAL_SOURCES, SIGNAL_CHANNELS, STATUS_LABELS } from '@ax/config'
 import { Plus, Search, Filter, TrendingUp, AlertCircle } from 'lucide-react'
 import { CreateSignalDialog } from './components/create-signal-dialog'
 import { SignalCard } from './components/signal-card'
+import { SignalDetailModal } from './components/signal-detail-modal'
 
 export default function InboxPage() {
   const queryClient = useQueryClient()
@@ -35,6 +36,7 @@ export default function InboxPage() {
   const [filterStatus, setFilterStatus] = useState<SignalStatus | 'ALL'>('ALL')
   const [filterSource, setFilterSource] = useState<SignalSource | 'ALL'>('ALL')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
 
   // Fetch signals
   const { data: signals = [], isLoading } = useQuery({
@@ -238,6 +240,7 @@ export default function InboxPage() {
                   signal={signal}
                   onTriage={handleTriage}
                   isTriaging={triageMutation.isPending}
+                  onViewDetail={setSelectedSignalId}
                 />
               ))}
             </TabsContent>
@@ -249,6 +252,7 @@ export default function InboxPage() {
                   signal={signal}
                   onTriage={handleTriage}
                   isTriaging={triageMutation.isPending}
+                  onViewDetail={setSelectedSignalId}
                 />
               ))}
             </TabsContent>
@@ -260,6 +264,7 @@ export default function InboxPage() {
                   signal={signal}
                   onTriage={handleTriage}
                   isTriaging={triageMutation.isPending}
+                  onViewDetail={setSelectedSignalId}
                 />
               ))}
             </TabsContent>
@@ -271,6 +276,7 @@ export default function InboxPage() {
                   signal={signal}
                   onTriage={handleTriage}
                   isTriaging={triageMutation.isPending}
+                  onViewDetail={setSelectedSignalId}
                 />
               ))}
             </TabsContent>
@@ -286,6 +292,13 @@ export default function InboxPage() {
           queryClient.invalidateQueries({ queryKey: ['signals'] })
           queryClient.invalidateQueries({ queryKey: ['inbox-stats'] })
         }}
+      />
+
+      {/* Detail Modal */}
+      <SignalDetailModal
+        signalId={selectedSignalId}
+        open={!!selectedSignalId}
+        onOpenChange={(open) => !open && setSelectedSignalId(null)}
       />
     </div>
   )

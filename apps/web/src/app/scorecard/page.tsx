@@ -28,12 +28,14 @@ import { Search, TrendingUp, AlertCircle, BarChart3, CheckCircle } from 'lucide-
 import { ScorecardCard } from './components/scorecard-card'
 import { ScoreDistributionChart } from './components/score-distribution-chart'
 import { EvaluateDialog } from './components/evaluate-dialog'
+import { ScorecardDetailModal } from './components/scorecard-detail-modal'
 
 export default function ScorecardPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterDecision, setFilterDecision] = useState<ScorecardDecision | 'ALL'>('ALL')
   const [filterScoreRange, setFilterScoreRange] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>('ALL')
   const [isEvaluateDialogOpen, setIsEvaluateDialogOpen] = useState(false)
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
 
   // Fetch signals for evaluation (NEW and SCORING status)
   const { data: signals = [] } = useQuery({
@@ -248,31 +250,31 @@ export default function ScorecardPage() {
 
             <TabsContent value="all" className="space-y-4">
               {filteredScorecards.map(scorecard => (
-                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} />
+                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} onViewDetail={setSelectedSignalId} />
               ))}
             </TabsContent>
 
             <TabsContent value="go" className="space-y-4">
               {scorecardsByDecision.GO?.map(scorecard => (
-                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} />
+                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} onViewDetail={setSelectedSignalId} />
               ))}
             </TabsContent>
 
             <TabsContent value="pivot" className="space-y-4">
               {scorecardsByDecision.PIVOT?.map(scorecard => (
-                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} />
+                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} onViewDetail={setSelectedSignalId} />
               ))}
             </TabsContent>
 
             <TabsContent value="hold" className="space-y-4">
               {scorecardsByDecision.HOLD?.map(scorecard => (
-                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} />
+                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} onViewDetail={setSelectedSignalId} />
               ))}
             </TabsContent>
 
             <TabsContent value="no-go" className="space-y-4">
               {scorecardsByDecision.NO_GO?.map(scorecard => (
-                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} />
+                <ScorecardCard key={scorecard.scorecard_id || scorecard.signal_id} scorecard={scorecard} onViewDetail={setSelectedSignalId} />
               ))}
             </TabsContent>
           </Tabs>
@@ -284,6 +286,13 @@ export default function ScorecardPage() {
         open={isEvaluateDialogOpen}
         onOpenChange={setIsEvaluateDialogOpen}
         availableSignals={signals.filter(s => s.status === 'NEW' || s.status === 'SCORING')}
+      />
+
+      {/* Detail Modal */}
+      <ScorecardDetailModal
+        signalId={selectedSignalId}
+        open={!!selectedSignalId}
+        onOpenChange={(open) => !open && setSelectedSignalId(null)}
       />
     </div>
   )

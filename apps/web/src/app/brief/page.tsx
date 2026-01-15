@@ -26,6 +26,7 @@ import {
 import { Search, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { BriefCard } from './components/brief-card'
 import { GenerateBriefDialog } from './components/generate-brief-dialog'
+import { BriefDetailModal } from './components/brief-detail-modal'
 
 const STATUS_LABELS: Record<BriefStatus, string> = {
   DRAFT: '초안',
@@ -40,6 +41,7 @@ export default function BriefPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<BriefStatus | 'ALL'>('ALL')
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false)
+  const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null)
 
   // Fetch briefs
   const { data: briefs = [], isLoading } = useQuery({
@@ -215,31 +217,31 @@ export default function BriefPage() {
 
             <TabsContent value="all" className="space-y-4">
               {filteredBriefs.map(brief => (
-                <BriefCard key={brief.brief_id} brief={brief} />
+                <BriefCard key={brief.brief_id} brief={brief} onViewDetail={setSelectedBriefId} />
               ))}
             </TabsContent>
 
             <TabsContent value="draft" className="space-y-4">
               {briefsByStatus.DRAFT?.map(brief => (
-                <BriefCard key={brief.brief_id} brief={brief} />
+                <BriefCard key={brief.brief_id} brief={brief} onViewDetail={setSelectedBriefId} />
               ))}
             </TabsContent>
 
             <TabsContent value="review" className="space-y-4">
               {briefsByStatus.REVIEW?.map(brief => (
-                <BriefCard key={brief.brief_id} brief={brief} />
+                <BriefCard key={brief.brief_id} brief={brief} onViewDetail={setSelectedBriefId} />
               ))}
             </TabsContent>
 
             <TabsContent value="approved" className="space-y-4">
               {briefsByStatus.APPROVED?.map(brief => (
-                <BriefCard key={brief.brief_id} brief={brief} />
+                <BriefCard key={brief.brief_id} brief={brief} onViewDetail={setSelectedBriefId} />
               ))}
             </TabsContent>
 
             <TabsContent value="validated" className="space-y-4">
               {briefsByStatus.VALIDATED?.map(brief => (
-                <BriefCard key={brief.brief_id} brief={brief} />
+                <BriefCard key={brief.brief_id} brief={brief} onViewDetail={setSelectedBriefId} />
               ))}
             </TabsContent>
           </Tabs>
@@ -251,6 +253,13 @@ export default function BriefPage() {
         open={isGenerateDialogOpen}
         onOpenChange={setIsGenerateDialogOpen}
         availableSignals={signals.filter(s => s.status === 'SCORED')}
+      />
+
+      {/* Detail Modal */}
+      <BriefDetailModal
+        briefId={selectedBriefId}
+        open={!!selectedBriefId}
+        onOpenChange={(open) => !open && setSelectedBriefId(null)}
       />
     </div>
   )

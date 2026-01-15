@@ -11,9 +11,10 @@ interface SignalCardProps {
   signal: Signal
   onTriage: (signalId: string) => void
   isTriaging: boolean
+  onViewDetail?: (signalId: string) => void
 }
 
-export function SignalCard({ signal, onTriage, isTriaging }: SignalCardProps) {
+export function SignalCard({ signal, onTriage, isTriaging, onViewDetail }: SignalCardProps) {
   const statusColor = getStatusColor(signal.status)
 
   return (
@@ -45,11 +46,9 @@ export function SignalCard({ signal, onTriage, isTriaging }: SignalCardProps) {
                 Triage
               </Button>
             )}
-            <Link href={`/inbox/${signal.signal_id}`}>
-              <Button size="sm" variant="outline">
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button size="sm" variant="outline" onClick={() => onViewDetail?.(signal.signal_id)}>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>

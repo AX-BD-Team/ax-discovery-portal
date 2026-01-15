@@ -9,9 +9,10 @@ import Link from 'next/link'
 
 interface ScorecardCardProps {
   scorecard: Scorecard
+  onViewDetail?: (signalId: string) => void
 }
 
-export function ScorecardCard({ scorecard }: ScorecardCardProps) {
+export function ScorecardCard({ scorecard, onViewDetail }: ScorecardCardProps) {
   const getDecisionColor = (decision: string) => {
     switch (decision) {
       case 'GO':
@@ -63,11 +64,9 @@ export function ScorecardCard({ scorecard }: ScorecardCardProps) {
               {scorecard.scored_by && ` by ${scorecard.scored_by}`}
             </p>
           </div>
-          <Link href={`/scorecard/${scorecard.signal_id}`}>
-            <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={() => onViewDetail?.(scorecard.signal_id)}>
               <ExternalLink className="h-4 w-4" />
             </Button>
-          </Link>
         </div>
       </CardHeader>
       <CardContent>

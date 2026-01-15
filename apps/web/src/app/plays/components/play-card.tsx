@@ -18,9 +18,10 @@ import Link from 'next/link'
 
 interface PlayCardProps {
   play: PlayRecord
+  onViewDetail?: (playId: string) => void
 }
 
-export function PlayCard({ play }: PlayCardProps) {
+export function PlayCard({ play, onViewDetail }: PlayCardProps) {
   const getStatusColor = (status: 'G' | 'Y' | 'R') => {
     switch (status) {
       case 'G':
@@ -76,11 +77,9 @@ export function PlayCard({ play }: PlayCardProps) {
               <span>Play ID: {play.play_id}</span>
             </p>
           </div>
-          <Link href={`/plays/${play.play_id}`}>
-            <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={() => onViewDetail?.(play.play_id)}>
               <ExternalLink className="h-4 w-4" />
             </Button>
-          </Link>
         </div>
       </CardHeader>
       <CardContent>

@@ -65,3 +65,6 @@ public/worker-*.js
 .claude/state/
 .claude/cache/
 .claude/settings.local.json
+
+# OpenNext build output
+apps/web/.open-next/

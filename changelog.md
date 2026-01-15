@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cloudflare Pages 정적 배포** ✨
+  - Next.js static export 설정 (`output: 'export'`)
+  - wrangler.toml Pages 배포 설정
+  - 동적 라우트를 모달 기반으로 전환 (Cloudflare Pages 호환)
+
+- **상세 보기 모달 컴포넌트** ✨
+  - `SignalDetailModal`: Signal 상세 정보, Triage/Brief 액션
+  - `ScorecardDetailModal`: Scorecard 점수, 5개 차원 분석
+  - `BriefDetailModal`: Brief 전체 내용, Approve/Validation 액션
+  - `PlayDetailModal`: Play 상세 정보, Timeline, Sync 액션
+
 - **ax-wrap-up Skill 추가** ✨
   - 작업 정리 자동화 Skill (`/ax:wrap-up`)
   - SSDD 원칙에 따른 문서 업데이트 확인
