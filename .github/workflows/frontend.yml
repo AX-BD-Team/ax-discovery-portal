@@ -9,6 +9,7 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'turbo.json'
+      - '.github/workflows/frontend.yml'
   pull_request:
     branches: [main]
     paths:
@@ -17,6 +18,8 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'turbo.json'
+      - '.github/workflows/frontend.yml'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
