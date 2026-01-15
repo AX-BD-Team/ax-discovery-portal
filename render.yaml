@@ -7,7 +7,7 @@ services:
     name: ax-discovery-api
     runtime: python
     region: oregon
-    plan: starter
+    plan: free
     branch: main
 
     buildCommand: pip install -e ".[dev]"
@@ -49,7 +49,7 @@ services:
     name: ax-discovery-api-staging
     runtime: python
     region: oregon
-    plan: starter
+    plan: free
     branch: staging
 
     buildCommand: pip install -e ".[dev]"
