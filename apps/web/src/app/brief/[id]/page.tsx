@@ -1,5 +1,6 @@
 'use client'
 
+import { use } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { briefApi, inboxApi } from '@ax/api-client'
 import {
@@ -25,9 +26,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
-export default function BriefDetailPage({ params }: { params: { id: string } }) {
+export default function BriefDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const queryClient = useQueryClient()
-  const briefId = params.id
+  const briefId = id
 
   // Fetch brief
   const { data: brief, isLoading } = useQuery({

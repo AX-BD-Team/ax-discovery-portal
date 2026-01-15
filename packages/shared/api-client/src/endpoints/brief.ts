@@ -2,14 +2,37 @@ import type { Brief } from '@ax/types'
 import { apiClient } from '../client'
 
 /**
+ * Brief 목록 응답 타입
+ */
+export interface BriefListResponse {
+  items: Brief[]
+  total: number
+  page: number
+  page_size: number
+}
+
+/**
  * Brief API endpoints
  */
 export const briefApi = {
   /**
-   * Get all briefs
+   * Get all briefs with filtering
    */
-  async getBriefs(): Promise<Brief[]> {
-    return apiClient.get('api/brief').json<Brief[]>()
+  async getBriefs(params?: {
+    status?: string
+    owner?: string
+    page?: number
+    page_size?: number
+  }): Promise<Brief[]> {
+    const searchParams = new URLSearchParams()
+    if (params?.status) searchParams.append('status', params.status)
+    if (params?.owner) searchParams.append('owner', params.owner)
+    if (params?.page) searchParams.append('page', params.page.toString())
+    if (params?.page_size) searchParams.append('page_size', params.page_size.toString())
+
+    const query = searchParams.toString()
+    const response = await apiClient.get(`api/brief${query ? `?${query}` : ''}`).json<BriefListResponse>()
+    return response.items
   },
 
   /**

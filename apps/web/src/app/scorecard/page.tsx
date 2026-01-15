@@ -47,8 +47,18 @@ export default function ScorecardPage() {
     queryFn: scorecardApi.getDistribution,
   })
 
-  // Mock scorecards data (실제로는 API에서 가져와야 함)
-  const scorecards: Scorecard[] = []
+  // Fetch scorecards from API
+  const { data: scorecardsData, isLoading: isLoadingScorecards } = useQuery({
+    queryKey: ['scorecards', filterDecision, filterScoreRange],
+    queryFn: () => scorecardApi.getScorecards({
+      decision: filterDecision !== 'ALL' ? filterDecision : undefined,
+      min_score: filterScoreRange === 'HIGH' ? 70 : filterScoreRange === 'MEDIUM' ? 50 : filterScoreRange === 'LOW' ? 0 : undefined,
+      max_score: filterScoreRange === 'HIGH' ? 100 : filterScoreRange === 'MEDIUM' ? 69 : filterScoreRange === 'LOW' ? 49 : undefined,
+      page_size: 100,
+    }),
+  })
+
+  const scorecards = scorecardsData?.items ?? []
 
   // Filter scorecards
   const filteredScorecards = scorecards.filter(scorecard => {
@@ -195,7 +205,14 @@ export default function ScorecardPage() {
         </Card>
 
         {/* Scorecard List */}
-        {scorecards.length === 0 ? (
+        {isLoadingScorecards ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+              <p className="text-lg font-medium text-gray-900">Loading Scorecards...</p>
+            </CardContent>
+          </Card>
+        ) : scorecards.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <BarChart3 className="mx-auto mb-4 h-12 w-12 text-gray-400" />
