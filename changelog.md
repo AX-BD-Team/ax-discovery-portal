@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ax-wrap-up Skill 추가** ✨
+  - 작업 정리 자동화 Skill (`/ax:wrap-up`)
+  - SSDD 원칙에 따른 문서 업데이트 확인
+  - 테스트 실행 후 통과 시 Git 커밋
+  - `.claude/skills/ax-wrap-up/SKILL.md`
+  - `.claude/commands/ax_wrap_up.md`
+
 - **CI/CD 파이프라인 구축** ✨
   - GitHub Actions 워크플로우 3개 (frontend.yml, ci-backend.yml, cd-backend.yml)
   - Cloudflare Pages 프로젝트 (`ax-discovery-portal.pages.dev`)

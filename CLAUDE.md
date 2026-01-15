@@ -18,6 +18,7 @@
 | ax-seminar | 세미나 Activity 생성 | Activity + AAR 템플릿 |
 | ax-sprint | 5-day Sprint 플랜 수립 | Sprint 체크리스트 |
 | ax-confluence | Confluence 동기화 규칙 | DB/Live doc 업데이트 |
+| ax-wrap-up | 작업 정리 + 테스트 + 커밋 | 문서 업데이트 + Git commit |
 
 **상세 문서**: [docs/guides/methodology.md](docs/guides/methodology.md)
 
@@ -112,6 +113,7 @@
 | ax-seminar | 세미나 Activity 생성 | Activity + AAR 템플릿 |
 | ax-sprint | 5-day Sprint 플랜 수립 | Sprint 체크리스트 |
 | ax-confluence | Confluence 동기화 규칙 | DB/Live doc 업데이트 |
+| ax-wrap-up | 작업 정리 + 테스트 + 커밋 | 문서 업데이트 + Git commit |
 
 ### 관리 및 사용법
 
@@ -216,8 +218,8 @@ npm run release:patch && git push --follow-tags && gh release create v$(node -p 
 ax-discovery-portal/
 ├── .claude/              # Claude Code 설정
 │   ├── agents/          # 6개 에이전트 정의
-│   ├── skills/          # 5개 Skills
-│   ├── commands/        # 4개 Commands
+│   ├── skills/          # 6개 Skills
+│   ├── commands/        # 5개 Commands
 │   └── hooks/           # Tool use 훅
 ├── backend/              # FastAPI 백엔드
 │   ├── api/             # REST API 라우터 (4개)
