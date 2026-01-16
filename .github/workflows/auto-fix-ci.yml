@@ -57,6 +57,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--model claude-sonnet-4-20250514 --max-turns 15 --allowedTools Edit,Write,Bash,Read,Glob,Grep"
+          show_full_output: true
           prompt: |
             CI 자동 수정. 즉시 실행하세요:
 
