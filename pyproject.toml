@@ -31,6 +31,7 @@ dependencies = [
     "tenacity>=9.0.0",
     "jsonschema>=4.23.0",
     "sse-starlette>=2.2.1",
+    "openai>=1.40.0",  # 임베딩 생성용
 ]
 
 [project.optional-dependencies]
