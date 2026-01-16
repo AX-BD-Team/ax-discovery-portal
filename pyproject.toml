@@ -32,6 +32,8 @@ dependencies = [
     "jsonschema>=4.23.0",
     "sse-starlette>=2.2.1",
     "openai>=1.40.0",  # 임베딩 생성용
+    "python-jose[cryptography]>=3.3.0",  # JWT 생성/검증
+    "passlib[bcrypt]>=1.7.4",  # 비밀번호 해싱
 ]
 
 [project.optional-dependencies]

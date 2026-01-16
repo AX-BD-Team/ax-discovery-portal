@@ -7,13 +7,14 @@ export interface ApiClientConfig {
   baseUrl: string
   timeout?: number
   headers?: Record<string, string>
+  onUnauthorized?: () => void
 }
 
 /**
  * Create API client instance
  */
 export function createApiClient(config: ApiClientConfig) {
-  const { baseUrl, timeout = 30000, headers = {} } = config
+  const { baseUrl, timeout = 30000, headers = {}, onUnauthorized } = config
 
   const client = ky.create({
     prefixUrl: baseUrl,
@@ -30,6 +31,23 @@ export function createApiClient(config: ApiClientConfig) {
           if (token) {
             request.headers.set('Authorization', `Bearer ${token}`)
           }
+        },
+      ],
+      afterResponse: [
+        async (_request, _options, response) => {
+          // Handle 401 Unauthorized - auto logout
+          if (response.status === 401 && typeof window !== 'undefined') {
+            localStorage.removeItem('auth_token')
+
+            // Call custom handler if provided
+            if (onUnauthorized) {
+              onUnauthorized()
+            } else {
+              // Default: redirect to login
+              window.location.href = '/login'
+            }
+          }
+          return response
         },
       ],
     },

@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import (
+    auth,
     brief,
     inbox,
     ontology,
@@ -79,6 +80,8 @@ app.add_middleware(
 )
 
 # 라우터 등록
+# Auth (JWT 인증)
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(inbox.router, prefix="/api/inbox", tags=["inbox"])
 app.include_router(scorecard.router, prefix="/api/scorecard", tags=["scorecard"])
 app.include_router(brief.router, prefix="/api/brief", tags=["brief"])

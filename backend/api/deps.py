@@ -9,8 +9,13 @@ from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from pydantic_settings import BaseSettings
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.api.security import decode_access_token
+from backend.database.models.user import User, UserRole
 
 
 class Settings(BaseSettings):
@@ -55,21 +60,115 @@ def get_settings() -> Settings:
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
+# OAuth2 설정 (Bearer 토큰)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
+
+
+async def get_db_for_auth() -> AsyncGenerator[AsyncSession, None]:
+    """인증용 데이터베이스 세션 (순환 import 방지)"""
+    from backend.database.session import SessionLocal
+
+    async with SessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+
 async def get_current_user(
-    # TODO: 인증 구현
-    # authorization: str = Header(None)
-) -> dict:
-    """현재 사용자 조회 (인증)"""
-    # TODO: JWT/OAuth 인증 구현
-    return {
-        "user_id": "dev_user",
-        "email": "dev@example.com",
-        "name": "Developer",
-        "roles": ["admin"],
-    }
+    token: Annotated[str | None, Depends(oauth2_scheme)],
+    db: Annotated[AsyncSession, Depends(get_db_for_auth)],
+) -> User:
+    """
+    현재 사용자 조회 (JWT 인증)
+
+    Args:
+        token: Bearer 토큰
+        db: 데이터베이스 세션
+
+    Returns:
+        인증된 User 객체
+
+    Raises:
+        HTTPException: 인증 실패 시 401
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="인증 정보가 유효하지 않습니다",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    if not token:
+        raise credentials_exception
+
+    # JWT 토큰 디코딩
+    token_data = decode_access_token(token)
+    if not token_data:
+        raise credentials_exception
+
+    # DB에서 사용자 조회
+    result = await db.execute(select(User).where(User.user_id == token_data.user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise credentials_exception
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="비활성화된 계정입니다",
+        )
+
+    return user
 
 
-CurrentUserDep = Annotated[dict, Depends(get_current_user)]
+async def get_current_user_optional(
+    token: Annotated[str | None, Depends(oauth2_scheme)],
+    db: Annotated[AsyncSession, Depends(get_db_for_auth)],
+) -> User | None:
+    """
+    현재 사용자 조회 (선택적 인증)
+
+    토큰이 없거나 유효하지 않으면 None 반환
+    """
+    if not token:
+        return None
+
+    token_data = decode_access_token(token)
+    if not token_data:
+        return None
+
+    result = await db.execute(select(User).where(User.user_id == token_data.user_id))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.is_active:
+        return None
+
+    return user
+
+
+async def get_admin_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """
+    관리자 사용자 조회
+
+    현재 사용자가 admin 역할인지 확인
+
+    Raises:
+        HTTPException: admin이 아닌 경우 403
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자 권한이 필요합니다",
+        )
+    return current_user
+
+
+CurrentUserDep = Annotated[User, Depends(get_current_user)]
+CurrentUserOptionalDep = Annotated[User | None, Depends(get_current_user_optional)]
+AdminUserDep = Annotated[User, Depends(get_admin_user)]
 
 
 async def verify_api_key(settings: SettingsDep) -> bool:

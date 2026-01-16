@@ -6,7 +6,12 @@ Alembic Environment Configuration
 
 import asyncio
 import os
+import sys
 from logging.config import fileConfig
+
+# Windows에서 psycopg async 호환성을 위해 SelectorEventLoop 사용
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from alembic import context
 from sqlalchemy import pool
