@@ -27,9 +27,7 @@ class SemanticSearchRequest(BaseModel):
         description="검색할 Entity 타입 (Signal, Topic, Customer 등)",
     )
     top_k: int = Field(default=10, ge=1, le=50, description="반환할 최대 결과 수")
-    min_score: float = Field(
-        default=0.7, ge=0.0, le=1.0, description="최소 유사도 점수"
-    )
+    min_score: float = Field(default=0.7, ge=0.0, le=1.0, description="최소 유사도 점수")
 
 
 class SearchResultItem(BaseModel):
@@ -61,12 +59,8 @@ class DuplicateCheckRequest(BaseModel):
     pain: str = Field(..., min_length=1, max_length=2000)
     proposed_value: str | None = Field(default=None, max_length=2000)
     customer_segment: str | None = Field(default=None, max_length=200)
-    threshold: float = Field(
-        default=0.85, ge=0.5, le=1.0, description="중복 판정 임계값"
-    )
-    exclude_signal_id: str | None = Field(
-        default=None, description="제외할 Signal ID (자기 자신)"
-    )
+    threshold: float = Field(default=0.85, ge=0.5, le=1.0, description="중복 판정 임계값")
+    exclude_signal_id: str | None = Field(default=None, description="제외할 Signal ID (자기 자신)")
 
 
 class DuplicateCheckResponse(BaseModel):
@@ -124,9 +118,7 @@ async def semantic_search(
         Query(description="Entity 타입 필터 (Signal, Topic, Customer 등)"),
     ] = None,
     top_k: Annotated[int, Query(ge=1, le=50, description="반환할 최대 결과 수")] = 10,
-    min_score: Annotated[
-        float, Query(ge=0.0, le=1.0, description="최소 유사도 점수")
-    ] = 0.7,
+    min_score: Annotated[float, Query(ge=0.0, le=1.0, description="최소 유사도 점수")] = 0.7,
 ):
     """
     의미 기반 검색 (Vector RAG)
@@ -311,9 +303,4 @@ async def list_entity_types():
 
     벡터 검색에서 필터로 사용할 수 있는 Entity 타입을 반환합니다.
     """
-    return {
-        "entity_types": [
-            {"value": t.value, "name": t.name}
-            for t in EntityType
-        ]
-    }
+    return {"entity_types": [{"value": t.value, "name": t.name} for t in EntityType]}

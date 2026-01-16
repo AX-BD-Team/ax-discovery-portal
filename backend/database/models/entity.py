@@ -177,10 +177,7 @@ class Entity(Base):
 
         # 가장 최신 시간 사용 (published > observed > ingested > created)
         reference_time = (
-            self.published_at
-            or self.observed_at
-            or self.ingested_at
-            or self.created_at
+            self.published_at or self.observed_at or self.ingested_at or self.created_at
         )
 
         if reference_time is None:

@@ -166,9 +166,21 @@ class TestRAGService:
         service.vectorize = MagicMock(is_configured=True)
         service.vectorize.query = AsyncMock(
             return_value=[
-                VectorMatch(id="SIG-001", score=0.9, metadata={"entity_type": "Signal", "name": "A", "confidence": 1.0}),
-                VectorMatch(id="SIG-002", score=0.6, metadata={"entity_type": "Signal", "name": "B", "confidence": 1.0}),  # 필터링됨
-                VectorMatch(id="SIG-003", score=0.85, metadata={"entity_type": "Signal", "name": "C", "confidence": 1.0}),
+                VectorMatch(
+                    id="SIG-001",
+                    score=0.9,
+                    metadata={"entity_type": "Signal", "name": "A", "confidence": 1.0},
+                ),
+                VectorMatch(
+                    id="SIG-002",
+                    score=0.6,
+                    metadata={"entity_type": "Signal", "name": "B", "confidence": 1.0},
+                ),  # 필터링됨
+                VectorMatch(
+                    id="SIG-003",
+                    score=0.85,
+                    metadata={"entity_type": "Signal", "name": "C", "confidence": 1.0},
+                ),
             ]
         )
 
@@ -230,8 +242,16 @@ class TestRAGService:
         service.vectorize = MagicMock(is_configured=True)
         service.vectorize.query = AsyncMock(
             return_value=[
-                VectorMatch(id="SIG-001", score=0.95, metadata={"entity_type": "Signal", "name": "A", "confidence": 1.0}),
-                VectorMatch(id="SIG-002", score=0.90, metadata={"entity_type": "Signal", "name": "B", "confidence": 1.0}),
+                VectorMatch(
+                    id="SIG-001",
+                    score=0.95,
+                    metadata={"entity_type": "Signal", "name": "A", "confidence": 1.0},
+                ),
+                VectorMatch(
+                    id="SIG-002",
+                    score=0.90,
+                    metadata={"entity_type": "Signal", "name": "B", "confidence": 1.0},
+                ),
             ]
         )
 

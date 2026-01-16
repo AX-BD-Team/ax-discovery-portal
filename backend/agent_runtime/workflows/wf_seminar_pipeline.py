@@ -7,7 +7,7 @@ URL → Activity → AAR 템플릿 → Signal 추출 → Confluence 기록
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -118,7 +118,7 @@ class SeminarPipeline:
                     "description": description,
                     "date": date,
                     "organizer": self._extract_organizer(html),
-                    "fetched_at": datetime.utcnow().isoformat(),
+                    "fetched_at": datetime.now(UTC).isoformat(),
                 }
         except Exception as e:
             self.logger.warning("Failed to extract metadata", error=str(e))
@@ -128,7 +128,7 @@ class SeminarPipeline:
                 "description": "",
                 "date": None,
                 "organizer": None,
-                "fetched_at": datetime.utcnow().isoformat(),
+                "fetched_at": datetime.now(UTC).isoformat(),
             }
 
     def _extract_title(self, html: str) -> str:

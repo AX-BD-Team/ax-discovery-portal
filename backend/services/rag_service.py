@@ -70,18 +70,20 @@ class RAGService:
                 )
 
             # 4. Vectorize에 저장
-            await self.vectorize.upsert([
-                {
-                    "id": entity.entity_id,
-                    "values": embedding_vector,
-                    "metadata": {
-                        "entity_type": entity.entity_type.value,
-                        "name": entity.name,
-                        "confidence": entity.confidence,
-                        "external_ref_id": entity.external_ref_id,
-                    },
-                }
-            ])
+            await self.vectorize.upsert(
+                [
+                    {
+                        "id": entity.entity_id,
+                        "values": embedding_vector,
+                        "metadata": {
+                            "entity_type": entity.entity_type.value,
+                            "name": entity.name,
+                            "confidence": entity.confidence,
+                            "external_ref_id": entity.external_ref_id,
+                        },
+                    }
+                ]
+            )
 
             logger.info(
                 "Entity 인덱싱 완료",
@@ -303,11 +305,13 @@ class RAGService:
         results = []
         for match in matches:
             if match.score >= min_score:
-                results.append({
-                    "entity_id": match.id,
-                    "score": round(match.score, 4),
-                    "metadata": match.metadata.to_dict() if match.metadata else None,
-                })
+                results.append(
+                    {
+                        "entity_id": match.id,
+                        "score": round(match.score, 4),
+                        "metadata": match.metadata.to_dict() if match.metadata else None,
+                    }
+                )
 
         return results
 
@@ -533,7 +537,9 @@ class RAGService:
             {embedding: bool, vectorize: bool, overall: bool}
         """
         embedding_ok = self.embedding.is_configured
-        vectorize_ok = await self.vectorize.health_check() if self.vectorize.is_configured else False
+        vectorize_ok = (
+            await self.vectorize.health_check() if self.vectorize.is_configured else False
+        )
 
         return {
             "embedding": embedding_ok,

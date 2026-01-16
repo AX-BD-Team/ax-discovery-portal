@@ -846,9 +846,7 @@ class TestBriefRepository:
         self.mock_db.execute = AsyncMock(return_value=mock_result)
         self.mock_db.flush = AsyncMock()
 
-        result = await self.repo.update_status(
-            self.mock_db, "BRF-2025-001", BriefStatus.APPROVED
-        )
+        result = await self.repo.update_status(self.mock_db, "BRF-2025-001", BriefStatus.APPROVED)
 
         assert result == self.mock_brief
         assert self.mock_brief.status == BriefStatus.APPROVED
@@ -878,9 +876,7 @@ class TestBriefRepository:
         mock_result.scalar_one_or_none.return_value = None
         self.mock_db.execute = AsyncMock(return_value=mock_result)
 
-        result = await self.repo.update_status(
-            self.mock_db, "NON-EXISTENT", BriefStatus.APPROVED
-        )
+        result = await self.repo.update_status(self.mock_db, "NON-EXISTENT", BriefStatus.APPROVED)
 
         assert result is None
 
@@ -1270,9 +1266,7 @@ class TestPlayRecordRepository:
         self.mock_db.flush = AsyncMock()
 
         new_due_date = date.today() + timedelta(days=7)
-        result = await self.repo.update_status(
-            self.mock_db, "PLAY-001", "Y", due_date=new_due_date
-        )
+        result = await self.repo.update_status(self.mock_db, "PLAY-001", "Y", due_date=new_due_date)
 
         assert result == self.mock_play
         assert self.mock_play.due_date == new_due_date

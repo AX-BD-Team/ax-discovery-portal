@@ -22,7 +22,7 @@ SLA:
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -185,7 +185,7 @@ def calculate_sla_deadline(urgency: str) -> datetime:
         urgency_enum = Urgency.NORMAL
 
     hours = SLA_HOURS[urgency_enum]
-    return datetime.utcnow() + timedelta(hours=hours)
+    return datetime.now(UTC) + timedelta(hours=hours)
 
 
 # ============================================================
@@ -352,7 +352,7 @@ class InboundTriagePipeline:
                     "rationale": scorecard_draft.rationale,
                 },
                 "is_draft": True,
-                "scored_at": datetime.utcnow().isoformat(),
+                "scored_at": datetime.now(UTC).isoformat(),
             },
             next_action=next_action,
             sla_deadline=sla_deadline.isoformat(),
@@ -394,7 +394,7 @@ class InboundTriagePipeline:
             "owner": input_data.submitter,
             "submitter_email": input_data.submitter_email,
             "urgency": input_data.urgency,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         self.logger.info("Signal created", signal_id=signal_id, play_id=play_id)
@@ -666,7 +666,7 @@ class InboundTriagePipelineWithEvents(InboundTriagePipeline):
                         "rationale": scorecard_draft.rationale,
                     },
                     "is_draft": True,
-                    "scored_at": datetime.utcnow().isoformat(),
+                    "scored_at": datetime.now(UTC).isoformat(),
                 },
                 next_action=next_action,
                 sla_deadline=sla_deadline.isoformat(),

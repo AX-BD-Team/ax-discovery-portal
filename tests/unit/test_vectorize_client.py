@@ -130,8 +130,7 @@ class TestVectorizeClient:
         )
 
         expected = (
-            "https://api.cloudflare.com/client/v4/accounts/"
-            "acc123/vectorize/v2/indexes/my-index"
+            "https://api.cloudflare.com/client/v4/accounts/acc123/vectorize/v2/indexes/my-index"
         )
         assert client.base_url == expected
 
@@ -169,13 +168,15 @@ class TestVectorizeClient:
                 return_value=mock_response
             )
 
-            result = await client.upsert([
-                {
-                    "id": "SIG-001",
-                    "values": [0.1] * 1536,
-                    "metadata": {"entity_type": "Signal"},
-                }
-            ])
+            result = await client.upsert(
+                [
+                    {
+                        "id": "SIG-001",
+                        "values": [0.1] * 1536,
+                        "metadata": {"entity_type": "Signal"},
+                    }
+                ]
+            )
 
         assert result["mutationId"] == "mut-123"
 

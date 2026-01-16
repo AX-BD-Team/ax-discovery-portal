@@ -44,9 +44,7 @@ class User(Base):
 
     # 사용자 정보
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole), default=UserRole.USER, nullable=False
-    )
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.USER, nullable=False)
 
     # 상태
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -85,9 +83,7 @@ class User(Base):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "last_login_at": (
-                self.last_login_at.isoformat() if self.last_login_at else None
-            ),
+            "last_login_at": (self.last_login_at.isoformat() if self.last_login_at else None),
         }
 
         if include_sensitive:

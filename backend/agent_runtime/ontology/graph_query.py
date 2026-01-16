@@ -366,11 +366,13 @@ class GraphQuery:
 
             result = await session.execute(stmt)
             for triple, entity in result.all():
-                neighbors.append({
-                    "direction": "outgoing",
-                    "entity": entity.to_dict(),
-                    "triple": triple.to_dict(),
-                })
+                neighbors.append(
+                    {
+                        "direction": "outgoing",
+                        "entity": entity.to_dict(),
+                        "triple": triple.to_dict(),
+                    }
+                )
 
         # Incoming edges
         if direction in ("incoming", "both"):
@@ -391,11 +393,13 @@ class GraphQuery:
 
             result = await session.execute(stmt)
             for triple, entity in result.all():
-                neighbors.append({
-                    "direction": "incoming",
-                    "entity": entity.to_dict(),
-                    "triple": triple.to_dict(),
-                })
+                neighbors.append(
+                    {
+                        "direction": "incoming",
+                        "entity": entity.to_dict(),
+                        "triple": triple.to_dict(),
+                    }
+                )
 
         return neighbors
 
@@ -451,10 +455,12 @@ async def find_evidence_chain(
             .where(
                 and_(
                     Triple.subject_id.in_(current_ids),
-                    Triple.predicate.in_([
-                        PredicateType.SUPPORTED_BY,
-                        PredicateType.SOURCED_FROM,
-                    ]),
+                    Triple.predicate.in_(
+                        [
+                            PredicateType.SUPPORTED_BY,
+                            PredicateType.SOURCED_FROM,
+                        ]
+                    ),
                     Triple.status == TripleStatus.VERIFIED,
                 )
             )
@@ -464,14 +470,16 @@ async def find_evidence_chain(
         next_ids = []
 
         for triple, entity in result.all():
-            chain.append({
-                "depth": depth,
-                "from_id": triple.subject_id,
-                "to_id": triple.object_id,
-                "predicate": triple.predicate.value,
-                "entity": entity.to_dict(),
-                "evidence_span": triple.evidence_span,
-            })
+            chain.append(
+                {
+                    "depth": depth,
+                    "from_id": triple.subject_id,
+                    "to_id": triple.object_id,
+                    "predicate": triple.predicate.value,
+                    "entity": entity.to_dict(),
+                    "evidence_span": triple.evidence_span,
+                }
+            )
             next_ids.append(entity.entity_id)
 
         current_ids = next_ids

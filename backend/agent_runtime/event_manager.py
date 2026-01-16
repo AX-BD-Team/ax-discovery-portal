@@ -117,7 +117,7 @@ class SessionEventManager:
 
                 except TimeoutError:
                     # 주기적으로 keep-alive 이벤트 발송 (SSE 연결 유지)
-                    yield {"type": "KEEP_ALIVE", "timestamp": datetime.utcnow().isoformat() + "Z"}
+                    yield {"type": "KEEP_ALIVE", "timestamp": datetime.now(UTC).isoformat() + "Z"}
 
         finally:
             self.unsubscribe(queue)
@@ -147,7 +147,7 @@ class WorkflowEventEmitter:
         steps: list[dict[str, str]],
     ) -> None:
         """실행 시작 이벤트 발행"""
-        self._run_start_time = datetime.utcnow()
+        self._run_start_time = datetime.now(UTC)
         event = RunStartedEvent(
             run_id=self.run_id,
             session_id=self.session_id,
@@ -162,7 +162,7 @@ class WorkflowEventEmitter:
         """실행 완료 이벤트 발행"""
         duration_ms = 0
         if self._run_start_time:
-            duration_ms = int((datetime.utcnow() - self._run_start_time).total_seconds() * 1000)
+            duration_ms = int((datetime.now(UTC) - self._run_start_time).total_seconds() * 1000)
 
         event = RunFinishedEvent(
             run_id=self.run_id,
@@ -193,7 +193,7 @@ class WorkflowEventEmitter:
         message: str | None = None,
     ) -> None:
         """단계 시작 이벤트 발행"""
-        self._step_start_times[step_id] = datetime.utcnow()
+        self._step_start_times[step_id] = datetime.now(UTC)
         event = StepStartedEvent(
             run_id=self.run_id,
             session_id=self.session_id,
@@ -211,7 +211,7 @@ class WorkflowEventEmitter:
         duration_ms = 0
         if step_id in self._step_start_times:
             duration_ms = int(
-                (datetime.utcnow() - self._step_start_times[step_id]).total_seconds() * 1000
+                (datetime.now(UTC) - self._step_start_times[step_id]).total_seconds() * 1000
             )
 
         event = StepFinishedEvent(

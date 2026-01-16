@@ -98,7 +98,9 @@ class BaseAgentEvent:
     type: AgentEventType = field(default=AgentEventType.RUN_STARTED)
     run_id: str = ""
     session_id: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat().replace("+00:00", "Z"))
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    )
 
     def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""

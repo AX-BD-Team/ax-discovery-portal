@@ -231,17 +231,13 @@ class Triple(Base):
 
     def is_hypothesis(self) -> bool:
         """근거 없는 추론인지 (가설 취급)"""
-        return (
-            self.assertion_type == AssertionType.INFERRED
-            and (not self.evidence_ids or len(self.evidence_ids) == 0)
+        return self.assertion_type == AssertionType.INFERRED and (
+            not self.evidence_ids or len(self.evidence_ids) == 0
         )
 
     def is_trustworthy(self) -> bool:
         """신뢰할 수 있는 관계인지 (BFS에서 사용)"""
-        return (
-            self.status == TripleStatus.VERIFIED
-            and self.confidence >= 0.5
-        )
+        return self.status == TripleStatus.VERIFIED and self.confidence >= 0.5
 
     def to_dict_with_entities(self) -> dict:
         """엔티티 정보 포함하여 딕셔너리로 변환"""

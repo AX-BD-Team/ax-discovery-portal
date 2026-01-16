@@ -400,20 +400,22 @@ class VectorizeUseCases:
         bucket = created_at.strftime("%Y-%m") if created_at else datetime.now(UTC).strftime("%Y-%m")
 
         try:
-            await self.signal_client.upsert([
-                {
-                    "id": signal_id,
-                    "values": embedding,
-                    "metadata": {
-                        "entity_type": "Signal",
-                        "name": title[:200],  # 이름 길이 제한
-                        "status": status,
-                        "channel": channel,
-                        "play_id": play_id,
-                        "created_at_bucket": bucket,
-                    },
-                }
-            ])
+            await self.signal_client.upsert(
+                [
+                    {
+                        "id": signal_id,
+                        "values": embedding,
+                        "metadata": {
+                            "entity_type": "Signal",
+                            "name": title[:200],  # 이름 길이 제한
+                            "status": status,
+                            "channel": channel,
+                            "play_id": play_id,
+                            "created_at_bucket": bucket,
+                        },
+                    }
+                ]
+            )
             return True
         except Exception as e:
             logger.error("Signal 인덱싱 실패", signal_id=signal_id, error=str(e))
@@ -445,13 +447,15 @@ class VectorizeUseCases:
                     metadata[key] = properties[key]
 
         try:
-            await self.entity_client.upsert([
-                {
-                    "id": entity_id,
-                    "values": embedding,
-                    "metadata": metadata,
-                }
-            ])
+            await self.entity_client.upsert(
+                [
+                    {
+                        "id": entity_id,
+                        "values": embedding,
+                        "metadata": metadata,
+                    }
+                ]
+            )
             return True
         except Exception as e:
             logger.error("Entity 인덱싱 실패", entity_id=entity_id, error=str(e))

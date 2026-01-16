@@ -15,7 +15,7 @@ WF-02: Interview to Brief
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -439,7 +439,7 @@ class InterviewToBriefPipeline:
                 ],
                 "status": "NEW",
                 "confidence": ext.confidence,
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
             }
             signals.append(signal)
 
@@ -480,7 +480,7 @@ class InterviewToBriefPipeline:
             "dimension_scores": dimension_scores,
             "red_flags": red_flags,
             "recommendation": recommendation,
-            "scored_at": datetime.utcnow().isoformat(),
+            "scored_at": datetime.now(UTC).isoformat(),
         }
 
         self.logger.info(
@@ -533,7 +533,7 @@ class InterviewToBriefPipeline:
             "owner": "",
             "scorecard_score": scorecard["total_score"],
             "scorecard_decision": scorecard["recommendation"]["decision"],
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         self.logger.info("Brief draft generated", brief_id=brief_id)

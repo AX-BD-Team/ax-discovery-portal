@@ -127,7 +127,9 @@ class TestSendMessage:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.raise_for_status = MagicMock(
-            side_effect=httpx.HTTPStatusError("Bad Request", request=MagicMock(), response=mock_response)
+            side_effect=httpx.HTTPStatusError(
+                "Bad Request", request=MagicMock(), response=mock_response
+            )
         )
         mock_httpx_client.post = AsyncMock(return_value=mock_response)
         slack_mcp._client = mock_httpx_client
@@ -185,9 +187,7 @@ class TestSendNotification:
     async def test_send_notification_no_webhook(self, slack_mcp_no_webhook):
         """Webhook 미설정 시 실패"""
         with pytest.raises(ValueError, match="SLACK_WEBHOOK_URL not configured"):
-            await slack_mcp_no_webhook.send_notification(
-                text="테스트", title="테스트"
-            )
+            await slack_mcp_no_webhook.send_notification(text="테스트", title="테스트")
 
 
 # ========== send_blocks 테스트 ==========

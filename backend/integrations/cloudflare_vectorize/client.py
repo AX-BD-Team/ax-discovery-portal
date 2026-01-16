@@ -51,7 +51,11 @@ class VectorMetadata:
             name=data.get("name", ""),
             confidence=data.get("confidence", 1.0),
             external_ref_id=data.get("external_ref_id"),
-            **{k: v for k, v in data.items() if k not in ["entity_type", "name", "confidence", "external_ref_id"]},
+            **{
+                k: v
+                for k, v in data.items()
+                if k not in ["entity_type", "name", "confidence", "external_ref_id"]
+            },
         )
 
 
@@ -180,11 +184,13 @@ class VectorizeClient:
         # NDJSON 형식으로 변환 (Vectorize API 요구사항)
         ndjson_lines = []
         for v in vectors:
-            ndjson_lines.append({
-                "id": v["id"],
-                "values": v["values"],
-                "metadata": v.get("metadata", {}),
-            })
+            ndjson_lines.append(
+                {
+                    "id": v["id"],
+                    "values": v["values"],
+                    "metadata": v.get("metadata", {}),
+                }
+            )
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(

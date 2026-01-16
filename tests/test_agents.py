@@ -4,7 +4,7 @@ AX Discovery Portal - Tests
 pytest 기반 테스트
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -27,7 +27,7 @@ def sample_signal():
         "status": "NEW",
         "owner": "홍길동",
         "confidence": 0.8,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -52,7 +52,7 @@ def sample_scorecard():
             "rationale": "고객 Pain이 명확하고 예산 확보 가능성 높음",
         },
         "scored_by": "ScorecardEvaluator",
-        "scored_at": datetime.utcnow().isoformat(),
+        "scored_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -126,7 +126,7 @@ class TestBriefWriter:
                 "timebox_days": 5,
             },
             "owner": "홍길동",
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         for field in required_fields:

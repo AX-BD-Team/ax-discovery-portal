@@ -188,9 +188,7 @@ async def get_current_user_info(
             role=current_user.role.value,
             is_active=current_user.is_active,
             last_login_at=(
-                current_user.last_login_at.isoformat()
-                if current_user.last_login_at
-                else None
+                current_user.last_login_at.isoformat() if current_user.last_login_at else None
             ),
         )
     )

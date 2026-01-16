@@ -5,7 +5,7 @@ D1 데이터베이스와 통신하는 repository 클래스들
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from .client import d1_client

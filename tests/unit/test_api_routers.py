@@ -84,10 +84,9 @@ class TestStreamRouter:
 
     def test_stream_seminar_pipeline_success(self):
         """WF-01 세미나 파이프라인 스트림 시작 성공"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.SeminarPipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.SeminarPipelineWithEvents"),
         ):
             # Mock 설정
             mock_manager = MagicMock()
@@ -108,10 +107,9 @@ class TestStreamRouter:
 
     def test_stream_seminar_pipeline_with_themes(self):
         """WF-01 세미나 파이프라인 - 테마 포함"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.SeminarPipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.SeminarPipelineWithEvents"),
         ):
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()
@@ -140,10 +138,9 @@ class TestStreamRouter:
 
     def test_stream_interview_pipeline_success(self):
         """WF-02 인터뷰 파이프라인 스트림 시작 성공"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.InterviewToBriefPipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.InterviewToBriefPipelineWithEvents"),
         ):
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()
@@ -161,10 +158,9 @@ class TestStreamRouter:
 
     def test_stream_interview_pipeline_with_all_params(self):
         """WF-02 인터뷰 파이프라인 - 모든 파라미터"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.InterviewToBriefPipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.InterviewToBriefPipelineWithEvents"),
         ):
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()
@@ -196,10 +192,9 @@ class TestStreamRouter:
 
     def test_stream_inbound_triage_success(self):
         """WF-04 인바운드 Triage 스트림 시작 성공"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.InboundTriagePipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.InboundTriagePipelineWithEvents"),
         ):
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()
@@ -220,10 +215,9 @@ class TestStreamRouter:
 
     def test_stream_inbound_triage_with_urgency(self):
         """WF-04 인바운드 Triage - 긴급도 설정"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.InboundTriagePipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.InboundTriagePipelineWithEvents"),
         ):
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()
@@ -256,10 +250,9 @@ class TestStreamRouter:
 
     def test_stream_kpi_digest_success(self):
         """WF-05 KPI Digest 스트림 시작 성공"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.KPIDigestPipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.KPIDigestPipelineWithEvents"),
         ):
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()
@@ -274,10 +267,9 @@ class TestStreamRouter:
 
     def test_stream_kpi_digest_with_params(self):
         """WF-05 KPI Digest - 파라미터 설정"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.stream.KPIDigestPipelineWithEvents"
+        with (
+            patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.stream.KPIDigestPipelineWithEvents"),
         ):
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()
@@ -312,9 +304,7 @@ class TestStreamRouter:
 
     def test_get_session_history_success(self):
         """세션 히스토리 조회 성공"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls:
+        with patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls:
             mock_manager = MagicMock()
             mock_manager.get_history.return_value = [
                 {"type": "run_started", "timestamp": "2024-01-01T00:00:00"},
@@ -341,9 +331,7 @@ class TestStreamRouter:
 
     def test_close_session_success(self):
         """세션 종료 성공"""
-        with patch(
-            "backend.api.routers.stream.SessionEventManager"
-        ) as mock_manager_cls:
+        with patch("backend.api.routers.stream.SessionEventManager") as mock_manager_cls:
             mock_manager = MagicMock()
             mock_manager_cls._instances = {"test-session-id": mock_manager}
             mock_manager_cls.remove = MagicMock()
@@ -379,9 +367,10 @@ class TestXAIRouter:
 
     def test_explain_scorecard_success(self):
         """Scorecard 평가 설명 - 성공"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
-        ) as mock_get_db:
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db") as mock_get_db,
+        ):
             # Mock DB 세션
             mock_db = AsyncMock()
             mock_get_db.return_value = mock_db
@@ -411,8 +400,9 @@ class TestXAIRouter:
 
     def test_explain_scorecard_not_found(self):
         """Scorecard 평가 설명 - 엔티티 없음"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_repo.get_entity_by_external_ref = AsyncMock(return_value=None)
 
@@ -428,8 +418,9 @@ class TestXAIRouter:
 
     def test_trace_signal_origin_success(self):
         """Signal 출처 추적 - 성공"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             # Mock Signal 엔티티
             mock_signal = MagicMock()
@@ -448,8 +439,9 @@ class TestXAIRouter:
 
     def test_trace_signal_origin_not_found(self):
         """Signal 출처 추적 - Signal 없음"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_repo.get_entity_by_external_ref = AsyncMock(return_value=None)
             mock_repo.get_entity = AsyncMock(return_value=None)
@@ -460,24 +452,24 @@ class TestXAIRouter:
 
     def test_trace_signal_with_max_depth(self):
         """Signal 출처 추적 - max_depth 설정"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_signal = MagicMock()
             mock_signal.entity_id = "signal-001"
             mock_repo.get_entity_by_external_ref = AsyncMock(return_value=mock_signal)
             mock_repo.query_triples = AsyncMock(return_value=([], 0))
 
-            response = self.client.get(
-                "/api/xai/trace/signal/SIG-001", params={"max_depth": 3}
-            )
+            response = self.client.get("/api/xai/trace/signal/SIG-001", params={"max_depth": 3})
 
             assert response.status_code == 200
 
     def test_trace_signal_max_depth_validation(self):
         """Signal 출처 추적 - max_depth 유효성 검증"""
         response = self.client.get(
-            "/api/xai/trace/signal/SIG-001", params={"max_depth": 15}  # 최대 10
+            "/api/xai/trace/signal/SIG-001",
+            params={"max_depth": 15},  # 최대 10
         )
 
         assert response.status_code == 422
@@ -486,8 +478,9 @@ class TestXAIRouter:
 
     def test_calculate_confidence_success(self):
         """신뢰도 분석 - 성공"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_entity = MagicMock()
             mock_entity.entity_id = "entity-001"
@@ -507,8 +500,9 @@ class TestXAIRouter:
 
     def test_calculate_confidence_not_found(self):
         """신뢰도 분석 - 엔티티 없음"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_repo.get_entity = AsyncMock(return_value=None)
 
@@ -518,8 +512,9 @@ class TestXAIRouter:
 
     def test_calculate_confidence_with_evidence(self):
         """신뢰도 분석 - Evidence 포함"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_entity = MagicMock()
             mock_entity.entity_id = "entity-001"
@@ -531,9 +526,7 @@ class TestXAIRouter:
             mock_triple.confidence = 0.9
 
             mock_repo.get_entity = AsyncMock(return_value=mock_entity)
-            mock_repo.query_triples = AsyncMock(
-                side_effect=[([mock_triple], 1), ([], 0), ([], 0)]
-            )
+            mock_repo.query_triples = AsyncMock(side_effect=[([mock_triple], 1), ([], 0), ([], 0)])
 
             response = self.client.get("/api/xai/confidence/entity-001")
 
@@ -546,8 +539,9 @@ class TestXAIRouter:
 
     def test_get_evidence_chain_success(self):
         """Evidence Chain 조회 - 성공"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_entity = MagicMock()
             mock_entity.entity_id = "entity-001"
@@ -566,8 +560,9 @@ class TestXAIRouter:
 
     def test_get_evidence_chain_not_found(self):
         """Evidence Chain 조회 - 엔티티 없음"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_repo.get_entity = AsyncMock(return_value=None)
 
@@ -579,8 +574,9 @@ class TestXAIRouter:
 
     def test_get_reasoning_path_success(self):
         """추론 경로 조회 - 성공"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_entity = MagicMock()
             mock_entity.entity_id = "entity-001"
@@ -598,8 +594,9 @@ class TestXAIRouter:
 
     def test_get_reasoning_path_not_found(self):
         """추론 경로 조회 - 엔티티 없음"""
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_repo.get_entity = AsyncMock(return_value=None)
 
@@ -624,9 +621,11 @@ class TestAuthRouter:
 
     def test_login_success(self, mock_user):
         """로그인 성공 (JSON)"""
-        with patch("backend.api.routers.auth.authenticate_user") as mock_auth, patch(
-            "backend.api.routers.auth.update_last_login"
-        ) as mock_update, patch("backend.api.routers.auth.get_db"):
+        with (
+            patch("backend.api.routers.auth.authenticate_user") as mock_auth,
+            patch("backend.api.routers.auth.update_last_login") as mock_update,
+            patch("backend.api.routers.auth.get_db"),
+        ):
             mock_auth.return_value = mock_user
             mock_update.return_value = None
 
@@ -642,8 +641,9 @@ class TestAuthRouter:
 
     def test_login_invalid_credentials(self):
         """로그인 실패 - 잘못된 인증 정보"""
-        with patch("backend.api.routers.auth.authenticate_user") as mock_auth, patch(
-            "backend.api.routers.auth.get_db"
+        with (
+            patch("backend.api.routers.auth.authenticate_user") as mock_auth,
+            patch("backend.api.routers.auth.get_db"),
         ):
             mock_auth.return_value = None
 
@@ -675,9 +675,11 @@ class TestAuthRouter:
 
     def test_token_login_success(self, mock_user):
         """토큰 로그인 성공 (OAuth2 Form)"""
-        with patch("backend.api.routers.auth.authenticate_user") as mock_auth, patch(
-            "backend.api.routers.auth.update_last_login"
-        ) as mock_update, patch("backend.api.routers.auth.get_db"):
+        with (
+            patch("backend.api.routers.auth.authenticate_user") as mock_auth,
+            patch("backend.api.routers.auth.update_last_login") as mock_update,
+            patch("backend.api.routers.auth.get_db"),
+        ):
             mock_auth.return_value = mock_user
             mock_update.return_value = None
 
@@ -692,8 +694,9 @@ class TestAuthRouter:
 
     def test_token_login_invalid_credentials(self):
         """토큰 로그인 실패 - 잘못된 인증 정보"""
-        with patch("backend.api.routers.auth.authenticate_user") as mock_auth, patch(
-            "backend.api.routers.auth.get_db"
+        with (
+            patch("backend.api.routers.auth.authenticate_user") as mock_auth,
+            patch("backend.api.routers.auth.get_db"),
         ):
             mock_auth.return_value = None
 
@@ -758,9 +761,10 @@ class TestWorkflowsRouter:
 
     def test_interview_to_brief_success(self):
         """WF-02 인터뷰-to-Brief - 성공"""
-        with patch(
-            "backend.api.routers.workflows.InterviewToBriefPipeline"
-        ) as mock_pipeline_cls, patch("backend.api.routers.workflows.get_db"):
+        with (
+            patch("backend.api.routers.workflows.InterviewToBriefPipeline") as mock_pipeline_cls,
+            patch("backend.api.routers.workflows.get_db"),
+        ):
             # Mock 결과
             mock_result = MagicMock()
             mock_result.signals = [{"signal_id": "SIG-001", "title": "테스트 신호"}]
@@ -788,12 +792,12 @@ class TestWorkflowsRouter:
 
     def test_interview_to_brief_with_db_save(self):
         """WF-02 인터뷰-to-Brief - DB 저장 포함"""
-        with patch(
-            "backend.api.routers.workflows.InterviewToBriefPipelineWithDB"
-        ) as mock_pipeline_cls, patch(
-            "backend.api.routers.workflows.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.workflows.get_db"
+        with (
+            patch(
+                "backend.api.routers.workflows.InterviewToBriefPipelineWithDB"
+            ) as mock_pipeline_cls,
+            patch("backend.api.routers.workflows.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.workflows.get_db"),
         ):
             mock_manager_cls.get_or_create.return_value = MagicMock()
             mock_manager_cls.remove = MagicMock()
@@ -853,9 +857,10 @@ class TestWorkflowsRouter:
 
     def test_inbound_triage_success(self):
         """WF-04 인바운드 Triage - 성공"""
-        with patch(
-            "backend.api.routers.workflows.InboundTriagePipeline"
-        ) as mock_pipeline_cls, patch("backend.api.routers.workflows.get_db"):
+        with (
+            patch("backend.api.routers.workflows.InboundTriagePipeline") as mock_pipeline_cls,
+            patch("backend.api.routers.workflows.get_db"),
+        ):
             mock_result = MagicMock()
             mock_result.signal = {"signal_id": "SIG-001"}
             mock_result.is_duplicate = False
@@ -885,9 +890,10 @@ class TestWorkflowsRouter:
 
     def test_inbound_triage_duplicate_detected(self):
         """WF-04 인바운드 Triage - 중복 감지"""
-        with patch(
-            "backend.api.routers.workflows.InboundTriagePipeline"
-        ) as mock_pipeline_cls, patch("backend.api.routers.workflows.get_db"):
+        with (
+            patch("backend.api.routers.workflows.InboundTriagePipeline") as mock_pipeline_cls,
+            patch("backend.api.routers.workflows.get_db"),
+        ):
             mock_result = MagicMock()
             mock_result.signal = None
             mock_result.is_duplicate = True
@@ -926,9 +932,7 @@ class TestWorkflowsRouter:
 
     def test_inbound_triage_preview(self):
         """인바운드 Triage 미리보기"""
-        with patch(
-            "backend.agent_runtime.workflows.wf_inbound_triage.route_to_play"
-        ) as mock_route:
+        with patch("backend.agent_runtime.workflows.wf_inbound_triage.route_to_play") as mock_route:
             mock_route.return_value = "KT_Inbound_I01"
 
             response = self.client.post(
@@ -947,9 +951,7 @@ class TestWorkflowsRouter:
 
     def test_inbound_triage_preview_invalid_urgency(self):
         """인바운드 Triage 미리보기 - 잘못된 urgency"""
-        with patch(
-            "backend.agent_runtime.workflows.wf_inbound_triage.route_to_play"
-        ) as mock_route:
+        with patch("backend.agent_runtime.workflows.wf_inbound_triage.route_to_play") as mock_route:
             mock_route.return_value = "KT_Inbound_I01"
 
             response = self.client.post(
@@ -969,12 +971,10 @@ class TestWorkflowsRouter:
 
     def test_kpi_digest_success(self):
         """WF-05 KPI Digest - 성공"""
-        with patch(
-            "backend.api.routers.workflows.KPIDigestPipelineWithDB"
-        ) as mock_pipeline_cls, patch(
-            "backend.api.routers.workflows.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.workflows.get_db"
+        with (
+            patch("backend.api.routers.workflows.KPIDigestPipelineWithDB") as mock_pipeline_cls,
+            patch("backend.api.routers.workflows.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.workflows.get_db"),
         ):
             mock_manager_cls.get_or_create.return_value = MagicMock()
             mock_manager_cls.remove = MagicMock()
@@ -1013,12 +1013,10 @@ class TestWorkflowsRouter:
 
     def test_kpi_digest_with_params(self):
         """WF-05 KPI Digest - 파라미터 설정"""
-        with patch(
-            "backend.api.routers.workflows.KPIDigestPipelineWithDB"
-        ) as mock_pipeline_cls, patch(
-            "backend.api.routers.workflows.SessionEventManager"
-        ) as mock_manager_cls, patch(
-            "backend.api.routers.workflows.get_db"
+        with (
+            patch("backend.api.routers.workflows.KPIDigestPipelineWithDB") as mock_pipeline_cls,
+            patch("backend.api.routers.workflows.SessionEventManager") as mock_manager_cls,
+            patch("backend.api.routers.workflows.get_db"),
         ):
             mock_manager_cls.get_or_create.return_value = MagicMock()
             mock_manager_cls.remove = MagicMock()
@@ -1055,11 +1053,12 @@ class TestWorkflowsRouter:
 
     def test_kpi_digest_summary(self):
         """KPI 요약 미리보기"""
-        with patch(
-            "backend.api.routers.workflows.KPIDigestPipeline"
-        ) as mock_pipeline_cls, patch(
-            "backend.agent_runtime.workflows.wf_kpi_digest.calculate_period_range"
-        ) as mock_range:
+        with (
+            patch("backend.api.routers.workflows.KPIDigestPipeline") as mock_pipeline_cls,
+            patch(
+                "backend.agent_runtime.workflows.wf_kpi_digest.calculate_period_range"
+            ) as mock_range,
+        ):
             from datetime import datetime
 
             mock_range.return_value = (
@@ -1107,8 +1106,9 @@ class TestRouterIntegration:
         assert response.status_code in [404, 501]
 
         # XAI 라우터
-        with patch("backend.api.routers.xai.ontology_repo") as mock_repo, patch(
-            "backend.api.routers.xai.get_db"
+        with (
+            patch("backend.api.routers.xai.ontology_repo") as mock_repo,
+            patch("backend.api.routers.xai.get_db"),
         ):
             mock_repo.get_entity = AsyncMock(return_value=None)
             response = self.client.get("/api/xai/confidence/test")

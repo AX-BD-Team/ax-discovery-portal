@@ -38,6 +38,7 @@ from backend.database.repositories.ontology import OntologyRepository
 # TripleValidator 테스트
 # =============================================================================
 
+
 class TestTripleValidator:
     """TripleValidator 단위 테스트"""
 
@@ -353,7 +354,9 @@ class TestTripleValidator:
             assertion_type=AssertionType.OBSERVED,
             evidence_ids=["EVD-001"],
         )
-        assert not any(e.code == ValidationErrorCode.NO_EVIDENCE_FOR_OBSERVED for e in result.warnings)
+        assert not any(
+            e.code == ValidationErrorCode.NO_EVIDENCE_FOR_OBSERVED for e in result.warnings
+        )
 
     def test_validate_supported_by_no_evidence_warning(self):
         """SUPPORTED_BY는 자체가 증거 연결이므로 경고 없음"""
@@ -364,7 +367,9 @@ class TestTripleValidator:
             assertion_type=AssertionType.OBSERVED,
             evidence_ids=None,
         )
-        assert not any(e.code == ValidationErrorCode.NO_EVIDENCE_FOR_OBSERVED for e in result.warnings)
+        assert not any(
+            e.code == ValidationErrorCode.NO_EVIDENCE_FOR_OBSERVED for e in result.warnings
+        )
 
     # ----- get_allowed_predicates 테스트 -----
 
@@ -495,6 +500,7 @@ class TestPredicateConstraints:
 # GraphQuery 테스트
 # =============================================================================
 
+
 class TestPathOptions:
     """PathOptions 단위 테스트"""
 
@@ -607,17 +613,13 @@ class TestGraphQuery:
 
     def test_build_predicate_filter_allowed_only(self):
         """특정 predicates만 허용"""
-        options = PathOptions(
-            allowed_predicates=[PredicateType.HAS_PAIN, PredicateType.HAS_BRIEF]
-        )
+        options = PathOptions(allowed_predicates=[PredicateType.HAS_PAIN, PredicateType.HAS_BRIEF])
         predicates = self.graph_query._build_predicate_filter(options)
         assert predicates == {PredicateType.HAS_PAIN, PredicateType.HAS_BRIEF}
 
     def test_build_predicate_filter_with_exclusion(self):
         """특정 predicates 제외"""
-        options = PathOptions(
-            excluded_predicates=[PredicateType.SUPPORTED_BY]
-        )
+        options = PathOptions(excluded_predicates=[PredicateType.SUPPORTED_BY])
         predicates = self.graph_query._build_predicate_filter(options)
         assert PredicateType.SUPPORTED_BY not in predicates
 
@@ -909,6 +911,7 @@ class TestFindEvidenceChain:
 # OntologyRepository 테스트
 # =============================================================================
 
+
 class TestOntologyRepository:
     """OntologyRepository 단위 테스트"""
 
@@ -1026,7 +1029,9 @@ class TestOntologyRepository:
         """Entity 목록 조회 (타입 필터)"""
         mock_entities = [MagicMock(spec=Entity), MagicMock(spec=Entity)]
         mock_result = MagicMock()
-        mock_result.scalars = MagicMock(return_value=MagicMock(all=MagicMock(return_value=mock_entities)))
+        mock_result.scalars = MagicMock(
+            return_value=MagicMock(all=MagicMock(return_value=mock_entities))
+        )
 
         self.mock_db.execute = AsyncMock(return_value=mock_result)
         self.mock_db.scalar = AsyncMock(return_value=2)
@@ -1046,7 +1051,9 @@ class TestOntologyRepository:
         """Entity 목록 조회 (검색어)"""
         mock_entities = [MagicMock(spec=Entity)]
         mock_result = MagicMock()
-        mock_result.scalars = MagicMock(return_value=MagicMock(all=MagicMock(return_value=mock_entities)))
+        mock_result.scalars = MagicMock(
+            return_value=MagicMock(all=MagicMock(return_value=mock_entities))
+        )
 
         self.mock_db.execute = AsyncMock(return_value=mock_result)
         self.mock_db.scalar = AsyncMock(return_value=1)
@@ -1155,7 +1162,9 @@ class TestOntologyRepository:
         """Triple 쿼리 (subject_id 기준)"""
         mock_triples = [MagicMock(spec=Triple), MagicMock(spec=Triple)]
         mock_result = MagicMock()
-        mock_result.scalars = MagicMock(return_value=MagicMock(all=MagicMock(return_value=mock_triples)))
+        mock_result.scalars = MagicMock(
+            return_value=MagicMock(all=MagicMock(return_value=mock_triples))
+        )
 
         self.mock_db.execute = AsyncMock(return_value=mock_result)
         self.mock_db.scalar = AsyncMock(return_value=2)
@@ -1173,7 +1182,9 @@ class TestOntologyRepository:
         """Triple 쿼리 (predicate 기준)"""
         mock_triples = [MagicMock(spec=Triple)]
         mock_result = MagicMock()
-        mock_result.scalars = MagicMock(return_value=MagicMock(all=MagicMock(return_value=mock_triples)))
+        mock_result.scalars = MagicMock(
+            return_value=MagicMock(all=MagicMock(return_value=mock_triples))
+        )
 
         self.mock_db.execute = AsyncMock(return_value=mock_result)
         self.mock_db.scalar = AsyncMock(return_value=1)
@@ -1190,7 +1201,9 @@ class TestOntologyRepository:
         """Triple 쿼리 (object_id 기준)"""
         mock_triples = [MagicMock(spec=Triple)]
         mock_result = MagicMock()
-        mock_result.scalars = MagicMock(return_value=MagicMock(all=MagicMock(return_value=mock_triples)))
+        mock_result.scalars = MagicMock(
+            return_value=MagicMock(all=MagicMock(return_value=mock_triples))
+        )
 
         self.mock_db.execute = AsyncMock(return_value=mock_result)
         self.mock_db.scalar = AsyncMock(return_value=1)
@@ -1207,7 +1220,9 @@ class TestOntologyRepository:
         """Triple 쿼리 (최소 신뢰도)"""
         mock_triples = [MagicMock(spec=Triple)]
         mock_result = MagicMock()
-        mock_result.scalars = MagicMock(return_value=MagicMock(all=MagicMock(return_value=mock_triples)))
+        mock_result.scalars = MagicMock(
+            return_value=MagicMock(all=MagicMock(return_value=mock_triples))
+        )
 
         self.mock_db.execute = AsyncMock(return_value=mock_result)
         self.mock_db.scalar = AsyncMock(return_value=1)
@@ -1259,8 +1274,10 @@ class TestOntologyRepository:
         mock_center = MagicMock(spec=Entity)
         mock_center.entity_id = "SIG-001"
 
-        with patch.object(self.repo, "get_entity", return_value=mock_center), \
-             patch.object(self.repo, "query_triples", return_value=([], 0)):
+        with (
+            patch.object(self.repo, "get_entity", return_value=mock_center),
+            patch.object(self.repo, "query_triples", return_value=([], 0)),
+        ):
             graph = await self.repo.get_entity_graph(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1296,8 +1313,10 @@ class TestOntologyRepository:
                 return ([mock_triple], 1)
             return ([], 0)
 
-        with patch.object(self.repo, "get_entity", side_effect=mock_get_entity), \
-             patch.object(self.repo, "query_triples", side_effect=mock_query_triples):
+        with (
+            patch.object(self.repo, "get_entity", side_effect=mock_get_entity),
+            patch.object(self.repo, "query_triples", side_effect=mock_query_triples),
+        ):
             graph = await self.repo.get_entity_graph(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1328,8 +1347,10 @@ class TestOntologyRepository:
                 return ([mock_triple_pain, mock_triple_brief], 2)
             return ([], 0)
 
-        with patch.object(self.repo, "get_entity", return_value=mock_center), \
-             patch.object(self.repo, "query_triples", side_effect=mock_query_triples):
+        with (
+            patch.object(self.repo, "get_entity", return_value=mock_center),
+            patch.object(self.repo, "query_triples", side_effect=mock_query_triples),
+        ):
             graph = await self.repo.get_entity_graph(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1403,8 +1424,10 @@ class TestOntologyRepository:
     @pytest.mark.asyncio
     async def test_get_similar_entities_empty(self):
         """유사 엔티티 검색 (결과 없음)"""
-        with patch.object(self.repo, "query_triples", return_value=([], 0)), \
-             patch.object(self.repo, "get_entity", return_value=None):
+        with (
+            patch.object(self.repo, "query_triples", return_value=([], 0)),
+            patch.object(self.repo, "get_entity", return_value=None),
+        ):
             results = await self.repo.get_similar_entities(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1427,8 +1450,10 @@ class TestOntologyRepository:
                 return ([mock_triple], 1)
             return ([], 0)
 
-        with patch.object(self.repo, "query_triples", side_effect=mock_query_triples), \
-             patch.object(self.repo, "get_entity", return_value=mock_entity):
+        with (
+            patch.object(self.repo, "query_triples", side_effect=mock_query_triples),
+            patch.object(self.repo, "get_entity", return_value=mock_entity),
+        ):
             results = await self.repo.get_similar_entities(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1486,13 +1511,15 @@ class TestOntologyRepository:
     @pytest.mark.asyncio
     async def test_get_stats(self):
         """온톨로지 통계 조회"""
-        self.mock_db.scalar = AsyncMock(side_effect=[
-            10,  # entity_count
-            *[1 for _ in EntityType],  # entity_by_type
-            20,  # triple_count
-            *[1 for _ in PredicateType],  # triple_by_predicate
-            0.85,  # avg_confidence
-        ])
+        self.mock_db.scalar = AsyncMock(
+            side_effect=[
+                10,  # entity_count
+                *[1 for _ in EntityType],  # entity_by_type
+                20,  # triple_count
+                *[1 for _ in PredicateType],  # triple_by_predicate
+                0.85,  # avg_confidence
+            ]
+        )
 
         stats = await self.repo.get_stats(self.mock_db)
 

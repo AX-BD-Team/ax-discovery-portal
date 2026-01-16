@@ -5,7 +5,7 @@ VoC/티켓 데이터 → 테마화 → Signal 생성 → Brief 후보
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -115,7 +115,7 @@ class VoCMiningPipeline:
                     "tags": theme.get("keywords", []),
                     "status": "NEW",
                     "confidence": min(theme["frequency"] / 50, 1.0),
-                    "created_at": datetime.utcnow().isoformat(),
+                    "created_at": datetime.now(UTC).isoformat(),
                 }
             )
 

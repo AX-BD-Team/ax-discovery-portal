@@ -37,8 +37,10 @@ class TestOntologyService:
         """Entity 생성 + 자동 인덱싱"""
         service = OntologyService(auto_index=True)
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch.object(service, "_index_entity") as mock_index:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch.object(service, "_index_entity") as mock_index,
+        ):
             mock_repo.create_entity = AsyncMock(return_value=self.mock_entity)
             mock_index.return_value = True
 
@@ -57,8 +59,10 @@ class TestOntologyService:
         """Entity 생성 (자동 인덱싱 비활성화)"""
         service = OntologyService(auto_index=False)
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch.object(service, "_index_entity") as mock_index:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch.object(service, "_index_entity") as mock_index,
+        ):
             mock_repo.create_entity = AsyncMock(return_value=self.mock_entity)
 
             entity = await service.create_entity(
@@ -75,8 +79,10 @@ class TestOntologyService:
         """Entity 생성 시 auto_index 파라미터로 오버라이드"""
         service = OntologyService(auto_index=True)
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch.object(service, "_index_entity") as mock_index:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch.object(service, "_index_entity") as mock_index,
+        ):
             mock_repo.create_entity = AsyncMock(return_value=self.mock_entity)
 
             # 서비스는 auto_index=True지만 파라미터로 False 지정
@@ -99,8 +105,10 @@ class TestOntologyService:
             MagicMock(spec=Entity, entity_id="SIG-002"),
         ]
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch.object(service, "_index_entities_batch") as mock_batch_index:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch.object(service, "_index_entities_batch") as mock_batch_index,
+        ):
             mock_repo.create_entity = AsyncMock(side_effect=mock_entities)
             mock_batch_index.return_value = {"success": 2, "failed": 0, "total": 2}
 
@@ -122,8 +130,10 @@ class TestOntologyService:
         """Entity 업데이트 + 재인덱싱"""
         service = OntologyService(auto_index=True)
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch.object(service, "_index_entity") as mock_index:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch.object(service, "_index_entity") as mock_index,
+        ):
             mock_repo.update_entity = AsyncMock(return_value=self.mock_entity)
             mock_index.return_value = True
 
@@ -142,8 +152,10 @@ class TestOntologyService:
         """Entity 업데이트 (인덱싱 필드 아님)"""
         service = OntologyService(auto_index=True)
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch.object(service, "_index_entity") as mock_index:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch.object(service, "_index_entity") as mock_index,
+        ):
             mock_repo.update_entity = AsyncMock(return_value=self.mock_entity)
 
             await service.update_entity(
@@ -159,8 +171,10 @@ class TestOntologyService:
         """Entity 삭제 + 인덱스 제거"""
         service = OntologyService()
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch("backend.services.ontology_service.rag_service") as mock_rag:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch("backend.services.ontology_service.rag_service") as mock_rag,
+        ):
             mock_repo.delete_entity = AsyncMock(return_value=True)
             mock_rag.remove_from_index = AsyncMock(return_value=True)
 
@@ -178,8 +192,10 @@ class TestOntologyService:
         """Entity 삭제 (인덱스 제거 안 함)"""
         service = OntologyService()
 
-        with patch.object(service, "repo") as mock_repo, \
-             patch("backend.services.ontology_service.rag_service") as mock_rag:
+        with (
+            patch.object(service, "repo") as mock_repo,
+            patch("backend.services.ontology_service.rag_service") as mock_rag,
+        ):
             mock_repo.delete_entity = AsyncMock(return_value=True)
 
             await service.delete_entity(
@@ -223,8 +239,10 @@ class TestOntologyService:
 
         mock_topic = MagicMock(spec=Entity, entity_id="TOP-001")
 
-        with patch.object(service, "create_entity") as mock_create, \
-             patch.object(service, "create_triple") as mock_triple:
+        with (
+            patch.object(service, "create_entity") as mock_create,
+            patch.object(service, "create_triple") as mock_triple,
+        ):
             mock_create.return_value = mock_topic
 
             entity = await service.create_topic_entity(
