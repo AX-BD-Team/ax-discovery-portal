@@ -4,10 +4,6 @@ AX Discovery Portal - Backend API
 FastAPI 기반 백엔드 서버
 """
 
-import os
-import sys
-import json
-from typing import Dict, List, Optional
 from contextlib import asynccontextmanager
 
 # .env 파일 로드
