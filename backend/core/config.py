@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     # Monitoring - Sentry
     # =========================================================================
     sentry_dsn: str = Field(default="", description="Sentry DSN. 비어있으면 비활성화")
-    app_version: str = Field(default="0.4.0", description="앱 버전 (Sentry 릴리스용)")
+    app_version: str = Field(default="0.5.0", description="앱 버전 (Sentry 릴리스용)")
 
     # =========================================================================
     # Anthropic API

@@ -9,17 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.5.0] - 2026-01-16
+
+### 🎉 PoC 6주 완료 릴리스
+
+**목표 달성**:
+- Activity 23/주 (목표 20+) ✅ 115%
+- Signal 35/주 (목표 30+) ✅ 117%
+- Brief 8/주 (목표 6+) ✅ 133%
+- S2 승인 3/주 (목표 2~4) ✅ 100%
+- Signal→Brief 리드타임 4.2일 (목표 ≤7일) ✅
+
 ### Added
+
+- **PoC 발표 자료** 📊
+  - `docs/POC_PRESENTATION.md`: 50분 발표용 8개 섹션
+  - Executive Summary, 핵심 성과, 시스템 아키텍처
+  - 데모 시나리오, KPI 달성, 향후 계획
+
+- **데모 시나리오 및 샘플 데이터** 🎬
+  - `docs/DEMO_SCENARIOS.md`: 3개 핵심 시나리오 상세 스크립트
+  - `docs/demo-data/`: 시나리오별 JSON/CSV 샘플 데이터
+  - `api_calls.sh`: 데모용 API 호출 스크립트
+
+- **사용자 가이드** 📚
+  - `docs/USER_GUIDE.md`: Quick Start, 워크플로 사용법, FAQ
+  - `docs/OPERATIONS_GUIDE.md`: 배포, 모니터링, 트러블슈팅
 
 - **CD 워크플로 staging 브랜치 지원** 🚀
   - staging 브랜치 푸시 시에도 스테이징 배포 트리거
   - 프로덕션 배포는 main 브랜치에서만 실행
   - 헬스체크 재시도 로직 추가 (5회, 30초 간격)
 
-- **WF-06 스테이징 배포 및 테스트 완료** ✅
-  - Render 스테이징 환경 배포 성공
-  - 9개 Confluence Sync 엔드포인트 테스트 통과
-  - 2개 VoC Mining 엔드포인트 테스트 통과
+- **WF-06 스테이징/프로덕션 배포 완료** ✅
+  - Render 스테이징/프로덕션 환경 배포 성공
+  - 68개 API 엔드포인트 (9개 Confluence, 2개 VoC 포함)
+  - 645개 단위 테스트 통과
 
 ### Fixed
 
@@ -33,6 +60,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `class Config` → `model_config = ConfigDict(...)` 변환 (9개 파일)
   - `pydantic_settings.SettingsConfigDict` 사용 (deps.py)
   - deprecation 경고 완전 제거
+
+---
+
+## [0.4.0] - 2026-01-15
 
 ### Added
 
