@@ -5,5 +5,19 @@ Services 모듈
 """
 
 from backend.services.embedding_service import EmbeddingService, embedding_service
+from backend.services.ontology_service import (
+    OntologyService,
+    ontology_service,
+    ontology_service_no_index,
+)
+from backend.services.rag_service import RAGService, rag_service
 
-__all__ = ["EmbeddingService", "embedding_service"]
+__all__ = [
+    "EmbeddingService",
+    "embedding_service",
+    "OntologyService",
+    "ontology_service",
+    "ontology_service_no_index",
+    "RAGService",
+    "rag_service",
+]

@@ -15,7 +15,17 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import brief, inbox, ontology, play_dashboard, scorecard, stream, workflows, xai
+from .routers import (
+    brief,
+    inbox,
+    ontology,
+    play_dashboard,
+    scorecard,
+    search,
+    stream,
+    workflows,
+    xai,
+)
 
 logger = structlog.get_logger()
 
@@ -78,6 +88,8 @@ app.include_router(stream.router, tags=["stream"])
 # Ontology & XAI
 app.include_router(ontology.router, prefix="/api", tags=["ontology"])
 app.include_router(xai.router, prefix="/api", tags=["xai"])
+# Vector Search
+app.include_router(search.router, prefix="/api/search", tags=["search"])
 
 
 @app.get("/")

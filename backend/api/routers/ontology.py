@@ -14,6 +14,7 @@ from backend.api.deps import get_db
 from backend.database.models.entity import EntityType
 from backend.database.models.triple import PredicateType
 from backend.database.repositories.ontology import ontology_repo
+from backend.services.ontology_service import ontology_service
 
 router = APIRouter(prefix="/ontology", tags=["Ontology"])
 
@@ -159,9 +160,15 @@ class StatsResponse(BaseModel):
 @router.post("/entities", response_model=EntityResponse)
 async def create_entity(
     entity: EntityCreate,
+    auto_index: bool = Query(True, description="자동 벡터 인덱싱 여부"),
     db: AsyncSession = Depends(get_db),
 ):
-    """엔티티 생성"""
+    """
+    엔티티 생성
+
+    Entity를 생성하고 자동으로 벡터 인덱스에 추가합니다.
+    auto_index=false로 설정하면 인덱싱을 건너뜁니다.
+    """
     try:
         entity_type = EntityType(entity.entity_type)
     except ValueError:
@@ -171,7 +178,8 @@ async def create_entity(
             f"Valid types: {[e.value for e in EntityType]}",
         ) from None
 
-    db_entity = await ontology_repo.create_entity(
+    # OntologyService를 사용하여 생성 + 자동 인덱싱
+    db_entity = await ontology_service.create_entity(
         db,
         entity_type=entity_type,
         name=entity.name,
@@ -179,6 +187,7 @@ async def create_entity(
         properties=entity.properties,
         external_ref_id=entity.external_ref_id,
         confidence=entity.confidence,
+        auto_index=auto_index,
     )
     await db.commit()
 
@@ -273,10 +282,19 @@ async def list_entities(
 @router.delete("/entities/{entity_id}")
 async def delete_entity(
     entity_id: str,
+    remove_from_index: bool = Query(True, description="벡터 인덱스에서도 제거 여부"),
     db: AsyncSession = Depends(get_db),
 ):
-    """엔티티 삭제"""
-    deleted = await ontology_repo.delete_entity(db, entity_id)
+    """
+    엔티티 삭제
+
+    Entity를 삭제하고 벡터 인덱스에서도 제거합니다.
+    remove_from_index=false로 설정하면 인덱스 제거를 건너뜁니다.
+    """
+    # OntologyService를 사용하여 삭제 + 인덱스 제거
+    deleted = await ontology_service.delete_entity(
+        db, entity_id, remove_from_index=remove_from_index
+    )
     if not deleted:
         raise HTTPException(status_code=404, detail="Entity not found")
 
@@ -313,7 +331,8 @@ async def create_triple(
     if not obj:
         raise HTTPException(status_code=404, detail=f"Object entity not found: {triple.object_id}")
 
-    db_triple = await ontology_repo.create_triple(
+    # OntologyService를 사용하여 Triple 생성
+    db_triple = await ontology_service.create_triple(
         db,
         subject_id=triple.subject_id,
         predicate=predicate,
@@ -424,7 +443,8 @@ async def delete_triple(
     db: AsyncSession = Depends(get_db),
 ):
     """관계 삭제"""
-    deleted = await ontology_repo.delete_triple(db, triple_id)
+    # OntologyService를 사용하여 Triple 삭제
+    deleted = await ontology_service.delete_triple(db, triple_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Triple not found")
 

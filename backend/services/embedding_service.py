@@ -5,7 +5,6 @@ Embedding Service
 """
 
 import os
-from typing import Any
 
 import httpx
 import structlog
@@ -294,7 +293,7 @@ class EmbeddingService:
             raise ValueError("임베딩 차원이 일치하지 않습니다")
 
         # 코사인 유사도 계산
-        dot_product = sum(a * b for a, b in zip(embedding1, embedding2))
+        dot_product = sum(a * b for a, b in zip(embedding1, embedding2, strict=True))
         norm1 = sum(a * a for a in embedding1) ** 0.5
         norm2 = sum(b * b for b in embedding2) ** 0.5
 

@@ -46,6 +46,7 @@ dev = [
 
 [project.scripts]
 ax-portal = "backend.api.main:main"
+ax-index-entities = "scripts.index_entities:cli"
 
 [project.urls]
 Homepage = "https://github.com/AX-BD-Team/ax-discovery-portal"

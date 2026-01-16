@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Vector Search API** ✨
+  - `/api/search/similar`: 유사 엔티티 검색
+  - `/api/search/query`: RAG 기반 자연어 검색
+  - OntologyService: 인덱싱 및 벡터 검색 통합
+  - RAGService: 검색 + LLM 답변 생성
+  - CLI 스크립트: `ax-index-entities` 엔티티 인덱싱
+
 ### Fixed
 
 - **Render 배포 빌드 호환성 개선** 🔧
