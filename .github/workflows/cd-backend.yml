@@ -2,7 +2,7 @@ name: CD Backend (Render)
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - 'backend/**'
       - 'pyproject.toml'
@@ -13,6 +13,8 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     environment: staging
+    # main 또는 staging 브랜치 푸시 시 스테이징 배포
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
 
     steps:
       - name: Deploy to Render Staging
@@ -20,16 +22,21 @@ jobs:
           curl -X POST "${{ secrets.RENDER_STAGING_DEPLOY_HOOK }}"
 
       - name: Wait for deployment
-        run: sleep 30
+        run: sleep 60
 
-      - name: Health check
+      - name: Health check (with retry)
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.STAGING_API_URL }}/health" || echo "000")
-          if [ "$response" != "200" ]; then
-            echo "Health check failed with status: $response"
-            exit 1
-          fi
-          echo "Health check passed"
+          for i in 1 2 3 4 5; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.STAGING_API_URL }}/health" || echo "000")
+            if [ "$response" = "200" ]; then
+              echo "Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i: Health check returned $response, retrying in 30s..."
+            sleep 30
+          done
+          echo "Health check failed after 5 attempts"
+          exit 1
         continue-on-error: true
 
   deploy-production:
@@ -37,6 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: deploy-staging
     environment: production
+    # main 브랜치 푸시 시에만 프로덕션 배포
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Deploy to Render Production
@@ -46,12 +55,17 @@ jobs:
       - name: Wait for deployment
         run: sleep 60
 
-      - name: Health check
+      - name: Health check (with retry)
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.PRODUCTION_API_URL }}/health" || echo "000")
-          if [ "$response" != "200" ]; then
-            echo "Health check failed with status: $response"
-            exit 1
-          fi
-          echo "Health check passed"
+          for i in 1 2 3 4 5; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.PRODUCTION_API_URL }}/health" || echo "000")
+            if [ "$response" = "200" ]; then
+              echo "Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i: Health check returned $response, retrying in 30s..."
+            sleep 30
+          done
+          echo "Health check failed after 5 attempts"
+          exit 1
         continue-on-error: true
