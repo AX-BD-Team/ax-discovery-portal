@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CD 워크플로 staging 브랜치 지원** 🚀
+  - staging 브랜치 푸시 시에도 스테이징 배포 트리거
+  - 프로덕션 배포는 main 브랜치에서만 실행
+  - 헬스체크 재시도 로직 추가 (5회, 30초 간격)
+
+- **WF-06 스테이징 배포 및 테스트 완료** ✅
+  - Render 스테이징 환경 배포 성공
+  - 9개 Confluence Sync 엔드포인트 테스트 통과
+  - 2개 VoC Mining 엔드포인트 테스트 통과
+
+### Fixed
+
+- **email-validator 의존성 수정** 🐛
+  - Render 배포 오류 해결 (`pydantic[email]` extras 미작동 문제)
+  - `email-validator>=2.0.0` 명시적 의존성 추가
+
 ### Changed
 
 - **Pydantic V2 스타일 마이그레이션** ✨

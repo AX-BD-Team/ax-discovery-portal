@@ -46,7 +46,10 @@ class Settings(BaseSettings):
     agent_max_iterations: int = 100
     agent_approval_timeout: int = 86400
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # Sentry (monitoring)
+    sentry_dsn: str = ""
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 @lru_cache

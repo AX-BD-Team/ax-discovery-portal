@@ -197,7 +197,20 @@
 2. **Confluence Database API**: Confluence Cloud API의 Database 기능 제약 → 대안 필요 (페이지 테이블 우회 또는 Postgres 사용)
 3. **Markdown to Confluence 변환**: 현재 간단한 HTML 래핑만 구현 → 완전한 변환 라이브러리 필요
 4. ~~**인증/권한**: 현재 mock 구현, 프로덕션용 JWT 인증 필요~~ ✅ 해결됨 (JWT 인증 시스템 구현)
-5. **Alembic 마이그레이션**: 초기 스키마 생성 필요 (`alembic revision --autogenerate -m "Initial schema"`)
+5. ~~**Alembic 마이그레이션**: 초기 스키마 생성 필요~~ ✅ 해결됨 (3개 마이그레이션 체인 완성)
+6. ~~**Render 배포 오류**: email-validator 의존성 누락~~ ✅ 해결됨 (명시적 의존성 추가)
+
+---
+
+## ✅ 완료된 스프린트 (Week 5) - 2026-01-16
+
+**목표**: WF-06 스테이징 배포 및 검증 ✅ 달성
+
+**성공 조건** (4/4 완료):
+- [x] CD 워크플로 staging 브랜치 지원 추가
+- [x] email-validator 의존성 오류 해결
+- [x] WF-06 Confluence Sync 스테이징 배포 성공
+- [x] 9개 Confluence API 엔드포인트 테스트 통과
 
 ---
 
@@ -252,7 +265,11 @@
 - [x] 헬스체크 엔드포인트 강화 (`/health`, `/ready`) ✅ v0.4.0
   - /health: Kubernetes liveness probe
   - /ready: readiness probe (DB, Agent Runtime, Confluence 체크)
-- [ ] 로깅/모니터링 설정 (structlog + Sentry 연동)
+- [x] 로깅/모니터링 설정 (structlog + Sentry 연동) ✅ v0.4.0
+  - backend/core/logging.py: structlog 구조화 로깅
+  - 개발환경: 컬러 콘솔 출력, 프로덕션: JSON 포맷
+  - Sentry 연동 (optional, SENTRY_DSN 설정 시 활성화)
+  - 민감 데이터 필터링 (JWT, API 키)
 
 #### 4. 문서화 📚
 - [x] API 문서 자동 생성 (FastAPI OpenAPI/Swagger) ✅ v0.4.0
