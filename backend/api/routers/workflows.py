@@ -33,6 +33,10 @@ from backend.agent_runtime.workflows.wf_kpi_digest import (
     KPIDigestPipelineWithDB,
     KPIInput,
 )
+from backend.agent_runtime.workflows.wf_voc_mining import (
+    VoCInput,
+    VoCMiningPipeline,
+)
 from backend.api.deps import get_db
 
 logger = structlog.get_logger()
@@ -506,4 +510,279 @@ async def get_kpi_summary(
         },
         "alerts_count": len(result.alerts),
         "message": "실제 데이터는 GET /api/workflows/kpi-digest를 사용하세요",
+    }
+
+
+# ============================================================
+# WF-03: VoC Mining
+# ============================================================
+
+
+class VoCMiningRequest(BaseModel):
+    """WF-03 VoC Mining 요청"""
+
+    source_type: str = "text"  # csv, excel, api, text
+    text_content: str | None = None
+    api_data: list[dict[str, Any]] | None = None
+    play_id: str = "KT_Desk_V01_VoC"
+    source: str = "KT"
+    channel: str = "데스크리서치"
+    min_frequency: int = 5
+    max_themes: int = 5
+
+
+class VoCMiningResponse(BaseModel):
+    """WF-03 VoC Mining 응답"""
+
+    status: str
+    themes: list[dict[str, Any]]
+    signals: list[dict[str, Any]]
+    brief_candidates: list[dict[str, Any]]
+    summary: dict[str, Any]
+
+
+@router.post("/voc-mining", response_model=VoCMiningResponse)
+async def run_voc_mining(request: VoCMiningRequest):
+    """
+    WF-03: VoC Mining 파이프라인 실행
+
+    VoC 데이터 → 테마 추출 → Signal 생성 → Brief 후보 선정
+    """
+    logger.info(
+        "Running VoC Mining pipeline",
+        source_type=request.source_type,
+        play_id=request.play_id,
+    )
+
+    input_data = VoCInput(
+        source_type=request.source_type,
+        text_content=request.text_content,
+        api_data=request.api_data,
+        play_id=request.play_id,
+        source=request.source,
+        channel=request.channel,
+        min_frequency=request.min_frequency,
+        max_themes=request.max_themes,
+    )
+
+    pipeline = VoCMiningPipeline()
+    result = await pipeline.run(input_data)
+
+    return VoCMiningResponse(
+        status="completed",
+        themes=[
+            {
+                "theme_id": t.theme_id,
+                "name": t.name,
+                "frequency": t.frequency,
+                "severity": t.severity.value,
+                "keywords": t.keywords,
+                "confidence": t.confidence,
+            }
+            for t in result.themes
+        ],
+        signals=result.signals,
+        brief_candidates=result.brief_candidates,
+        summary=result.summary,
+    )
+
+
+@router.post("/voc-mining/preview")
+async def preview_voc_mining(
+    text_content: str,
+    min_frequency: int = 3,
+    max_themes: int = 5,
+):
+    """
+    VoC Mining 미리보기 (DB 저장 안함)
+    """
+    input_data = VoCInput(
+        source_type="text",
+        text_content=text_content,
+        min_frequency=min_frequency,
+        max_themes=max_themes,
+    )
+
+    pipeline = VoCMiningPipeline()
+    result = await pipeline.run(input_data)
+
+    return {
+        "status": "preview",
+        "themes_count": len(result.themes),
+        "themes": [
+            {
+                "name": t.name,
+                "frequency": t.frequency,
+                "severity": t.severity.value,
+                "keywords": t.keywords,
+            }
+            for t in result.themes
+        ],
+        "message": "실제 실행은 POST /api/workflows/voc-mining을 사용하세요",
+    }
+
+
+# ============================================================
+# WF-06: Confluence Sync
+# ============================================================
+
+
+class ConfluenceSyncRequest(BaseModel):
+    """WF-06 Confluence Sync 요청"""
+
+    targets: list[dict[str, Any]] = []
+    sync_type: str = "realtime"
+    play_id: str | None = None
+    dry_run: bool = False
+
+
+class ConfluenceSyncResponse(BaseModel):
+    """WF-06 Confluence Sync 응답"""
+
+    status: str
+    results: list[dict[str, Any]]
+    summary: dict[str, int]
+
+
+@router.post("/confluence-sync", response_model=ConfluenceSyncResponse)
+async def run_confluence_sync(request: ConfluenceSyncRequest):
+    """
+    WF-06: Confluence Sync 파이프라인 실행
+
+    Signal/Scorecard/Brief/Play → Confluence 페이지 동기화
+    """
+    logger.info(
+        "Running Confluence Sync pipeline",
+        targets_count=len(request.targets),
+        sync_type=request.sync_type,
+        dry_run=request.dry_run,
+    )
+
+    sync_targets = []
+    for t in request.targets:
+        sync_targets.append(
+            SyncTarget(
+                target_type=SyncTargetType(t.get("target_type", "signal")),
+                target_id=t.get("target_id", ""),
+                data=t.get("data", {}),
+                action=SyncAction(t.get("action", "create_page")),
+                play_id=t.get("play_id"),
+                page_id=t.get("page_id"),
+            )
+        )
+
+    input_data = SyncInput(
+        targets=sync_targets,
+        sync_type=request.sync_type,
+        play_id=request.play_id,
+        dry_run=request.dry_run,
+    )
+
+    pipeline = ConfluenceSyncPipeline()
+    result = await pipeline.run(input_data)
+
+    return ConfluenceSyncResponse(
+        status="completed",
+        results=[
+            {
+                "target_type": r.target_type.value,
+                "target_id": r.target_id,
+                "action": r.action.value,
+                "status": r.status,
+                "page_id": r.page_id,
+                "page_url": r.page_url,
+                "error": r.error,
+            }
+            for r in result.results
+        ],
+        summary=result.summary,
+    )
+
+
+@router.post("/confluence-sync/signal")
+async def sync_signal_to_confluence(
+    signal_id: str,
+    signal_data: dict[str, Any],
+    action: str = "create_page",
+):
+    """Signal을 Confluence에 동기화"""
+    pipeline = ConfluenceSyncPipeline()
+
+    try:
+        result = await pipeline.sync_signal(signal_data, SyncAction(action))
+        return {
+            "status": result.status,
+            "page_id": result.page_id,
+            "page_url": result.page_url,
+            "error": result.error,
+        }
+    except ValueError as e:
+        return {"status": "error", "error": str(e)}
+
+
+@router.post("/confluence-sync/brief")
+async def sync_brief_to_confluence(
+    brief_id: str,
+    brief_data: dict[str, Any],
+    action: str = "create_page",
+):
+    """Brief를 Confluence에 동기화"""
+    pipeline = ConfluenceSyncPipeline()
+
+    try:
+        result = await pipeline.sync_brief(brief_data, SyncAction(action))
+        return {
+            "status": result.status,
+            "page_id": result.page_id,
+            "page_url": result.page_url,
+            "error": result.error,
+        }
+    except ValueError as e:
+        return {"status": "error", "error": str(e)}
+
+
+@router.post("/confluence-sync/activity-log")
+async def log_activity_to_confluence(activity_data: dict[str, Any]):
+    """Activity 로그를 Confluence Live Doc에 추가"""
+    pipeline = ConfluenceSyncPipeline()
+    result = await pipeline.log_activity(activity_data)
+
+    return {
+        "status": result.status,
+        "page_id": result.page_id,
+        "page_url": result.page_url,
+        "error": result.error,
+    }
+
+
+@router.post("/confluence-sync/preview")
+async def preview_confluence_sync(
+    target_type: str,
+    target_id: str,
+    data: dict[str, Any],
+):
+    """Confluence 동기화 미리보기"""
+    from backend.agent_runtime.workflows.wf_confluence_sync import (
+        format_brief_page,
+        format_scorecard_page,
+        format_signal_page,
+    )
+
+    content = ""
+    if target_type == "signal":
+        content = format_signal_page(data)
+    elif target_type == "scorecard":
+        content = format_scorecard_page(data)
+    elif target_type == "brief":
+        content = format_brief_page(data)
+    else:
+        content = f"지원되지 않는 타입: {target_type}"
+
+    return {
+        "status": "preview",
+        "target_type": target_type,
+        "target_id": target_id,
+        "content_preview": content[:500] + "..." if len(content) > 500 else content,
+        "content_length": len(content),
+        "message": "실제 동기화는 POST /api/workflows/confluence-sync를 사용하세요",
     }
