@@ -46,6 +46,9 @@ dev = [
     "mypy>=1.13.0",
     "pre-commit>=4.0.0",
 ]
+monitoring = [
+    "sentry-sdk[fastapi]>=2.0.0",
+]
 
 [project.scripts]
 ax-portal = "backend.api.main:main"

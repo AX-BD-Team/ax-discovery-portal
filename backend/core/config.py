@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     approval_timeout: int = Field(default=86400, description="승인 타임아웃 (초)")
 
     # =========================================================================
+    # Monitoring - Sentry
+    # =========================================================================
+    sentry_dsn: str = Field(default="", description="Sentry DSN. 비어있으면 비활성화")
+    app_version: str = Field(default="0.4.0", description="앱 버전 (Sentry 릴리스용)")
+
+    # =========================================================================
     # Anthropic API
     # =========================================================================
     anthropic_api_key: str = Field(default="", description="Anthropic API 키")
