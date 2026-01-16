@@ -539,9 +539,7 @@ class TestWorkflowIntegration:
     @pytest.mark.asyncio
     async def test_seminar_add_command(self, async_client):
         """세미나 추가 커맨드 API"""
-        with patch(
-            "backend.agent_runtime.runner.runtime.run_workflow"
-        ) as mock_run:
+        with patch("backend.agent_runtime.runner.runtime.run_workflow") as mock_run:
             # Mock 응답 설정
             from unittest.mock import MagicMock
 

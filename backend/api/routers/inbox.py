@@ -4,9 +4,6 @@ Signal Inbox Router
 Signal 생성/조회/필터링 API (D1 HTTP API 사용)
 """
 
-import json
-import os
-import sys
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
