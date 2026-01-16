@@ -202,7 +202,7 @@ export function SignalDetailModal({ signalId, open, onOpenChange }: SignalDetail
                     <p className="text-4xl font-bold text-blue-600">{scorecard.total_score}/100</p>
                   </div>
                   <div className="grid gap-2">
-                    {Object.entries(scorecard.dimension_scores).map(([key, value]) => (
+                    {Object.entries(scorecard.dimension_scores || {}).map(([key, value]) => (
                       <div key={key} className="flex items-center justify-between text-sm">
                         <span className="capitalize text-gray-600">{key.replace(/_/g, ' ')}</span>
                         <span className="font-medium">{value}/20</span>

@@ -145,7 +145,7 @@ export function ScorecardDetailModal({ signalId, open, onOpenChange }: Scorecard
             <div>
               <h3 className="mb-4 font-semibold text-gray-900">Dimension Breakdown</h3>
               <div className="space-y-4">
-                {Object.entries(scorecard.dimension_scores).map(([key, value]) => (
+                {Object.entries(scorecard.dimension_scores || {}).map(([key, value]) => (
                   <div key={key}>
                     <div className="mb-2 flex items-center justify-between">
                       <span className="font-medium text-gray-900">

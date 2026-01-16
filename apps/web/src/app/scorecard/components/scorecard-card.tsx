@@ -75,7 +75,7 @@ export function ScorecardCard({ scorecard, onViewDetail }: ScorecardCardProps) {
           <div>
             <p className="mb-3 text-sm font-medium text-gray-700">Dimension Scores</p>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-              {Object.entries(scorecard.dimension_scores).map(([key, value]) => (
+              {Object.entries(scorecard.dimension_scores || {}).map(([key, value]) => (
                 <div key={key} className="rounded-lg border bg-gray-50 p-3 text-center">
                   <p className="text-lg font-bold text-gray-900">{value}</p>
                   <p className="text-xs text-gray-600">
