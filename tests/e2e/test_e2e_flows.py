@@ -757,9 +757,7 @@ class TestFullWorkflowChain:
     """
 
     @pytest.mark.asyncio
-    async def test_seminar_to_signal_to_brief_chain(
-        self, mock_httpx_response, mock_confluence_mcp
-    ):
+    async def test_seminar_to_signal_to_brief_chain(self, mock_httpx_response, mock_confluence_mcp):
         """세미나 → Signal → Brief 체인"""
         from backend.agent_runtime.workflows.wf_inbound_triage import (
             InboundInput,

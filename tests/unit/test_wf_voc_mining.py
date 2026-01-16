@@ -253,13 +253,15 @@ class TestRunFunction:
     @pytest.mark.asyncio
     async def test_run_with_full_input(self):
         """전체 입력으로 실행"""
-        voc_texts = "\n".join([
-            "응답이 너무 느립니다",
-            "대기 시간이 너무 깁니다",
-            "시스템이 느려요",
-            "처리 시간이 오래 걸려요",
-            "기다리는 시간이 길어요",
-        ])
+        voc_texts = "\n".join(
+            [
+                "응답이 너무 느립니다",
+                "대기 시간이 너무 깁니다",
+                "시스템이 느려요",
+                "처리 시간이 오래 걸려요",
+                "기다리는 시간이 길어요",
+            ]
+        )
         result = await run(
             {
                 "source_type": "text",
@@ -425,11 +427,13 @@ class TestVoCMiningPipelineWithEvents:
     @pytest.mark.asyncio
     async def test_run_emits_events(self):
         """이벤트 발행 확인"""
-        voc_texts = "\n".join([
-            "응답이 너무 느립니다",
-            "대기 시간이 너무 깁니다",
-            "시스템이 느려요",
-        ])
+        voc_texts = "\n".join(
+            [
+                "응답이 너무 느립니다",
+                "대기 시간이 너무 깁니다",
+                "시스템이 느려요",
+            ]
+        )
         input_data = VoCInput(
             text_content=voc_texts,
             source_type="text",
@@ -484,11 +488,13 @@ class TestVoCMiningPipelineWithDB:
     @pytest.mark.asyncio
     async def test_run_with_db(self):
         """DB 연동 파이프라인 실행"""
-        voc_texts = "\n".join([
-            "응답이 너무 느립니다",
-            "대기 시간이 너무 깁니다",
-            "시스템이 느려요",
-        ])
+        voc_texts = "\n".join(
+            [
+                "응답이 너무 느립니다",
+                "대기 시간이 너무 깁니다",
+                "시스템이 느려요",
+            ]
+        )
         input_data = VoCInput(
             text_content=voc_texts,
             source_type="text",
