@@ -709,35 +709,24 @@ class TestAuthRouter:
 
     def test_get_me_success(self, mock_user):
         """현재 사용자 정보 조회 - 성공"""
-        with patch("backend.api.deps.get_current_user") as mock_get_user:
-            mock_get_user.return_value = mock_user
+        from backend.api.deps import get_current_user
 
-            # 실제 토큰 생성
-            from backend.api.security import create_access_token
+        # 의존성 오버라이드 (DB 연결 우회)
+        async def mock_get_current_user():
+            return mock_user
 
-            token = create_access_token(
-                user_id=mock_user.user_id,
-                email=mock_user.email,
-                role=mock_user.role.value,
+        app.dependency_overrides[get_current_user] = mock_get_current_user
+
+        try:
+            response = self.client.get(
+                "/api/auth/me", headers={"Authorization": "Bearer mock-token"}
             )
 
-            # 의존성 오버라이드
-            app.dependency_overrides[
-                __import__(
-                    "backend.api.deps", fromlist=["get_current_user"]
-                ).get_current_user
-            ] = lambda: mock_user
-
-            try:
-                response = self.client.get(
-                    "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
-                )
-
-                assert response.status_code == 200
-                data = response.json()
-                assert data["user"]["email"] == mock_user.email
-            finally:
-                app.dependency_overrides.clear()
+            assert response.status_code == 200
+            data = response.json()
+            assert data["user"]["email"] == mock_user.email
+        finally:
+            app.dependency_overrides.clear()
 
     def test_get_me_no_token(self):
         """현재 사용자 정보 조회 - 토큰 없음"""
@@ -843,7 +832,7 @@ class TestWorkflowsRouter:
     def test_interview_to_brief_preview(self):
         """인터뷰 Signal 추출 미리보기"""
         with patch(
-            "backend.api.routers.workflows.extract_signals_from_interview"
+            "backend.agent_runtime.workflows.wf_interview_to_brief.extract_signals_from_interview"
         ) as mock_extract:
             mock_signal = MagicMock()
             mock_signal.title = "테스트 신호"
@@ -938,7 +927,9 @@ class TestWorkflowsRouter:
 
     def test_inbound_triage_preview(self):
         """인바운드 Triage 미리보기"""
-        with patch("backend.api.routers.workflows.route_to_play") as mock_route:
+        with patch(
+            "backend.agent_runtime.workflows.wf_inbound_triage.route_to_play"
+        ) as mock_route:
             mock_route.return_value = "KT_Inbound_I01"
 
             response = self.client.post(
@@ -957,7 +948,9 @@ class TestWorkflowsRouter:
 
     def test_inbound_triage_preview_invalid_urgency(self):
         """인바운드 Triage 미리보기 - 잘못된 urgency"""
-        with patch("backend.api.routers.workflows.route_to_play") as mock_route:
+        with patch(
+            "backend.agent_runtime.workflows.wf_inbound_triage.route_to_play"
+        ) as mock_route:
             mock_route.return_value = "KT_Inbound_I01"
 
             response = self.client.post(
@@ -1066,7 +1059,7 @@ class TestWorkflowsRouter:
         with patch(
             "backend.api.routers.workflows.KPIDigestPipeline"
         ) as mock_pipeline_cls, patch(
-            "backend.api.routers.workflows.calculate_period_range"
+            "backend.agent_runtime.workflows.wf_kpi_digest.calculate_period_range"
         ) as mock_range:
             from datetime import datetime
 
