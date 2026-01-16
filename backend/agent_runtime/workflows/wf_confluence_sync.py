@@ -5,6 +5,7 @@ Signal/Scorecard/Brief/Play 데이터를 Confluence에 동기화
 """
 
 import os
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -37,6 +38,7 @@ class SyncAction(str, Enum):
     UPDATE_PAGE = "update_page"
     APPEND_LOG = "append_log"
     UPDATE_TABLE = "update_table"
+    IMPORT_PAGE = "import_page"  # Confluence → DB
 
 
 @dataclass
@@ -242,6 +244,208 @@ def format_activity_log(activity: dict[str, Any]) -> str:
 
 
 # ============================================================
+# Page Parsers (Confluence → Dict)
+# ============================================================
+
+
+def parse_signal_page(content: str, page_id: str | None = None) -> dict[str, Any]:
+    """Signal 페이지 Markdown 파싱
+
+    Args:
+        content: Markdown 형식의 페이지 내용
+        page_id: Confluence 페이지 ID
+
+    Returns:
+        Signal 데이터 dict
+    """
+    result: dict[str, Any] = {"confluence_page_id": page_id}
+
+    # 제목 추출 (# Title)
+    title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
+    if title_match:
+        result["title"] = title_match.group(1).strip()
+
+    # 테이블에서 기본 정보 추출
+    table_patterns = {
+        "signal_id": r"\|\s*Signal ID\s*\|\s*(.+?)\s*\|",
+        "play_id": r"\|\s*Play ID\s*\|\s*(.+?)\s*\|",
+        "source": r"\|\s*Source\s*\|\s*(.+?)\s*\|",
+        "channel": r"\|\s*Channel\s*\|\s*(.+?)\s*\|",
+        "status": r"\|\s*Status\s*\|\s*(.+?)\s*\|",
+        "created_at": r"\|\s*Created\s*\|\s*(.+?)\s*\|",
+    }
+
+    for key, pattern in table_patterns.items():
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            value = match.group(1).strip()
+            if value != "N/A":
+                result[key] = value
+
+    # Pain Point 추출
+    pain_match = re.search(r"##\s*Pain Point\s*\n+(.+?)(?=\n##|\Z)", content, re.DOTALL)
+    if pain_match:
+        pain = pain_match.group(1).strip()
+        if pain != "N/A":
+            result["pain"] = pain
+
+    # Evidence 추출 (링크 형식)
+    evidence_section = re.search(r"##\s*Evidence\s*\n+(.+?)(?=\n##|\Z)", content, re.DOTALL)
+    if evidence_section:
+        evidence_text = evidence_section.group(1)
+        evidence_items = []
+        for link_match in re.finditer(r"-\s*\[(.+?)\]\((.+?)\)\s*-?\s*(.*)", evidence_text):
+            evidence_items.append(
+                {
+                    "title": link_match.group(1),
+                    "url": link_match.group(2),
+                    "note": link_match.group(3).strip(),
+                }
+            )
+        if evidence_items:
+            result["evidence"] = evidence_items
+
+    # Tags 추출
+    tags_match = re.search(r"##\s*Tags\s*\n+(.+?)(?=\n##|\Z)", content, re.DOTALL)
+    if tags_match:
+        tags_text = tags_match.group(1).strip()
+        if tags_text and tags_text != "없음":
+            result["tags"] = [t.strip() for t in tags_text.split(",")]
+
+    return result
+
+
+def parse_scorecard_page(content: str, page_id: str | None = None) -> dict[str, Any]:
+    """Scorecard 페이지 Markdown 파싱
+
+    Args:
+        content: Markdown 형식의 페이지 내용
+        page_id: Confluence 페이지 ID
+
+    Returns:
+        Scorecard 데이터 dict
+    """
+    result: dict[str, Any] = {"confluence_page_id": page_id}
+
+    # 제목에서 signal_id 추출 (# Scorecard: SIG-xxx)
+    title_match = re.search(r"#\s*Scorecard:\s*(\S+)", content)
+    if title_match:
+        result["signal_id"] = title_match.group(1).strip()
+
+    # 총점 추출 (**80점** / 100점)
+    score_match = re.search(r"\*\*(\d+)점\*\*\s*/\s*100점", content)
+    if score_match:
+        result["total_score"] = int(score_match.group(1))
+
+    # 차원별 점수 추출
+    dimensions_section = re.search(r"##\s*차원별 점수\s*\n+(.+?)(?=\n##|\Z)", content, re.DOTALL)
+    if dimensions_section:
+        dimensions = {}
+        for dim_match in re.finditer(r"\|\s*(.+?)\s*\|\s*(\d+)\s*\|", dimensions_section.group(1)):
+            dim_name = dim_match.group(1).strip().lower().replace(" ", "_")
+            if dim_name not in ["차원", "---"]:
+                dimensions[dim_name] = {"score": int(dim_match.group(2))}
+        if dimensions:
+            result["dimensions"] = dimensions
+
+    # 결정 추출
+    decision_match = re.search(r"##\s*결정\s*\n+\*\*(.+?)\*\*", content)
+    if decision_match:
+        result["decision"] = decision_match.group(1).strip()
+
+    # 근거 추출
+    rationale_match = re.search(r"##\s*근거\s*\n+(.+?)(?=\n##|\Z)", content, re.DOTALL)
+    if rationale_match:
+        rationale = rationale_match.group(1).strip()
+        if rationale != "N/A":
+            result["rationale"] = rationale
+
+    return result
+
+
+def parse_brief_page(content: str, page_id: str | None = None) -> dict[str, Any]:
+    """Brief 페이지 Markdown 파싱
+
+    Args:
+        content: Markdown 형식의 페이지 내용
+        page_id: Confluence 페이지 ID
+
+    Returns:
+        Brief 데이터 dict
+    """
+    result: dict[str, Any] = {"confluence_page_id": page_id}
+
+    # 제목 추출
+    title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
+    if title_match:
+        result["title"] = title_match.group(1).strip()
+
+    # 테이블에서 기본 정보 추출
+    table_patterns = {
+        "brief_id": r"\|\s*Brief ID\s*\|\s*(.+?)\s*\|",
+        "signal_id": r"\|\s*Signal ID\s*\|\s*(.+?)\s*\|",
+        "status": r"\|\s*Status\s*\|\s*(.+?)\s*\|",
+        "created_at": r"\|\s*Created\s*\|\s*(.+?)\s*\|",
+    }
+
+    for key, pattern in table_patterns.items():
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            value = match.group(1).strip()
+            if value != "N/A":
+                result[key] = value
+
+    # 섹션별 내용 추출
+    section_patterns = {
+        "executive_summary": r"##\s*Executive Summary\s*\n+(.+?)(?=\n##|\Z)",
+        "problem_statement": r"##\s*Problem Statement\s*\n+(.+?)(?=\n##|\Z)",
+        "proposed_solution": r"##\s*Proposed Solution\s*\n+(.+?)(?=\n##|\Z)",
+        "expected_impact": r"##\s*Expected Impact\s*\n+(.+?)(?=\n##|\Z)",
+        "next_steps": r"##\s*Next Steps\s*\n+(.+?)(?=\n##|\Z)",
+    }
+
+    for key, pattern in section_patterns.items():
+        match = re.search(pattern, content, re.DOTALL)
+        if match:
+            value = match.group(1).strip()
+            if value != "N/A":
+                result[key] = value
+
+    return result
+
+
+def detect_page_type(content: str, labels: list[str] | None = None) -> SyncTargetType | None:
+    """페이지 내용/라벨로 타입 감지
+
+    Args:
+        content: 페이지 내용
+        labels: 페이지 라벨 목록
+
+    Returns:
+        감지된 SyncTargetType 또는 None
+    """
+    # 라벨 기반 감지 (우선)
+    if labels:
+        label_set = {lbl.lower() for lbl in labels}
+        if "signal" in label_set:
+            return SyncTargetType.SIGNAL
+        if "scorecard" in label_set:
+            return SyncTargetType.SCORECARD
+        if "brief" in label_set:
+            return SyncTargetType.BRIEF
+
+    # 내용 기반 감지
+    if "Signal ID" in content and "Pain Point" in content:
+        return SyncTargetType.SIGNAL
+    if "Scorecard:" in content and "차원별 점수" in content:
+        return SyncTargetType.SCORECARD
+    if "Brief ID" in content and "Executive Summary" in content:
+        return SyncTargetType.BRIEF
+
+    return None
+
+
+# ============================================================
 # Mock Confluence Client
 # ============================================================
 
@@ -299,6 +503,60 @@ class MockConfluenceClient:
             "page_id": page_id,
             "url": f"{self.base_url}/wiki/spaces/{self.space_key}/pages/{page_id}",
         }
+
+    async def get_page(
+        self,
+        page_id: str,
+    ) -> dict[str, Any]:
+        """페이지 조회"""
+        if not self.is_configured:
+            raise ValueError("Confluence not configured (CONFLUENCE_API_TOKEN missing)")
+
+        # Mock: 실제 환경에서는 Confluence API로 페이지 내용 조회
+        return {
+            "page_id": page_id,
+            "title": f"Page {page_id}",
+            "body": "# Mock Page Content",
+            "url": f"{self.base_url}/wiki/spaces/{self.space_key}/pages/{page_id}",
+            "labels": [],
+            "version": 1,
+        }
+
+    async def search_pages(
+        self,
+        cql: str,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """CQL로 페이지 검색
+
+        Args:
+            cql: Confluence Query Language (예: 'label = "signal"')
+            limit: 최대 결과 수
+
+        Returns:
+            검색된 페이지 목록
+        """
+        if not self.is_configured:
+            raise ValueError("Confluence not configured (CONFLUENCE_API_TOKEN missing)")
+
+        # Mock: 빈 결과 반환 (실제 환경에서는 Confluence API 검색)
+        return []
+
+    async def get_pages_by_label(
+        self,
+        label: str,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """라벨로 페이지 조회
+
+        Args:
+            label: 검색할 라벨 (예: "signal", "scorecard", "brief")
+            limit: 최대 결과 수
+
+        Returns:
+            해당 라벨을 가진 페이지 목록
+        """
+        return await self.search_pages(f'label = "{label}"', limit=limit)
 
 
 # ============================================================
@@ -977,6 +1235,349 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
         except Exception as e:
             self.logger.warning("Failed to fetch briefs from DB", error=str(e))
             return []
+
+    # ============================================================
+    # Confluence → DB Import (양방향 동기화)
+    # ============================================================
+
+    async def import_from_confluence(
+        self,
+        target_type: SyncTargetType,
+        page_ids: list[str] | None = None,
+        label: str | None = None,
+    ) -> dict[str, Any]:
+        """Confluence에서 데이터를 가져와 DB에 저장
+
+        Args:
+            target_type: 가져올 대상 타입 (signal, scorecard, brief)
+            page_ids: 가져올 페이지 ID 목록 (None이면 라벨로 검색)
+            label: 검색할 라벨 (page_ids가 None일 때 사용)
+
+        Returns:
+            import 결과 요약
+        """
+        self.logger.info(
+            "Starting Confluence import",
+            target_type=target_type.value,
+            page_ids=page_ids,
+            label=label,
+        )
+
+        results = {
+            "total": 0,
+            "imported": 0,
+            "updated": 0,
+            "skipped": 0,
+            "failed": 0,
+            "details": [],
+        }
+
+        # 페이지 목록 조회
+        pages = []
+        if page_ids:
+            for page_id in page_ids:
+                try:
+                    page = await self.confluence.get_page(page_id)
+                    pages.append(page)
+                except ValueError as e:
+                    self.logger.warning("Failed to get page", page_id=page_id, error=str(e))
+                    results["failed"] += 1
+        elif label:
+            # 라벨로 페이지 검색
+            label_to_use = label or target_type.value
+            pages = await self.confluence.get_pages_by_label(label_to_use)
+        else:
+            # 타입별 기본 라벨 사용
+            pages = await self.confluence.get_pages_by_label(target_type.value)
+
+        results["total"] = len(pages)
+
+        # 각 페이지 처리
+        for page in pages:
+            page_id = page.get("page_id")
+            content = page.get("body", "")
+            labels = page.get("labels", [])
+
+            # 페이지 타입 감지 (명시적 타입 또는 자동 감지)
+            detected_type = detect_page_type(content, labels)
+            if target_type != SyncTargetType.ALL and detected_type != target_type:
+                self.logger.debug(
+                    "Page type mismatch, skipping",
+                    page_id=page_id,
+                    expected=target_type.value,
+                    detected=detected_type.value if detected_type else None,
+                )
+                results["skipped"] += 1
+                continue
+
+            # 페이지 파싱 및 DB 저장
+            try:
+                import_result = await self._import_page_to_db(
+                    page_id=page_id,
+                    content=content,
+                    page_type=detected_type or target_type,
+                    page_url=page.get("url"),
+                )
+                if import_result["action"] == "created":
+                    results["imported"] += 1
+                elif import_result["action"] == "updated":
+                    results["updated"] += 1
+                else:
+                    results["skipped"] += 1
+
+                results["details"].append(import_result)
+            except Exception as e:
+                self.logger.warning(
+                    "Failed to import page",
+                    page_id=page_id,
+                    error=str(e),
+                )
+                results["failed"] += 1
+                results["details"].append(
+                    {
+                        "page_id": page_id,
+                        "action": "failed",
+                        "error": str(e),
+                    }
+                )
+
+        self.logger.info("Confluence import completed", results=results)
+        return results
+
+    async def _import_page_to_db(
+        self,
+        page_id: str,
+        content: str,
+        page_type: SyncTargetType,
+        page_url: str | None = None,
+    ) -> dict[str, Any]:
+        """단일 페이지를 파싱하여 DB에 저장
+
+        Args:
+            page_id: Confluence 페이지 ID
+            content: 페이지 Markdown 내용
+            page_type: 페이지 타입
+            page_url: 페이지 URL
+
+        Returns:
+            import 결과
+        """
+        if page_type == SyncTargetType.SIGNAL:
+            return await self._import_signal(page_id, content, page_url)
+        elif page_type == SyncTargetType.SCORECARD:
+            return await self._import_scorecard(page_id, content, page_url)
+        elif page_type == SyncTargetType.BRIEF:
+            return await self._import_brief(page_id, content, page_url)
+        else:
+            return {
+                "page_id": page_id,
+                "action": "skipped",
+                "reason": f"Unsupported page type: {page_type}",
+            }
+
+    async def _import_signal(
+        self,
+        page_id: str,
+        content: str,
+        page_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Signal 페이지 import"""
+        from backend.repositories.signal import SignalRepository
+
+        # 페이지 파싱
+        parsed = parse_signal_page(content, page_id)
+
+        if not parsed.get("signal_id"):
+            # signal_id가 없으면 새로 생성
+            repo = SignalRepository(self.db)
+            signal_id = await repo.generate_signal_id()
+            parsed["signal_id"] = signal_id
+            action = "created"
+        else:
+            # 기존 Signal 확인
+            repo = SignalRepository(self.db)
+            existing = await repo.get_by_signal_id(parsed["signal_id"])
+            action = "updated" if existing else "created"
+
+        # metadata에 Confluence 정보 추가
+        parsed["metadata"] = {
+            "confluence_page_id": page_id,
+            "confluence_page_url": page_url,
+            "imported_from_confluence": True,
+        }
+
+        # DB에 저장/업데이트
+        if action == "created":
+            await repo.create(parsed)
+        else:
+            await repo.update_by_signal_id(parsed["signal_id"], parsed)
+
+        self.logger.info(
+            "Signal imported from Confluence",
+            signal_id=parsed["signal_id"],
+            action=action,
+            page_id=page_id,
+        )
+
+        return {
+            "page_id": page_id,
+            "target_type": "signal",
+            "target_id": parsed["signal_id"],
+            "action": action,
+        }
+
+    async def _import_scorecard(
+        self,
+        page_id: str,
+        content: str,
+        page_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Scorecard 페이지 import"""
+        from backend.repositories.scorecard import ScorecardRepository
+
+        # 페이지 파싱
+        parsed = parse_scorecard_page(content, page_id)
+
+        if not parsed.get("signal_id"):
+            return {
+                "page_id": page_id,
+                "action": "skipped",
+                "reason": "signal_id not found in page",
+            }
+
+        repo = ScorecardRepository(self.db)
+
+        # 기존 Scorecard 확인 (signal_id로)
+        existing = await repo.get_by_signal_id(parsed["signal_id"])
+        action = "updated" if existing else "created"
+
+        # scorecard_id 생성/유지
+        if not existing:
+            scorecard_id = await repo.generate_scorecard_id()
+            parsed["scorecard_id"] = scorecard_id
+        else:
+            parsed["scorecard_id"] = existing.scorecard_id
+
+        # metadata에 Confluence 정보 추가
+        parsed["metadata"] = {
+            "confluence_page_id": page_id,
+            "confluence_page_url": page_url,
+            "imported_from_confluence": True,
+        }
+
+        # DB에 저장/업데이트
+        if action == "created":
+            await repo.create(parsed)
+        else:
+            await repo.update_by_scorecard_id(parsed["scorecard_id"], parsed)
+
+        self.logger.info(
+            "Scorecard imported from Confluence",
+            scorecard_id=parsed["scorecard_id"],
+            signal_id=parsed["signal_id"],
+            action=action,
+            page_id=page_id,
+        )
+
+        return {
+            "page_id": page_id,
+            "target_type": "scorecard",
+            "target_id": parsed["scorecard_id"],
+            "action": action,
+        }
+
+    async def _import_brief(
+        self,
+        page_id: str,
+        content: str,
+        page_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Brief 페이지 import"""
+        from backend.repositories.brief import BriefRepository
+
+        # 페이지 파싱
+        parsed = parse_brief_page(content, page_id)
+
+        repo = BriefRepository(self.db)
+
+        # brief_id로 기존 Brief 확인
+        existing = None
+        if parsed.get("brief_id"):
+            existing = await repo.get_by_brief_id(parsed["brief_id"])
+
+        action = "updated" if existing else "created"
+
+        # brief_id 생성/유지
+        if not existing:
+            brief_id = await repo.generate_brief_id()
+            parsed["brief_id"] = brief_id
+        else:
+            parsed["brief_id"] = existing.brief_id
+
+        # metadata에 Confluence 정보 추가
+        parsed["metadata"] = {
+            "confluence_page_id": page_id,
+            "confluence_page_url": page_url,
+            "imported_from_confluence": True,
+        }
+
+        # DB에 저장/업데이트
+        if action == "created":
+            await repo.create(parsed)
+        else:
+            await repo.update_by_brief_id(parsed["brief_id"], parsed)
+
+        self.logger.info(
+            "Brief imported from Confluence",
+            brief_id=parsed["brief_id"],
+            action=action,
+            page_id=page_id,
+        )
+
+        return {
+            "page_id": page_id,
+            "target_type": "brief",
+            "target_id": parsed["brief_id"],
+            "action": action,
+        }
+
+    async def bidirectional_sync(
+        self,
+        target_type: SyncTargetType = SyncTargetType.ALL,
+    ) -> dict[str, Any]:
+        """양방향 동기화 실행
+
+        1. Confluence → DB: 새로운/변경된 페이지 import
+        2. DB → Confluence: 새로운/변경된 데이터 export
+
+        Args:
+            target_type: 동기화 대상 타입
+
+        Returns:
+            양방향 동기화 결과
+        """
+        self.logger.info("Starting bidirectional sync", target_type=target_type.value)
+
+        results = {
+            "import_results": {},
+            "export_results": {},
+        }
+
+        # Phase 1: Confluence → DB
+        import_results = await self.import_from_confluence(target_type)
+        results["import_results"] = import_results
+
+        # Phase 2: DB → Confluence
+        export_result = await self.sync_from_db(target_type)
+        results["export_results"] = {
+            "total": export_result.summary["total"],
+            "success": export_result.summary["success"],
+            "failed": export_result.summary["failed"],
+            "skipped": export_result.summary["skipped"],
+        }
+
+        self.logger.info("Bidirectional sync completed", results=results)
+        return results
 
 
 async def run(input_data: dict[str, Any]) -> dict[str, Any]:

@@ -851,3 +851,254 @@ async def preview_confluence_sync(
         "content_length": len(content),
         "message": "실제 동기화는 POST /api/workflows/confluence-sync를 사용하세요",
     }
+
+
+# ============================================================
+# WF-06: Confluence Sync (양방향)
+# ============================================================
+
+
+class ConfluenceImportRequest(BaseModel):
+    """Confluence Import 요청"""
+
+    target_type: str = "signal"  # signal, scorecard, brief, all
+    page_ids: list[str] | None = None  # 특정 페이지 ID 목록
+    label: str | None = None  # 검색할 라벨
+
+
+class ConfluenceImportResponse(BaseModel):
+    """Confluence Import 응답"""
+
+    status: str
+    total: int
+    imported: int
+    updated: int
+    skipped: int
+    failed: int
+    details: list[dict[str, Any]]
+
+
+class BidirectionalSyncResponse(BaseModel):
+    """양방향 동기화 응답"""
+
+    status: str
+    import_results: dict[str, Any]
+    export_results: dict[str, Any]
+
+
+@router.post("/confluence-sync/import", response_model=ConfluenceImportResponse)
+async def import_from_confluence(
+    request: ConfluenceImportRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    WF-06: Confluence → DB Import
+
+    Confluence 페이지를 파싱하여 DB에 저장
+
+    Args:
+        target_type: 가져올 대상 타입 (signal, scorecard, brief, all)
+        page_ids: 가져올 페이지 ID 목록 (없으면 라벨로 검색)
+        label: 검색할 라벨 (page_ids가 없을 때)
+
+    Returns:
+        total: 처리한 페이지 수
+        imported: 새로 생성된 항목 수
+        updated: 업데이트된 항목 수
+        skipped: 스킵된 항목 수
+        failed: 실패한 항목 수
+        details: 각 페이지별 상세 결과
+    """
+    from backend.agent_runtime.workflows.wf_confluence_sync import (
+        ConfluenceSyncPipelineWithDB,
+    )
+
+    logger.info(
+        "Running Confluence Import",
+        target_type=request.target_type,
+        page_ids=request.page_ids,
+        label=request.label,
+    )
+
+    # 이벤트 세션 설정
+    session_id = generate_session_id("WF-06-import")
+    run_id = generate_run_id()
+    event_manager = SessionEventManager.get_or_create(session_id)
+    emitter = WorkflowEventEmitter(event_manager, run_id)
+
+    # 파이프라인 실행
+    pipeline = ConfluenceSyncPipelineWithDB(emitter, db)
+    result = await pipeline.import_from_confluence(
+        target_type=SyncTargetType(request.target_type),
+        page_ids=request.page_ids,
+        label=request.label,
+    )
+
+    # 세션 정리
+    SessionEventManager.remove(session_id)
+
+    return ConfluenceImportResponse(
+        status="completed",
+        total=result["total"],
+        imported=result["imported"],
+        updated=result["updated"],
+        skipped=result["skipped"],
+        failed=result["failed"],
+        details=result["details"],
+    )
+
+
+@router.post("/confluence-sync/from-db")
+async def sync_from_db_to_confluence(
+    target_type: str = "all",
+    target_ids: list[str] | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    WF-06: DB → Confluence 배치 동기화
+
+    DB 데이터를 Confluence 페이지로 동기화
+
+    Args:
+        target_type: 동기화 대상 타입 (signal, scorecard, brief, all)
+        target_ids: 동기화할 ID 목록 (없으면 최근 100개)
+
+    Returns:
+        동기화 결과 summary
+    """
+    from backend.agent_runtime.workflows.wf_confluence_sync import (
+        ConfluenceSyncPipelineWithDB,
+    )
+
+    logger.info(
+        "Running DB → Confluence sync",
+        target_type=target_type,
+        target_ids=target_ids,
+    )
+
+    # 이벤트 세션 설정
+    session_id = generate_session_id("WF-06-export")
+    run_id = generate_run_id()
+    event_manager = SessionEventManager.get_or_create(session_id)
+    emitter = WorkflowEventEmitter(event_manager, run_id)
+
+    # 파이프라인 실행
+    pipeline = ConfluenceSyncPipelineWithDB(emitter, db)
+    result = await pipeline.sync_from_db(
+        target_type=SyncTargetType(target_type),
+        target_ids=target_ids,
+    )
+
+    # 세션 정리
+    SessionEventManager.remove(session_id)
+
+    return {
+        "status": "completed",
+        "results_count": len(result.results),
+        "summary": result.summary,
+    }
+
+
+@router.post("/confluence-sync/bidirectional", response_model=BidirectionalSyncResponse)
+async def run_bidirectional_sync(
+    target_type: str = "all",
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    WF-06: 양방향 동기화
+
+    1. Confluence → DB: 새로운/변경된 페이지 import
+    2. DB → Confluence: 새로운/변경된 데이터 export
+
+    Args:
+        target_type: 동기화 대상 타입 (signal, scorecard, brief, all)
+
+    Returns:
+        import_results: Confluence → DB 결과
+        export_results: DB → Confluence 결과
+    """
+    from backend.agent_runtime.workflows.wf_confluence_sync import (
+        ConfluenceSyncPipelineWithDB,
+    )
+
+    logger.info(
+        "Running bidirectional sync",
+        target_type=target_type,
+    )
+
+    # 이벤트 세션 설정
+    session_id = generate_session_id("WF-06-bidirectional")
+    run_id = generate_run_id()
+    event_manager = SessionEventManager.get_or_create(session_id)
+    emitter = WorkflowEventEmitter(event_manager, run_id)
+
+    # 파이프라인 실행
+    pipeline = ConfluenceSyncPipelineWithDB(emitter, db)
+    result = await pipeline.bidirectional_sync(
+        target_type=SyncTargetType(target_type),
+    )
+
+    # 세션 정리
+    SessionEventManager.remove(session_id)
+
+    return BidirectionalSyncResponse(
+        status="completed",
+        import_results=result["import_results"],
+        export_results=result["export_results"],
+    )
+
+
+@router.post("/confluence-sync/parse-preview")
+async def preview_confluence_page_parsing(
+    content: str,
+    page_type: str | None = None,
+):
+    """
+    Confluence 페이지 파싱 미리보기
+
+    Markdown 내용을 파싱하여 추출 결과 확인
+
+    Args:
+        content: Markdown 형식의 페이지 내용
+        page_type: 페이지 타입 (signal, scorecard, brief / 없으면 자동 감지)
+
+    Returns:
+        detected_type: 감지된 페이지 타입
+        parsed_data: 파싱된 데이터
+    """
+    from backend.agent_runtime.workflows.wf_confluence_sync import (
+        detect_page_type,
+        parse_brief_page,
+        parse_scorecard_page,
+        parse_signal_page,
+    )
+
+    # 페이지 타입 감지
+    detected = SyncTargetType(page_type) if page_type else detect_page_type(content)
+
+    if not detected:
+        return {
+            "status": "error",
+            "error": "페이지 타입을 감지할 수 없습니다",
+            "hint": "page_type 파라미터를 명시하거나, Signal/Scorecard/Brief 형식의 Markdown을 입력하세요",
+        }
+
+    # 타입별 파싱
+    if detected == SyncTargetType.SIGNAL:
+        parsed = parse_signal_page(content)
+    elif detected == SyncTargetType.SCORECARD:
+        parsed = parse_scorecard_page(content)
+    elif detected == SyncTargetType.BRIEF:
+        parsed = parse_brief_page(content)
+    else:
+        return {
+            "status": "error",
+            "error": f"지원되지 않는 타입: {detected}",
+        }
+
+    return {
+        "status": "preview",
+        "detected_type": detected.value,
+        "parsed_data": parsed,
+        "message": "실제 import는 POST /api/workflows/confluence-sync/import를 사용하세요",
+    }

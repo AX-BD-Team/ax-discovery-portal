@@ -9,6 +9,11 @@ import os
 import sys
 from logging.config import fileConfig
 
+# .env 파일에서 환경변수 로드 (alembic 실행 시 필요)
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Windows에서 psycopg async 호환성을 위해 SelectorEventLoop 사용
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -17,8 +22,23 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
-# Import Base and all models
+# Import Base directly (not through __init__ to avoid session initialization)
 from backend.database.base import Base
+
+# Import all models to ensure they are registered with Base.metadata
+# These imports must be after Base is imported
+from backend.database.models import (  # noqa: F401
+    ActionLog,
+    CompetencyQuestion,
+    Entity,
+    OpportunityBrief,
+    PlayRecord,
+    Scorecard,
+    Signal,
+    Trace,
+    Triple,
+    User,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
