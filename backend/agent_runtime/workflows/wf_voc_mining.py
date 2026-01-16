@@ -575,11 +575,7 @@ class VoCMiningPipelineWithDB(VoCMiningPipelineWithEvents):
             저장 결과 (signals, scorecards ID 목록)
         """
         from backend.database.models.scorecard import Decision, NextStep
-        from backend.database.models.signal import (
-            SignalChannel,
-            SignalSource,
-            SignalStatus,
-        )
+        from backend.database.models.signal import SignalStatus
         from backend.database.repositories.scorecard import scorecard_repo
         from backend.database.repositories.signal import signal_repo
 
@@ -680,7 +676,7 @@ class VoCMiningPipelineWithDB(VoCMiningPipelineWithEvents):
 
         return saved
 
-    def _map_source(self, source: str) -> "SignalSource":
+    def _map_source(self, source: str) -> Any:
         """문자열을 SignalSource enum으로 변환"""
         from backend.database.models.signal import SignalSource
 
@@ -691,7 +687,7 @@ class VoCMiningPipelineWithDB(VoCMiningPipelineWithEvents):
         }
         return source_map.get(source, SignalSource.KT)
 
-    def _map_channel(self, channel: str) -> "SignalChannel":
+    def _map_channel(self, channel: str) -> Any:
         """문자열을 SignalChannel enum으로 변환"""
         from backend.database.models.signal import SignalChannel
 

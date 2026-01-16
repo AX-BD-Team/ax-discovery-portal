@@ -611,17 +611,15 @@ async def run_voc_mining(request: VoCMiningRequest, db: AsyncSession = Depends(g
         emitter = WorkflowEventEmitter(event_manager, run_id)
 
         pipeline = VoCMiningPipelineWithDB(emitter, db)
-        result = await pipeline.run(input_data)
-
-        # DB 저장
-        saved = await pipeline.save_to_db(result.signals)
+        result = await pipeline.run(input_data)  # run() 내부에서 DB 저장 자동 수행
 
         # 세션 정리
         SessionEventManager.remove(session_id)
 
         logger.info(
             "VoC Mining completed with DB save",
-            saved_signals=len(saved["signals"]),
+            saved_signals=result.summary.get("saved_signals", 0),
+            saved_scorecards=result.summary.get("saved_scorecards", 0),
         )
     else:
         # DB 저장 없이 실행
