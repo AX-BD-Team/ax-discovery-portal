@@ -7,7 +7,7 @@ Ontology API Router
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_db
@@ -47,8 +47,7 @@ class EntityResponse(BaseModel):
     updated_at: datetime
     created_by: str | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EntityListResponse(BaseModel):
@@ -90,8 +89,7 @@ class TripleResponse(BaseModel):
     subject: EntityResponse | None = None
     object: EntityResponse | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TripleListResponse(BaseModel):

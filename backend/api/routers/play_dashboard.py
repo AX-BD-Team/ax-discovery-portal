@@ -7,7 +7,7 @@ Play 관리 및 KPI 대시보드 API (D1 HTTP API 사용)
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from backend.integrations.cloudflare_d1.repositories import play_d1_repo
 
@@ -33,8 +33,7 @@ class PlayResponse(BaseModel):
     last_activity_date: str | None = None
     last_updated: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PlayListResponse(BaseModel):
