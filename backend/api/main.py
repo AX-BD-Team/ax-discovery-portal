@@ -14,8 +14,6 @@ load_dotenv()
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
-from fastapi.responses import JSONResponse
 
 from .routers import (
     auth,
@@ -209,11 +207,81 @@ async def root():
 @app.get("/health")
 @app.head("/health")
 async def health():
-    """상세 헬스체크"""
+    """
+    상세 헬스체크
+
+    Kubernetes liveness probe용 엔드포인트.
+    애플리케이션이 살아있는지 확인합니다.
+    """
+    from backend.core.config import settings
+
     return {
         "status": "healthy",
         "version": API_VERSION,
-        "components": {"database": "ok", "agent_runtime": "ok", "confluence": "ok"},
+        "environment": settings.app_env,
+        "components": {
+            "api": "ok",
+        },
+    }
+
+
+@app.get("/ready")
+@app.head("/ready")
+async def ready():
+    """
+    준비 상태 체크
+
+    Kubernetes readiness probe용 엔드포인트.
+    모든 의존성이 준비되었는지 확인합니다.
+    """
+    from backend.core.config import settings
+
+    components: dict[str, str] = {}
+    all_ready = True
+
+    # 1. 데이터베이스 연결 체크
+    try:
+        if settings.database_url:
+            from sqlalchemy import text
+
+            from backend.database.session import engine
+
+            async with engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            components["database"] = "ok"
+        else:
+            components["database"] = "not_configured"
+    except Exception as e:
+        components["database"] = f"error: {str(e)[:50]}"
+        all_ready = False
+
+    # 2. Agent Runtime 체크
+    try:
+        from backend.agent_runtime.runner import runtime
+
+        # AgentRuntime이 로드되었는지 확인
+        if runtime.agents:
+            components["agent_runtime"] = "ok"
+        else:
+            components["agent_runtime"] = "no_agents"
+    except Exception as e:
+        components["agent_runtime"] = f"error: {str(e)[:50]}"
+        all_ready = False
+
+    # 3. Confluence 연결 체크 (설정된 경우에만)
+    if settings.confluence_configured:
+        components["confluence"] = "configured"
+    else:
+        components["confluence"] = "not_configured"
+
+    # 4. 전체 상태 결정
+    status = "ready" if all_ready else "degraded"
+
+    return {
+        "status": status,
+        "version": API_VERSION,
+        "environment": settings.app_env,
+        "components": components,
     }
 
 
