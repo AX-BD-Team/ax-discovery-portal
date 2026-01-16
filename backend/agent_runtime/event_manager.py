@@ -67,12 +67,20 @@ class SessionEventManager:
             except asyncio.QueueFull:
                 pass
 
-    async def publish(self, event: AgentEvent | BaseAgentEvent) -> None:
-        """이벤트 발행"""
+    async def publish(self, event: AgentEvent | BaseAgentEvent | dict[str, Any]) -> None:
+        """이벤트 발행
+
+        Args:
+            event: 이벤트 객체 또는 dict
+                - BaseAgentEvent/AgentEvent: to_dict() 호출하여 변환
+                - dict: 그대로 사용 (테스트 또는 레거시 호환용)
+        """
         if self._closed:
             return
 
-        event_dict = event.to_dict()
+        # dict인 경우 그대로 사용, 아니면 to_dict() 호출
+        event_dict = event if isinstance(event, dict) else event.to_dict()
+
         self.history.append(event_dict)
         self.logger.debug("Event published", event_type=event_dict.get("type"))
 
