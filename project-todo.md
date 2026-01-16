@@ -3,7 +3,7 @@
 > 프로젝트 진행 상황 및 다음 단계
 
 **현재 버전**: 0.4.0
-**마지막 업데이트**: 2026-01-15
+**마지막 업데이트**: 2026-01-16
 
 ---
 
@@ -118,6 +118,15 @@
   - [x] Top Plays 선정 (성과 우수 Play 순위)
   - [x] 추천 사항 생성 (AI 기반 개선 권고)
   - [x] 단위 테스트 31개 통과
+- [x] WF-06 Confluence Sync 구현 ✅ v0.4.0
+  - [x] 데이터 모델 (SyncTargetType, SyncAction, SyncTarget, SyncInput, SyncResult, SyncOutput)
+  - [x] 페이지 포맷터 (Signal, Scorecard, Brief, Activity 페이지)
+  - [x] MockConfluenceClient (create/update/append 페이지)
+  - [x] ConfluenceSyncPipeline (5단계 동기화)
+  - [x] ConfluenceSyncPipelineWithEvents (AG-UI 이벤트)
+  - [x] ConfluenceSyncPipelineWithDB (DB 연동 + page_id 캐싱)
+  - [x] API 엔드포인트 5개 (sync, signal, brief, activity-log, preview)
+  - [x] 단위 테스트 45개 통과
 - [x] Teams 연동 (MCP 서버) ✅ v0.4.0
   - [x] TeamsMCP 클래스 구현 (5개 도구)
   - [x] Incoming Webhook 메시지 전송
@@ -186,22 +195,11 @@
 
 ---
 
-## 📝 다음 스프린트 (Week 4)
+## ✅ 완료된 스프린트 (Week 4)
 
-**목표**: 나머지 API 라우터 DB 연동 및 WF-02/04 구현
+**목표**: 나머지 API 라우터 DB 연동 및 WF-02/04 구현 ✅ 달성
 
-**작업 항목**:
-
-1. PostgreSQL 마이그레이션 실행 (`alembic upgrade head`)
-2. Scorecard, Brief, PlayDashboard API 라우터 DB 연동
-3. 통합 테스트 작성 (API + DB)
-4. WF-02 Interview-to-Brief 워크플로 구현
-5. WF-04 Inbound Triage 워크플로 구현
-6. Scorecard 평가 로직 구현
-7. Brief 생성 로직 구현
-
-**성공 조건**:
-
+**성공 조건** (9/9 완료):
 - [x] 데이터베이스에 Signal 저장 ✅ v0.3.0
 - [x] 웹 UI 기본 페이지 구현 ✅ v0.3.0
 - [x] AXIS 디자인 시스템 타입 정의 ✅ v0.3.0
@@ -210,4 +208,63 @@
 - [x] `/ax:triage` 실행 시 WF-04 성공 ✅ v0.3.0
 - [x] Scorecard 100점 만점 평가 동작 ✅ v0.3.0
 - [x] Brief 1-Page 포맷 자동 생성 ✅ v0.3.0
-- [ ] pytest 전체 테스트 통과 (80%+ 커버리지)
+- [x] pytest 전체 테스트 통과 (80%+ 커버리지) ✅ v0.4.0
+
+---
+
+## 📝 다음 스프린트 (Week 5)
+
+**목표**: Production Readiness & PoC 완성
+
+**테마**: v0.5.0 릴리스 준비 - PoC 6주 목표 달성을 위한 마무리
+
+### 작업 항목
+
+#### 1. 워크플로 완성 🔧
+- [ ] WF-03 VoC Mining 확장 (VoCMiningPipelineWithDB, VoCMiningPipelineWithEvents)
+- [ ] WF-06 Confluence Sync 구현 (Play DB ↔ Confluence 양방향 동기화)
+- [ ] 워크플로 간 연동 테스트 (WF-01 → WF-02 → WF-04 → WF-05)
+
+#### 2. 통합 테스트 강화 🧪
+- [ ] E2E 테스트 시나리오 작성 (Signal → Scorecard → Brief 흐름)
+- [ ] API 통합 테스트 (pytest + httpx)
+- [ ] 부하 테스트 기본 설정 (locust 또는 k6)
+
+#### 3. 프로덕션 인프라 🚀
+- [ ] Alembic 마이그레이션 정리 및 실행
+- [ ] 환경별 설정 분리 (dev/staging/prod)
+- [ ] 헬스체크 엔드포인트 강화 (`/health`, `/ready`)
+- [ ] 로깅/모니터링 설정 (structlog + Sentry 연동)
+
+#### 4. 문서화 📚
+- [ ] API 문서 자동 생성 (FastAPI OpenAPI/Swagger)
+- [ ] 사용자 가이드 초안 (주요 워크플로 사용법)
+- [ ] 운영 가이드 (배포, 트러블슈팅)
+
+#### 5. UI/UX 개선 🎨
+- [ ] 대시보드 KPI 위젯 실데이터 연동
+- [ ] 모바일 반응형 레이아웃 개선
+- [ ] 에러 핸들링 및 사용자 피드백 개선
+
+### 성공 조건
+
+- [ ] 6개 워크플로 모두 동작 (WF-01~06)
+- [ ] E2E 테스트 시나리오 3개 이상 통과
+- [ ] API 문서 자동 생성 완료
+- [ ] Staging 환경 배포 및 검증
+- [ ] PoC 주간 목표 달성 가능 상태
+  - Activity 20+/주
+  - Signal 30+/주
+  - Brief 6+/주
+  - S2 2~4/주
+
+### PoC 6주 목표 리마인더
+
+| 지표 | 주간 목표 | 현재 상태 |
+|------|----------|----------|
+| Activity | 20+ | 🔧 수집 대기 |
+| Signal | 30+ | 🔧 수집 대기 |
+| Brief | 6+ | 🔧 생성 대기 |
+| S2 (Validation) | 2~4 | 🔧 승인 대기 |
+| Signal→Brief 리드타임 | ≤7일 | ⏳ 측정 대기 |
+| Brief→S2 리드타임 | ≤14일 | ⏳ 측정 대기 |

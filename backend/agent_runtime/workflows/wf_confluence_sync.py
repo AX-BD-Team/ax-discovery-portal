@@ -571,31 +571,410 @@ class ConfluenceSyncPipelineWithEvents(ConfluenceSyncPipeline):
 
     async def run(self, sync_input: SyncInput) -> SyncOutput:
         """파이프라인 실행 (이벤트 발행)"""
-        self.emitter.emit_run_started("WF-06", self.STEPS)
+        await self.emitter.emit_run_started(
+            workflow_id="WF-06",
+            input_data={
+                "targets_count": len(sync_input.targets),
+                "sync_type": sync_input.sync_type,
+                "play_id": sync_input.play_id,
+                "dry_run": sync_input.dry_run,
+            },
+            steps=self.STEPS,
+        )
 
         try:
-            self.emitter.emit_step_started("VALIDATE_TARGETS")
-            self.emitter.emit_step_finished("VALIDATE_TARGETS")
+            await self.emitter.emit_step_started(
+                step_id="VALIDATE_TARGETS",
+                step_index=0,
+                step_label="대상 검증",
+                message="동기화 대상을 검증합니다...",
+            )
+            await self.emitter.emit_step_finished(
+                step_id="VALIDATE_TARGETS",
+                step_index=0,
+                result={"validated": len(sync_input.targets)},
+            )
 
-            self.emitter.emit_step_started("PREPARE_CONTENT")
-            self.emitter.emit_step_finished("PREPARE_CONTENT")
+            await self.emitter.emit_step_started(
+                step_id="PREPARE_CONTENT",
+                step_index=1,
+                step_label="콘텐츠 준비",
+                message="Confluence 페이지 콘텐츠를 준비합니다...",
+            )
+            await self.emitter.emit_step_finished(
+                step_id="PREPARE_CONTENT",
+                step_index=1,
+                result={"prepared": len(sync_input.targets)},
+            )
 
-            self.emitter.emit_step_started("SYNC_PAGES")
+            await self.emitter.emit_step_started(
+                step_id="SYNC_PAGES",
+                step_index=2,
+                step_label="페이지 동기화",
+                message="Confluence 페이지를 동기화합니다...",
+            )
             result = await super().run(sync_input)
-            self.emitter.emit_step_finished("SYNC_PAGES")
+            await self.emitter.emit_step_finished(
+                step_id="SYNC_PAGES",
+                step_index=2,
+                result={"synced": result.summary["success"]},
+            )
 
-            self.emitter.emit_step_started("UPDATE_TABLES")
-            self.emitter.emit_step_finished("UPDATE_TABLES")
+            await self.emitter.emit_step_started(
+                step_id="UPDATE_TABLES",
+                step_index=3,
+                step_label="테이블 업데이트",
+                message="Confluence 테이블을 업데이트합니다...",
+            )
+            await self.emitter.emit_step_finished(
+                step_id="UPDATE_TABLES",
+                step_index=3,
+                result={"updated": 0},
+            )
 
-            self.emitter.emit_step_started("FINALIZE")
-            self.emitter.emit_step_finished("FINALIZE")
+            await self.emitter.emit_step_started(
+                step_id="FINALIZE",
+                step_index=4,
+                step_label="최종 확인",
+                message="동기화 결과를 확인합니다...",
+            )
+            await self.emitter.emit_step_finished(
+                step_id="FINALIZE",
+                step_index=4,
+                result=result.summary,
+            )
 
-            self.emitter.emit_run_finished(result.summary)
+            await self.emitter.emit_run_finished(result=result.summary)
             return result
 
         except Exception as e:
-            self.emitter.emit_run_error(str(e))
+            await self.emitter.emit_run_error(error=str(e))
             raise
+
+
+class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
+    """Confluence 동기화 파이프라인 (DB 연동)
+
+    - 동기화 결과를 DB에 기록
+    - 동기화 이력 관리
+    - page_id 캐싱
+    """
+
+    def __init__(self, emitter: Any, db: Any):
+        super().__init__(emitter)
+        self.db = db
+        self.logger = logger.bind(workflow="WF-06", with_db=True)
+
+    async def run(self, sync_input: SyncInput) -> SyncOutput:
+        """파이프라인 실행 (DB 연동)"""
+        self.logger.info(
+            "Starting Confluence Sync with DB",
+            targets_count=len(sync_input.targets),
+        )
+
+        result = await super().run(sync_input)
+
+        self.logger.info(
+            "Confluence Sync completed",
+            summary=result.summary,
+        )
+
+        return result
+
+    async def save_sync_results(
+        self,
+        results: list[SyncResult],
+    ) -> dict[str, Any]:
+        """동기화 결과를 DB에 저장
+
+        Args:
+            results: 동기화 결과 목록
+
+        Returns:
+            저장된 결과 요약
+        """
+        saved = {"total": 0, "signals": 0, "scorecards": 0, "briefs": 0}
+
+        for result in results:
+            if result.status != "success":
+                continue
+
+            # page_id를 해당 엔티티에 업데이트
+            if result.target_type == SyncTargetType.SIGNAL:
+                await self._update_signal_page_id(result.target_id, result.page_id, result.page_url)
+                saved["signals"] += 1
+            elif result.target_type == SyncTargetType.SCORECARD:
+                await self._update_scorecard_page_id(result.target_id, result.page_id, result.page_url)
+                saved["scorecards"] += 1
+            elif result.target_type == SyncTargetType.BRIEF:
+                await self._update_brief_page_id(result.target_id, result.page_id, result.page_url)
+                saved["briefs"] += 1
+
+            saved["total"] += 1
+
+        self.logger.info("Sync results saved to DB", saved=saved)
+        return saved
+
+    async def _update_signal_page_id(
+        self, signal_id: str, page_id: str | None, page_url: str | None
+    ) -> None:
+        """Signal의 Confluence page_id 업데이트"""
+        if not page_id:
+            return
+
+        try:
+            from backend.repositories.signal import SignalRepository
+
+            repo = SignalRepository(self.db)
+            signal = await repo.get_by_signal_id(signal_id)
+            if signal:
+                # metadata에 confluence_page_id 추가
+                metadata = signal.metadata or {}
+                metadata["confluence_page_id"] = page_id
+                metadata["confluence_page_url"] = page_url
+                await repo.update(signal.id, metadata=metadata)
+                self.logger.info(
+                    "Signal page_id updated",
+                    signal_id=signal_id,
+                    page_id=page_id,
+                )
+        except Exception as e:
+            self.logger.warning(
+                "Failed to update signal page_id",
+                signal_id=signal_id,
+                error=str(e),
+            )
+
+    async def _update_scorecard_page_id(
+        self, scorecard_id: str, page_id: str | None, page_url: str | None
+    ) -> None:
+        """Scorecard의 Confluence page_id 업데이트"""
+        if not page_id:
+            return
+
+        try:
+            from backend.repositories.scorecard import ScorecardRepository
+
+            repo = ScorecardRepository(self.db)
+            scorecard = await repo.get_by_scorecard_id(scorecard_id)
+            if scorecard:
+                metadata = scorecard.metadata or {}
+                metadata["confluence_page_id"] = page_id
+                metadata["confluence_page_url"] = page_url
+                await repo.update(scorecard.id, metadata=metadata)
+                self.logger.info(
+                    "Scorecard page_id updated",
+                    scorecard_id=scorecard_id,
+                    page_id=page_id,
+                )
+        except Exception as e:
+            self.logger.warning(
+                "Failed to update scorecard page_id",
+                scorecard_id=scorecard_id,
+                error=str(e),
+            )
+
+    async def _update_brief_page_id(
+        self, brief_id: str, page_id: str | None, page_url: str | None
+    ) -> None:
+        """Brief의 Confluence page_id 업데이트"""
+        if not page_id:
+            return
+
+        try:
+            from backend.repositories.brief import BriefRepository
+
+            repo = BriefRepository(self.db)
+            brief = await repo.get_by_brief_id(brief_id)
+            if brief:
+                metadata = brief.metadata or {}
+                metadata["confluence_page_id"] = page_id
+                metadata["confluence_page_url"] = page_url
+                await repo.update(brief.id, metadata=metadata)
+                self.logger.info(
+                    "Brief page_id updated",
+                    brief_id=brief_id,
+                    page_id=page_id,
+                )
+        except Exception as e:
+            self.logger.warning(
+                "Failed to update brief page_id",
+                brief_id=brief_id,
+                error=str(e),
+            )
+
+    async def sync_from_db(
+        self,
+        target_type: SyncTargetType,
+        target_ids: list[str] | None = None,
+        action: SyncAction = SyncAction.CREATE_PAGE,
+    ) -> SyncOutput:
+        """DB에서 데이터를 가져와 Confluence에 동기화
+
+        Args:
+            target_type: 동기화 대상 타입 (signal, scorecard, brief)
+            target_ids: 동기화할 ID 목록 (None이면 전체)
+            action: 동기화 액션
+
+        Returns:
+            동기화 결과
+        """
+        targets = []
+
+        if target_type == SyncTargetType.SIGNAL:
+            targets = await self._fetch_signals_from_db(target_ids)
+        elif target_type == SyncTargetType.SCORECARD:
+            targets = await self._fetch_scorecards_from_db(target_ids)
+        elif target_type == SyncTargetType.BRIEF:
+            targets = await self._fetch_briefs_from_db(target_ids)
+        elif target_type == SyncTargetType.ALL:
+            # 모든 타입 동기화
+            signals = await self._fetch_signals_from_db(None)
+            scorecards = await self._fetch_scorecards_from_db(None)
+            briefs = await self._fetch_briefs_from_db(None)
+            targets = signals + scorecards + briefs
+
+        # 동기화 입력 구성
+        sync_input = SyncInput(
+            targets=[
+                SyncTarget(
+                    target_type=t["type"],
+                    target_id=t["id"],
+                    data=t["data"],
+                    action=action,
+                )
+                for t in targets
+            ],
+            sync_type="batch",
+        )
+
+        # 동기화 실행
+        result = await self.run(sync_input)
+
+        # 결과 저장
+        await self.save_sync_results(result.results)
+
+        return result
+
+    async def _fetch_signals_from_db(
+        self, signal_ids: list[str] | None
+    ) -> list[dict[str, Any]]:
+        """DB에서 Signal 조회"""
+        try:
+            from backend.repositories.signal import SignalRepository
+
+            repo = SignalRepository(self.db)
+
+            if signal_ids:
+                signals = []
+                for signal_id in signal_ids:
+                    signal = await repo.get_by_signal_id(signal_id)
+                    if signal:
+                        signals.append(signal)
+            else:
+                # 최근 100개만 조회
+                signals = await repo.get_recent(limit=100)
+
+            return [
+                {
+                    "type": SyncTargetType.SIGNAL,
+                    "id": s.signal_id,
+                    "data": {
+                        "signal_id": s.signal_id,
+                        "title": s.title,
+                        "source": s.source,
+                        "channel": s.channel,
+                        "play_id": s.play_id,
+                        "pain": s.pain,
+                        "evidence": s.evidence or [],
+                        "tags": s.tags or [],
+                        "status": s.status,
+                        "created_at": s.created_at.isoformat() if s.created_at else None,
+                    },
+                }
+                for s in signals
+            ]
+        except Exception as e:
+            self.logger.warning("Failed to fetch signals from DB", error=str(e))
+            return []
+
+    async def _fetch_scorecards_from_db(
+        self, scorecard_ids: list[str] | None
+    ) -> list[dict[str, Any]]:
+        """DB에서 Scorecard 조회"""
+        try:
+            from backend.repositories.scorecard import ScorecardRepository
+
+            repo = ScorecardRepository(self.db)
+
+            if scorecard_ids:
+                scorecards = []
+                for scorecard_id in scorecard_ids:
+                    scorecard = await repo.get_by_scorecard_id(scorecard_id)
+                    if scorecard:
+                        scorecards.append(scorecard)
+            else:
+                scorecards = await repo.get_recent(limit=100)
+
+            return [
+                {
+                    "type": SyncTargetType.SCORECARD,
+                    "id": s.scorecard_id,
+                    "data": {
+                        "scorecard_id": s.scorecard_id,
+                        "signal_id": s.signal_id,
+                        "total_score": s.total_score,
+                        "dimensions": s.dimensions or {},
+                        "decision": s.decision,
+                        "rationale": s.rationale,
+                    },
+                }
+                for s in scorecards
+            ]
+        except Exception as e:
+            self.logger.warning("Failed to fetch scorecards from DB", error=str(e))
+            return []
+
+    async def _fetch_briefs_from_db(
+        self, brief_ids: list[str] | None
+    ) -> list[dict[str, Any]]:
+        """DB에서 Brief 조회"""
+        try:
+            from backend.repositories.brief import BriefRepository
+
+            repo = BriefRepository(self.db)
+
+            if brief_ids:
+                briefs = []
+                for brief_id in brief_ids:
+                    brief = await repo.get_by_brief_id(brief_id)
+                    if brief:
+                        briefs.append(brief)
+            else:
+                briefs = await repo.get_recent(limit=100)
+
+            return [
+                {
+                    "type": SyncTargetType.BRIEF,
+                    "id": b.brief_id,
+                    "data": {
+                        "brief_id": b.brief_id,
+                        "title": b.title,
+                        "signal_id": b.signal_id,
+                        "status": b.status,
+                        "executive_summary": b.executive_summary,
+                        "problem_statement": b.problem_statement,
+                        "proposed_solution": b.proposed_solution,
+                        "expected_impact": b.expected_impact,
+                        "next_steps": b.next_steps,
+                        "created_at": b.created_at.isoformat() if b.created_at else None,
+                    },
+                }
+                for b in briefs
+            ]
+        except Exception as e:
+            self.logger.warning("Failed to fetch briefs from DB", error=str(e))
+            return []
 
 
 async def run(input_data: dict[str, Any]) -> dict[str, Any]:

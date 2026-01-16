@@ -530,19 +530,13 @@ class VoCMiningRequest(BaseModel):
     """WF-03 VoC Mining 요청"""
 
     source_type: str = "text"  # csv, excel, api, text
-<<<<<<< HEAD
     text_content: str | None = None  # 텍스트 내용
     api_data: list[dict[str, Any]] | None = None  # API 데이터
-=======
-    text_content: str | None = None
-    api_data: list[dict[str, Any]] | None = None
->>>>>>> test/ci-fix-demo
     play_id: str = "KT_Desk_V01_VoC"
     source: str = "KT"
     channel: str = "데스크리서치"
     min_frequency: int = 5
     max_themes: int = 5
-<<<<<<< HEAD
     save_to_db: bool = True
 
 
@@ -554,8 +548,6 @@ class VoCThemeSummary(BaseModel):
     frequency: int
     severity: str
     keywords: list[str]
-=======
->>>>>>> test/ci-fix-demo
 
 
 class VoCMiningResponse(BaseModel):
@@ -569,7 +561,6 @@ class VoCMiningResponse(BaseModel):
 
 
 @router.post("/voc-mining", response_model=VoCMiningResponse)
-<<<<<<< HEAD
 async def run_voc_mining(request: VoCMiningRequest, db: AsyncSession = Depends(get_db)):
     """
     WF-03: VoC Mining 파이프라인 실행
@@ -592,13 +583,6 @@ async def run_voc_mining(request: VoCMiningRequest, db: AsyncSession = Depends(g
         signals: 생성된 Signal 목록
         brief_candidates: Brief 후보 목록
         summary: 결과 요약
-=======
-async def run_voc_mining(request: VoCMiningRequest):
-    """
-    WF-03: VoC Mining 파이프라인 실행
-
-    VoC 데이터 → 테마 추출 → Signal 생성 → Brief 후보 선정
->>>>>>> test/ci-fix-demo
     """
     logger.info(
         "Running VoC Mining pipeline",
@@ -606,10 +590,7 @@ async def run_voc_mining(request: VoCMiningRequest):
         play_id=request.play_id,
     )
 
-<<<<<<< HEAD
     # 입력 데이터 구성
-=======
->>>>>>> test/ci-fix-demo
     input_data = VoCInput(
         source_type=request.source_type,
         text_content=request.text_content,
@@ -621,7 +602,6 @@ async def run_voc_mining(request: VoCMiningRequest):
         max_themes=request.max_themes,
     )
 
-<<<<<<< HEAD
     # 파이프라인 실행
     if request.save_to_db:
         # DB 저장 포함
@@ -651,24 +631,6 @@ async def run_voc_mining(request: VoCMiningRequest):
     return VoCMiningResponse(
         status="completed",
         themes=result.themes,
-=======
-    pipeline = VoCMiningPipeline()
-    result = await pipeline.run(input_data)
-
-    return VoCMiningResponse(
-        status="completed",
-        themes=[
-            {
-                "theme_id": t.theme_id,
-                "name": t.name,
-                "frequency": t.frequency,
-                "severity": t.severity.value,
-                "keywords": t.keywords,
-                "confidence": t.confidence,
-            }
-            for t in result.themes
-        ],
->>>>>>> test/ci-fix-demo
         signals=result.signals,
         brief_candidates=result.brief_candidates,
         summary=result.summary,
@@ -677,39 +639,25 @@ async def run_voc_mining(request: VoCMiningRequest):
 
 @router.post("/voc-mining/preview")
 async def preview_voc_mining(
-<<<<<<< HEAD
     source_type: str = "text",
     text_content: str | None = None,
     min_frequency: int = 5,
-=======
-    text_content: str,
-    min_frequency: int = 3,
->>>>>>> test/ci-fix-demo
     max_themes: int = 5,
 ):
     """
     VoC Mining 미리보기 (DB 저장 안함)
-<<<<<<< HEAD
 
     빠른 확인용 테마 추출 및 Signal 생성
     """
     # 입력 데이터 구성
     input_data = VoCInput(
         source_type=source_type,
-=======
-    """
-    input_data = VoCInput(
-        source_type="text",
->>>>>>> test/ci-fix-demo
         text_content=text_content,
         min_frequency=min_frequency,
         max_themes=max_themes,
     )
 
-<<<<<<< HEAD
     # 기본 파이프라인 실행
-=======
->>>>>>> test/ci-fix-demo
     pipeline = VoCMiningPipeline()
     result = await pipeline.run(input_data)
 
@@ -718,7 +666,6 @@ async def preview_voc_mining(
         "themes_count": len(result.themes),
         "themes": [
             {
-<<<<<<< HEAD
                 "theme_id": t.get("theme_id"),
                 "name": t.get("name"),
                 "frequency": t.get("frequency"),
@@ -729,15 +676,6 @@ async def preview_voc_mining(
         "signals_count": len(result.signals),
         "brief_candidates_count": len(result.brief_candidates),
         "message": "실제 실행은 POST /api/workflows/voc-mining를 사용하세요",
-=======
-                "name": t.name,
-                "frequency": t.frequency,
-                "severity": t.severity.value,
-                "keywords": t.keywords,
-            }
-            for t in result.themes
-        ],
-        "message": "실제 실행은 POST /api/workflows/voc-mining을 사용하세요",
     }
 
 
@@ -769,6 +707,16 @@ async def run_confluence_sync(request: ConfluenceSyncRequest):
     WF-06: Confluence Sync 파이프라인 실행
 
     Signal/Scorecard/Brief/Play → Confluence 페이지 동기화
+
+    Args:
+        targets: 동기화 대상 목록
+        sync_type: 동기화 타입 (realtime, batch)
+        play_id: Play ID (선택)
+        dry_run: 테스트 모드 (실제 동기화 안함)
+
+    Returns:
+        results: 각 대상별 동기화 결과
+        summary: 성공/실패/스킵 요약
     """
     logger.info(
         "Running Confluence Sync pipeline",
@@ -904,5 +852,4 @@ async def preview_confluence_sync(
         "content_preview": content[:500] + "..." if len(content) > 500 else content,
         "content_length": len(content),
         "message": "실제 동기화는 POST /api/workflows/confluence-sync를 사용하세요",
->>>>>>> test/ci-fix-demo
     }
