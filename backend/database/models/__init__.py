@@ -24,6 +24,7 @@ from .trace import (
     DEFAULT_COMPETENCY_QUESTIONS,
 )
 from .triple import AssertionType, PredicateType, Triple, TripleStatus
+from .user import User, UserRole
 
 __all__ = [
     # Signal
@@ -61,4 +62,7 @@ __all__ = [
     # Competency Questions (P0)
     "CompetencyQuestion",
     "DEFAULT_COMPETENCY_QUESTIONS",
+    # User (인증)
+    "User",
+    "UserRole",
 ]
