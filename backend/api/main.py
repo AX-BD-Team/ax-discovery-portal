@@ -44,8 +44,9 @@ app = FastAPI(
 )
 
 # CORS 설정
-# Development: localhost 허용, Production: 환경변수로 제어
+# Development: localhost 허용, Production: Cloudflare Pages 도메인 허용
 CORS_ORIGINS = [
+    # Development
     "http://localhost:3000",  # Next.js web
     "http://localhost:3001",
     "http://localhost:3002",
@@ -54,6 +55,9 @@ CORS_ORIGINS = [
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
     "http://127.0.0.1:5173",
+    # Production - Cloudflare Pages
+    "https://ax-discovery-portal.pages.dev",
+    "https://ax-discovery-portal-preview.pages.dev",
 ]
 
 app.add_middleware(
