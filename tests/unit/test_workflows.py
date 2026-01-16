@@ -618,8 +618,8 @@ class TestInboundTriagePipeline:
 
         # URGENT는 24시간 SLA
         deadline = datetime.fromisoformat(result.sla_deadline)
-        expected_min = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=23)
-        expected_max = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=25)
+        expected_min = datetime.now(UTC) + timedelta(hours=23)
+        expected_max = datetime.now(UTC) + timedelta(hours=25)
 
         assert expected_min < deadline < expected_max
 

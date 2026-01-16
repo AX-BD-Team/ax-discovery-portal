@@ -74,7 +74,7 @@ class D1SignalRepository:
     async def create(self, data: dict) -> dict:
         """Signal 생성"""
         signal_id = data.get("signal_id") or f"SIG-{uuid.uuid4().hex[:8].upper()}"
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(UTC).isoformat()
 
         sql = """
             INSERT INTO signals (id, activity_id, title, summary, pain_points,
@@ -100,7 +100,7 @@ class D1SignalRepository:
 
     async def update_status(self, signal_id: str, status: str) -> dict | None:
         """Signal 상태 업데이트"""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(UTC).isoformat()
         sql = "UPDATE signals SET stage = ?, updated_at = ? WHERE id = ?"
         await d1_client.execute(sql, [status, now, signal_id])
 
@@ -224,7 +224,7 @@ class D1ScorecardRepository:
     async def create(self, data: dict) -> dict:
         """Scorecard 생성"""
         scorecard_id = f"SC-{uuid.uuid4().hex[:8].upper()}"
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(UTC).isoformat()
 
         sql = """
             INSERT INTO scorecards (id, signal_id, total_score, market_fit, kt_synergy,
@@ -349,7 +349,7 @@ class D1BriefRepository:
     async def create(self, data: dict) -> dict:
         """Brief 생성"""
         brief_id = f"BR-{uuid.uuid4().hex[:8].upper()}"
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(UTC).isoformat()
 
         sql = """
             INSERT INTO briefs (id, signal_id, scorecard_id, title, executive_summary,
@@ -380,7 +380,7 @@ class D1BriefRepository:
 
     async def update_status(self, brief_id: str, status: str) -> dict | None:
         """Brief 상태 업데이트"""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(UTC).isoformat()
         sql = "UPDATE briefs SET status = ?, updated_at = ? WHERE id = ?"
         await d1_client.execute(sql, [status, now, brief_id])
 
