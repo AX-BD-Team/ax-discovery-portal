@@ -57,7 +57,9 @@ def get_url():
     """Settings에서 DATABASE_URL 가져오기"""
     from backend.core.config import settings
 
-    raw_url = settings.database_url or "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
+    raw_url = (
+        settings.database_url or "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
+    )
 
     # postgresql:// → postgresql+psycopg:// 변환 (Render 호환성)
     if raw_url.startswith("postgresql://"):
