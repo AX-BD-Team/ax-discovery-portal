@@ -312,17 +312,23 @@ async def run_inbound_triage(request: InboundTriageRequest, db: AsyncSession = D
         result = await pipeline.run(input_data)
 
         # DB 저장 (중복이 아닐 경우)
-        if not result.is_duplicate and result.signal:
-            saved = await pipeline.save_to_db(result.signal, result.scorecard)
+        if not result.is_duplicate and result.signal_id:
+            # Signal dict 구성
+            signal_dict = {
+                "signal_id": result.signal_id,
+                "play_id": result.play_id,
+            }
+            saved = await pipeline.save_to_db(signal_dict, result.scorecard)
             logger.info(
                 "Pipeline completed with DB save",
                 signal_id=saved.get("signal_id"),
                 scorecard_id=saved.get("scorecard_id"),
             )
         else:
+            similar_signals = result.summary.get("similar_signals", [])
             logger.info(
                 "Duplicate signal detected, skipping DB save",
-                similar_count=len(result.similar_signals),
+                similar_count=len(similar_signals),
             )
 
         # 세션 정리
@@ -332,14 +338,30 @@ async def run_inbound_triage(request: InboundTriageRequest, db: AsyncSession = D
         pipeline = InboundTriagePipeline()
         result = await pipeline.run(input_data)
 
+    # InboundOutput → InboundTriageResponse 필드 매핑
+    # signal dict 구성 (InboundOutput에는 signal_id만 있음)
+    signal_dict = {
+        "signal_id": result.signal_id,
+        "play_id": result.play_id,
+    } if result.signal_id else None
+
+    # sla dict 구성 (InboundOutput에는 sla_deadline과 next_action이 별도로 있음)
+    sla_dict = {
+        "deadline": result.sla_deadline,
+        "next_action": result.next_action,
+    }
+
+    # similar_signals는 summary에서 추출
+    similar_signals = result.summary.get("similar_signals", [])
+
     return InboundTriageResponse(
         status="completed",
-        signal=result.signal,
+        signal=signal_dict,
         is_duplicate=result.is_duplicate,
-        similar_signals=result.similar_signals,
-        assigned_play_id=result.assigned_play_id,
+        similar_signals=similar_signals,
+        assigned_play_id=result.play_id,
         scorecard=result.scorecard,
-        sla=result.sla,
+        sla=sla_dict,
         summary=result.summary,
     )
 
