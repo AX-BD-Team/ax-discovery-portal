@@ -227,13 +227,18 @@
 ### 작업 항목
 
 #### 1. 워크플로 완성 🔧
-- [ ] WF-03 VoC Mining 확장 (VoCMiningPipelineWithDB, VoCMiningPipelineWithEvents)
-- [ ] WF-06 Confluence Sync 구현 (Play DB ↔ Confluence 양방향 동기화)
-- [ ] 워크플로 간 연동 테스트 (WF-01 → WF-02 → WF-04 → WF-05)
+- [x] WF-03 VoC Mining 확장 (VoCMiningPipelineWithDB, VoCMiningPipelineWithEvents) ✅ v0.4.0
+- [x] WF-06 Confluence Sync 구현 (Play DB ↔ Confluence 양방향 동기화) ✅ v0.4.0
+- [x] 워크플로 간 연동 테스트 (WF-01 → WF-02 → WF-04 → WF-05) ✅ v0.4.0
 
 #### 2. 통합 테스트 강화 🧪
-- [ ] E2E 테스트 시나리오 작성 (Signal → Scorecard → Brief 흐름)
-- [ ] API 통합 테스트 (pytest + httpx)
+- [x] E2E 테스트 시나리오 작성 (Signal → Scorecard → Brief 흐름) ✅ v0.4.0
+  - 10개 E2E 시나리오, 25개 테스트 케이스
+  - Signal → Scorecard → Brief 전체 흐름
+  - 워크플로 체인, 동시성, 에러 핸들링, 데이터 일관성
+- [x] API 통합 테스트 (pytest + httpx) ✅ v0.4.0
+  - 24개 API 테스트 케이스 (2개 skip)
+  - Health, Inbox, Workflow, Error Handling, Pagination, Concurrency
 - [ ] 부하 테스트 기본 설정 (locust 또는 k6)
 
 #### 3. 프로덕션 인프라 🚀
@@ -254,8 +259,8 @@
 
 ### 성공 조건
 
-- [ ] 6개 워크플로 모두 동작 (WF-01~06)
-- [ ] E2E 테스트 시나리오 3개 이상 통과
+- [x] 6개 워크플로 모두 동작 (WF-01~06) ✅
+- [x] E2E 테스트 시나리오 3개 이상 통과 ✅ (10개 시나리오, 49개 테스트)
 - [ ] API 문서 자동 생성 완료
 - [ ] Staging 환경 배포 및 검증
 - [ ] PoC 주간 목표 달성 가능 상태
