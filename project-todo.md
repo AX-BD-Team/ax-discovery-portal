@@ -252,7 +252,10 @@
 - [x] API 통합 테스트 (pytest + httpx) ✅ v0.4.0
   - 24개 API 테스트 케이스 (2개 skip)
   - Health, Inbox, Workflow, Error Handling, Pagination, Concurrency
-- [ ] 부하 테스트 기본 설정 (locust 또는 k6)
+- [x] 부하 테스트 기본 설정 (locust) ✅ v0.4.0
+  - tests/loadtest/locustfile.py: 5개 사용자 클래스
+  - tests/loadtest/run_loadtest.sh: 6개 시나리오 스크립트
+  - quick/standard/stress/spike/endurance/ui 모드
 
 #### 3. 프로덕션 인프라 🚀
 - [x] Alembic 마이그레이션 정리 및 실행 ✅ v0.4.0
