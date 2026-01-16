@@ -41,9 +41,15 @@ target_metadata = Base.metadata
 
 def get_url():
     """환경변수에서 DATABASE_URL 가져오기"""
-    return os.getenv(
+    raw_url = os.getenv(
         "DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
     )
+    # postgresql:// → postgresql+psycopg:// 변환 (Render 호환성)
+    if raw_url.startswith("postgresql://"):
+        return raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    elif raw_url.startswith("postgres://"):
+        return raw_url.replace("postgres://", "postgresql+psycopg://", 1)
+    return raw_url
 
 
 def run_migrations_offline() -> None:

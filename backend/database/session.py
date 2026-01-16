@@ -11,9 +11,18 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 logger = structlog.get_logger()
 
 # 환경변수에서 데이터베이스 URL 가져오기
-DATABASE_URL = os.getenv(
+_raw_url = os.getenv(
     "DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
 )
+
+# postgresql:// → postgresql+psycopg:// 변환 (Render 호환성)
+# Render는 postgresql://로 제공하지만 SQLAlchemy는 psycopg3용으로 +psycopg 필요
+if _raw_url.startswith("postgresql://"):
+    DATABASE_URL = _raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+elif _raw_url.startswith("postgres://"):
+    DATABASE_URL = _raw_url.replace("postgres://", "postgresql+psycopg://", 1)
+else:
+    DATABASE_URL = _raw_url
 
 # 비동기 엔진 생성
 engine = create_async_engine(
