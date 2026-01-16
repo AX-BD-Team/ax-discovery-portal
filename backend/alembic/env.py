@@ -5,14 +5,8 @@ Alembic Environment Configuration
 """
 
 import asyncio
-import os
 import sys
 from logging.config import fileConfig
-
-# .env 파일에서 환경변수 로드 (alembic 실행 시 필요)
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Windows에서 psycopg async 호환성을 위해 SelectorEventLoop 사용
 if sys.platform == "win32":
@@ -60,10 +54,11 @@ target_metadata = Base.metadata
 
 
 def get_url():
-    """환경변수에서 DATABASE_URL 가져오기"""
-    raw_url = os.getenv(
-        "DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
-    )
+    """Settings에서 DATABASE_URL 가져오기"""
+    from backend.core.config import settings
+
+    raw_url = settings.database_url or "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
+
     # postgresql:// → postgresql+psycopg:// 변환 (Render 호환성)
     if raw_url.startswith("postgresql://"):
         return raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
