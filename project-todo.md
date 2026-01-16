@@ -171,10 +171,10 @@
 
 ## 🐛 알려진 이슈
 
-1. **Stream Router**: event_types.py dataclass 오류로 임시 제거 (비우선 기능)
+1. ~~**Stream Router**: event_types.py dataclass 오류로 임시 제거~~ ✅ 해결됨 (datetime deprecation 수정)
 2. **Confluence Database API**: Confluence Cloud API의 Database 기능 제약 → 대안 필요 (페이지 테이블 우회 또는 Postgres 사용)
 3. **Markdown to Confluence 변환**: 현재 간단한 HTML 래핑만 구현 → 완전한 변환 라이브러리 필요
-4. **인증/권한**: 현재 mock 구현, 프로덕션용 JWT 인증 필요
+4. ~~**인증/권한**: 현재 mock 구현, 프로덕션용 JWT 인증 필요~~ ✅ 해결됨 (JWT 인증 시스템 구현)
 5. **Alembic 마이그레이션**: 초기 스키마 생성 필요 (`alembic revision --autogenerate -m "Initial schema"`)
 
 ---
