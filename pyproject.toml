@@ -49,6 +49,9 @@ dev = [
 monitoring = [
     "sentry-sdk[fastapi]>=2.0.0",
 ]
+loadtest = [
+    "locust>=2.29.0",
+]
 
 [project.scripts]
 ax-portal = "backend.api.main:main"
