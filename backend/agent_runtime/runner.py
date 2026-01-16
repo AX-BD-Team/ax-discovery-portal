@@ -81,10 +81,12 @@ class AgentRuntime:
     async def _connect_mcp_servers(self) -> dict:
         """MCP 서버 설정 반환 (SDK 도구로 변환)"""
         from backend.integrations.mcp_confluence.server import ConfluenceMCP
+        from backend.integrations.mcp_slack.server import SlackMCP
         from backend.integrations.mcp_teams.server import TeamsMCP
 
         confluence_mcp = ConfluenceMCP()
         teams_mcp = TeamsMCP()
+        slack_mcp = SlackMCP()
 
         # SDK 도구 생성 (각 MCP 메서드를 래핑)
         @tool(name="confluence.search_pages")
@@ -164,6 +166,48 @@ class AgentRuntime:
             """Teams 채널에 KPI Digest 카드 전송"""
             return await teams_mcp.send_kpi_digest(period, metrics, alerts, top_plays)
 
+        # Slack MCP 도구
+        @tool(name="slack.send_message")
+        async def slack_send_message(text: str, title: str | None = None):
+            """Slack 채널에 텍스트 메시지 전송"""
+            return await slack_mcp.send_message(text, title)
+
+        @tool(name="slack.send_notification")
+        async def slack_send_notification(
+            text: str, title: str, level: str = "info", fields: dict | None = None
+        ):
+            """Slack 채널에 알림 전송 (색상 강조 지원)"""
+            return await slack_mcp.send_notification(text, title, level, fields)
+
+        @tool(name="slack.send_blocks")
+        async def slack_send_blocks(blocks: list):
+            """Slack 채널에 Block Kit 메시지 전송"""
+            return await slack_mcp.send_blocks(blocks)
+
+        @tool(name="slack.request_approval")
+        async def slack_request_approval(
+            title: str,
+            description: str,
+            requester: str,
+            item_id: str,
+            item_type: str = "Brief",
+            details: dict | None = None,
+        ):
+            """Slack 채널에 승인 요청 메시지 전송"""
+            return await slack_mcp.request_approval(
+                title, description, requester, item_id, item_type, details
+            )
+
+        @tool(name="slack.send_kpi_digest")
+        async def slack_send_kpi_digest(
+            period: str,
+            metrics: dict,
+            alerts: list | None = None,
+            top_plays: list | None = None,
+        ):
+            """Slack 채널에 KPI Digest 메시지 전송"""
+            return await slack_mcp.send_kpi_digest(period, metrics, alerts, top_plays)
+
         # SDK MCP 서버 생성
         try:
             confluence_server = create_sdk_mcp_server(
@@ -192,9 +236,23 @@ class AgentRuntime:
                 ],
             )
 
-            self.logger.info("MCP servers connected", servers=["confluence", "teams"], tools=12)
+            slack_server = create_sdk_mcp_server(
+                name="slack",
+                version="1.0.0",
+                tools=[
+                    slack_send_message,
+                    slack_send_notification,
+                    slack_send_blocks,
+                    slack_request_approval,
+                    slack_send_kpi_digest,
+                ],
+            )
 
-            return {"confluence": confluence_server, "teams": teams_server}
+            self.logger.info(
+                "MCP servers connected", servers=["confluence", "teams", "slack"], tools=17
+            )
+
+            return {"confluence": confluence_server, "teams": teams_server, "slack": slack_server}
 
         except Exception as e:
             self.logger.error("Failed to connect MCP servers", error=str(e), exc_info=True)
