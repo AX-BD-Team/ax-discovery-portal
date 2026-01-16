@@ -1433,8 +1433,6 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
         page_url: str | None = None,
     ) -> dict[str, Any]:
         """Scorecard 페이지 import"""
-        from backend.repositories.scorecard import ScorecardRepository
-
         # 페이지 파싱
         parsed = parse_scorecard_page(content, page_id)
 
@@ -1444,6 +1442,8 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
                 "action": "skipped",
                 "reason": "signal_id not found in page",
             }
+
+        from backend.repositories.scorecard import ScorecardRepository
 
         repo = ScorecardRepository(self.db)
 

@@ -903,3 +903,455 @@ class TestPipelineEdgeCases:
 
         assert result.summary["failed"] == 1
         assert "Cannot create page for type" in result.results[0].error
+
+
+# ============================================================
+# Page Parsers Tests (Confluence → Dict)
+# ============================================================
+
+
+class TestPageParsers:
+    """페이지 파서 테스트 (양방향 동기화)"""
+
+    def test_parse_signal_page_basic(self):
+        """Signal 페이지 파싱 기본"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import parse_signal_page
+
+        content = """# AI 기반 고객 서비스 개선
+
+## 기본 정보
+
+| 항목 | 값 |
+|------|-----|
+| Signal ID | SIG-2025-001 |
+| Play ID | KT_AI_P01 |
+| Source | KT |
+| Channel | 영업PM |
+| Status | NEW |
+| Created | 2025-01-15 |
+
+## Pain Point
+
+고객 응대 시간이 길어 불만 발생
+
+## Evidence
+
+- [고객 설문](https://example.com/survey) - 만족도 65%
+- [CS 리포트](https://example.com/report) - 분석 결과
+
+## Tags
+
+AI, 고객서비스, 자동화
+"""
+        result = parse_signal_page(content, "page-123")
+
+        assert result["title"] == "AI 기반 고객 서비스 개선"
+        assert result["signal_id"] == "SIG-2025-001"
+        assert result["play_id"] == "KT_AI_P01"
+        assert result["source"] == "KT"
+        assert result["channel"] == "영업PM"
+        assert result["status"] == "NEW"
+        assert result["pain"] == "고객 응대 시간이 길어 불만 발생"
+        assert len(result["evidence"]) == 2
+        assert result["evidence"][0]["title"] == "고객 설문"
+        assert result["tags"] == ["AI", "고객서비스", "자동화"]
+        assert result["confluence_page_id"] == "page-123"
+
+    def test_parse_signal_page_minimal(self):
+        """Signal 페이지 파싱 최소 정보"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import parse_signal_page
+
+        content = """# Test Signal
+
+## 기본 정보
+
+| 항목 | 값 |
+|------|-----|
+| Signal ID | SIG-001 |
+
+## Pain Point
+
+Test pain
+
+## Evidence
+
+- 없음
+
+## Tags
+
+없음
+"""
+        result = parse_signal_page(content)
+
+        assert result["title"] == "Test Signal"
+        assert result["signal_id"] == "SIG-001"
+        assert result["pain"] == "Test pain"
+        assert "evidence" not in result  # 없음은 파싱 안함
+        assert "tags" not in result  # 없음은 파싱 안함
+
+    def test_parse_scorecard_page_basic(self):
+        """Scorecard 페이지 파싱 기본"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import parse_scorecard_page
+
+        content = """# Scorecard: SIG-2025-001
+
+## 총점
+
+**85점** / 100점
+
+## 차원별 점수
+
+| 차원 | 점수 |
+|------|------|
+| Strategic Fit | 90 |
+| Market Size | 80 |
+| Feasibility | 85 |
+| Urgency | 80 |
+| Competitive | 90 |
+
+## 결정
+
+**GO**
+
+## 근거
+
+전략적 적합성과 경쟁력이 높음
+"""
+        result = parse_scorecard_page(content, "page-456")
+
+        assert result["signal_id"] == "SIG-2025-001"
+        assert result["total_score"] == 85
+        assert result["decision"] == "GO"
+        assert result["rationale"] == "전략적 적합성과 경쟁력이 높음"
+        assert result["confluence_page_id"] == "page-456"
+        # 차원명은 lowercase + underscore로 변환됨
+        # "Strategic Fit" → "strategic_fit" 이지만 공백이 단일 underscore가 됨
+        # 실제 결과 확인: "market_size"가 있음
+        assert "market_size" in result["dimensions"]
+        assert result["dimensions"]["market_size"]["score"] == 80
+
+    def test_parse_brief_page_basic(self):
+        """Brief 페이지 파싱 기본"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import parse_brief_page
+
+        content = """# AI 고객 서비스 자동화 Brief
+
+## 기본 정보
+
+| 항목 | 값 |
+|------|-----|
+| Brief ID | BRF-2025-001 |
+| Signal ID | SIG-2025-001 |
+| Status | DRAFT |
+| Created | 2025-01-15 |
+
+## Executive Summary
+
+AI 기반 고객 서비스 자동화 제안
+
+## Problem Statement
+
+현재 고객 응대 시간 문제
+
+## Proposed Solution
+
+AI 챗봇 도입
+
+## Expected Impact
+
+응대 시간 50% 감소
+
+## Next Steps
+
+PoC 진행
+"""
+        result = parse_brief_page(content, "page-789")
+
+        assert result["title"] == "AI 고객 서비스 자동화 Brief"
+        assert result["brief_id"] == "BRF-2025-001"
+        assert result["signal_id"] == "SIG-2025-001"
+        assert result["status"] == "DRAFT"
+        assert result["executive_summary"] == "AI 기반 고객 서비스 자동화 제안"
+        assert result["proposed_solution"] == "AI 챗봇 도입"
+        assert result["confluence_page_id"] == "page-789"
+
+
+class TestDetectPageType:
+    """페이지 타입 감지 테스트"""
+
+    def test_detect_by_label_signal(self):
+        """라벨로 Signal 감지"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import detect_page_type
+
+        result = detect_page_type("any content", labels=["signal", "KT_AI_P01"])
+        assert result == SyncTargetType.SIGNAL
+
+    def test_detect_by_label_scorecard(self):
+        """라벨로 Scorecard 감지"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import detect_page_type
+
+        result = detect_page_type("any content", labels=["scorecard"])
+        assert result == SyncTargetType.SCORECARD
+
+    def test_detect_by_label_brief(self):
+        """라벨로 Brief 감지"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import detect_page_type
+
+        result = detect_page_type("any content", labels=["brief"])
+        assert result == SyncTargetType.BRIEF
+
+    def test_detect_by_content_signal(self):
+        """내용으로 Signal 감지"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import detect_page_type
+
+        content = "| Signal ID | SIG-001 |\n## Pain Point\nTest pain"
+        result = detect_page_type(content)
+        assert result == SyncTargetType.SIGNAL
+
+    def test_detect_by_content_scorecard(self):
+        """내용으로 Scorecard 감지"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import detect_page_type
+
+        content = "# Scorecard: SIG-001\n## 차원별 점수\nTest"
+        result = detect_page_type(content)
+        assert result == SyncTargetType.SCORECARD
+
+    def test_detect_by_content_brief(self):
+        """내용으로 Brief 감지"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import detect_page_type
+
+        content = "| Brief ID | BRF-001 |\n## Executive Summary\nTest"
+        result = detect_page_type(content)
+        assert result == SyncTargetType.BRIEF
+
+    def test_detect_unknown(self):
+        """알 수 없는 타입"""
+        from backend.agent_runtime.workflows.wf_confluence_sync import detect_page_type
+
+        result = detect_page_type("random content without markers")
+        assert result is None
+
+
+class TestMockConfluenceClientExtended:
+    """MockConfluenceClient 확장 기능 테스트"""
+
+    @pytest.fixture
+    def client(self):
+        """설정된 클라이언트"""
+        with patch.dict(os.environ, {"CONFLUENCE_API_TOKEN": "test-token"}):
+            yield MockConfluenceClient()
+
+    @pytest.fixture
+    def client_not_configured(self):
+        """미설정 클라이언트"""
+        env_copy = os.environ.copy()
+        if "CONFLUENCE_API_TOKEN" in env_copy:
+            del env_copy["CONFLUENCE_API_TOKEN"]
+        with patch.dict(os.environ, env_copy, clear=True):
+            client = MockConfluenceClient()
+            client.is_configured = False
+            yield client
+
+    @pytest.mark.asyncio
+    async def test_get_page_success(self, client):
+        """페이지 조회 성공"""
+        result = await client.get_page("page-123")
+
+        assert result["page_id"] == "page-123"
+        assert "title" in result
+        assert "body" in result
+        assert "url" in result
+
+    @pytest.mark.asyncio
+    async def test_get_page_not_configured(self, client_not_configured):
+        """미설정 시 페이지 조회 실패"""
+        with pytest.raises(ValueError, match="Confluence not configured"):
+            await client_not_configured.get_page("page-123")
+
+    @pytest.mark.asyncio
+    async def test_search_pages_success(self, client):
+        """페이지 검색 성공"""
+        result = await client.search_pages('label = "signal"')
+
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_search_pages_not_configured(self, client_not_configured):
+        """미설정 시 페이지 검색 실패"""
+        with pytest.raises(ValueError, match="Confluence not configured"):
+            await client_not_configured.search_pages('label = "signal"')
+
+    @pytest.mark.asyncio
+    async def test_get_pages_by_label(self, client):
+        """라벨로 페이지 조회"""
+        result = await client.get_pages_by_label("signal")
+
+        assert isinstance(result, list)
+
+
+class TestBidirectionalSync:
+    """양방향 동기화 테스트"""
+
+    @pytest.fixture
+    def mock_emitter(self):
+        """Mock 이벤트 emitter"""
+        emitter = MagicMock()
+        emitter.emit_run_started = AsyncMock()
+        emitter.emit_step_started = AsyncMock()
+        emitter.emit_step_finished = AsyncMock()
+        emitter.emit_run_finished = AsyncMock()
+        emitter.emit_run_error = AsyncMock()
+        return emitter
+
+    @pytest.fixture
+    def mock_db(self):
+        """Mock DB 세션"""
+        return MagicMock()
+
+    @pytest.fixture
+    def pipeline(self, mock_emitter, mock_db):
+        """파이프라인 인스턴스"""
+        with patch.dict(
+            os.environ,
+            {"CONFLUENCE_API_TOKEN": "test-token"},
+        ):
+            yield ConfluenceSyncPipelineWithDB(mock_emitter, mock_db)
+
+    @pytest.mark.asyncio
+    async def test_import_from_confluence_with_page_ids(self, pipeline):
+        """페이지 ID로 import"""
+        # Mock get_page
+        pipeline.confluence.get_page = AsyncMock(
+            return_value={
+                "page_id": "page-123",
+                "body": """# Test Signal
+
+## 기본 정보
+
+| 항목 | 값 |
+| Signal ID | SIG-001 |
+
+## Pain Point
+
+Test pain
+""",
+                "url": "https://example.com/page/123",
+                "labels": ["signal"],
+            }
+        )
+
+        # Mock _import_page_to_db
+        pipeline._import_page_to_db = AsyncMock(
+            return_value={
+                "page_id": "page-123",
+                "target_type": "signal",
+                "target_id": "SIG-001",
+                "action": "created",
+            }
+        )
+
+        result = await pipeline.import_from_confluence(
+            target_type=SyncTargetType.SIGNAL,
+            page_ids=["page-123"],
+        )
+
+        assert result["total"] == 1
+        assert result["imported"] == 1 or result["updated"] == 1 or result["skipped"] == 1
+
+    @pytest.mark.asyncio
+    async def test_import_from_confluence_empty_result(self, pipeline):
+        """빈 결과로 import"""
+        # Mock get_pages_by_label to return empty list
+        pipeline.confluence.get_pages_by_label = AsyncMock(return_value=[])
+
+        result = await pipeline.import_from_confluence(
+            target_type=SyncTargetType.SIGNAL,
+        )
+
+        assert result["total"] == 0
+        assert result["imported"] == 0
+
+    @pytest.mark.asyncio
+    async def test_bidirectional_sync(self, pipeline):
+        """양방향 동기화 실행"""
+        # Mock import_from_confluence
+        pipeline.import_from_confluence = AsyncMock(
+            return_value={
+                "total": 2,
+                "imported": 1,
+                "updated": 1,
+                "skipped": 0,
+                "failed": 0,
+                "details": [],
+            }
+        )
+
+        # Mock sync_from_db
+        pipeline.sync_from_db = AsyncMock(
+            return_value=SyncOutput(
+                results=[],
+                summary={"total": 3, "success": 3, "failed": 0, "skipped": 0},
+            )
+        )
+
+        result = await pipeline.bidirectional_sync(SyncTargetType.ALL)
+
+        assert "import_results" in result
+        assert "export_results" in result
+        assert result["import_results"]["total"] == 2
+        assert result["export_results"]["total"] == 3
+
+    @pytest.mark.asyncio
+    async def test_import_signal_new(self, pipeline):
+        """새 Signal import"""
+        content = """# Test Signal
+
+## 기본 정보
+
+| 항목 | 값 |
+| Signal ID | SIG-NEW-001 |
+
+## Pain Point
+
+New signal pain
+"""
+        # Mock backend.repositories.signal 모듈
+        mock_signal_repo = MagicMock()
+        mock_signal_repo.generate_signal_id = AsyncMock(return_value="SIG-AUTO-001")
+        mock_signal_repo.get_by_signal_id = AsyncMock(return_value=None)
+        mock_signal_repo.create = AsyncMock()
+
+        mock_module = MagicMock()
+        mock_module.SignalRepository = MagicMock(return_value=mock_signal_repo)
+
+        import sys
+
+        with patch.dict(sys.modules, {"backend.repositories.signal": mock_module}):
+            result = await pipeline._import_signal("page-123", content, "https://example.com")
+
+            assert result["action"] == "created"
+            assert "target_id" in result
+
+    @pytest.mark.asyncio
+    async def test_import_scorecard_without_signal_id(self, pipeline):
+        """signal_id 없는 Scorecard import (스킵)"""
+        content = """# Scorecard
+
+## 총점
+
+**75점** / 100점
+"""
+        # signal_id가 없으면 스킵됨 - ScorecardRepository import 전에 반환
+        # parse_scorecard_page가 signal_id를 추출하지 못하면 스킵
+        result = await pipeline._import_scorecard("page-123", content, None)
+
+        assert result["action"] == "skipped"
+        assert "signal_id not found" in result["reason"]
+
+
+class TestSyncActionImportPage:
+    """SyncAction.IMPORT_PAGE 테스트"""
+
+    def test_import_page_enum_exists(self):
+        """IMPORT_PAGE enum 값 확인"""
+        assert SyncAction.IMPORT_PAGE.value == "import_page"
