@@ -194,14 +194,15 @@ class TestVectorizeClient:
     @pytest.mark.asyncio
     async def test_upsert_not_configured(self):
         """미설정 시 upsert 오류"""
-        client = VectorizeClient(
-            account_id="",
-            api_token="",
-            index_name="idx",
-        )
+        with patch.dict("os.environ", {}, clear=True):
+            client = VectorizeClient(
+                account_id="",
+                api_token="",
+                index_name="idx",
+            )
 
-        with pytest.raises(RuntimeError, match="설정되지 않았습니다"):
-            await client.upsert([{"id": "test", "values": [0.1]}])
+            with pytest.raises(RuntimeError, match="설정되지 않았습니다"):
+                await client.upsert([{"id": "test", "values": [0.1]}])
 
     @pytest.mark.asyncio
     async def test_query_success(self):
@@ -282,14 +283,15 @@ class TestVectorizeClient:
     @pytest.mark.asyncio
     async def test_query_not_configured(self):
         """미설정 시 query 오류"""
-        client = VectorizeClient(
-            account_id="",
-            api_token="",
-            index_name="idx",
-        )
+        with patch.dict("os.environ", {}, clear=True):
+            client = VectorizeClient(
+                account_id="",
+                api_token="",
+                index_name="idx",
+            )
 
-        with pytest.raises(RuntimeError, match="설정되지 않았습니다"):
-            await client.query(vector=[0.1])
+            with pytest.raises(RuntimeError, match="설정되지 않았습니다"):
+                await client.query(vector=[0.1])
 
     @pytest.mark.asyncio
     async def test_delete_success(self):
