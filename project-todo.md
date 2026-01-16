@@ -290,7 +290,15 @@
 - [x] 6개 워크플로 모두 동작 (WF-01~06) ✅
 - [x] E2E 테스트 시나리오 3개 이상 통과 ✅ (10개 시나리오, 49개 테스트)
 - [x] API 문서 자동 생성 완료 ✅ (OpenAPI 3.1.0, Swagger UI)
-- [ ] Staging 환경 배포 및 검증
+- [x] Staging 환경 배포 및 검증 ✅ v0.4.0
+  - URL: https://ax-discovery-api-staging.onrender.com
+  - /health: 200 OK (healthy, v0.4.0, staging)
+  - /ready: 200 OK (database: not_configured, agent_runtime: ok, confluence: configured)
+  - /docs: Swagger UI 정상 (OpenAPI 3.1.0, 71개 엔드포인트)
+  - /api/inbox: 200 OK (Signal 목록)
+  - /api/scorecard: 200 OK (Scorecard 목록)
+  - /api/brief: 200 OK (Brief 목록)
+  - /api/plays: 200 OK (Play 대시보드)
 - [ ] PoC 주간 목표 달성 가능 상태
   - Activity 20+/주
   - Signal 30+/주
