@@ -243,12 +243,17 @@
 
 #### 3. 프로덕션 인프라 🚀
 - [ ] Alembic 마이그레이션 정리 및 실행
-- [ ] 환경별 설정 분리 (dev/staging/prod)
-- [ ] 헬스체크 엔드포인트 강화 (`/health`, `/ready`)
+- [x] 환경별 설정 분리 (dev/staging/prod) ✅ v0.4.0
+  - backend/core/config.py: Pydantic Settings 기반 중앙 설정
+  - .env.development, .env.staging, .env.production 템플릿
+- [x] 헬스체크 엔드포인트 강화 (`/health`, `/ready`) ✅ v0.4.0
+  - /health: Kubernetes liveness probe
+  - /ready: readiness probe (DB, Agent Runtime, Confluence 체크)
 - [ ] 로깅/모니터링 설정 (structlog + Sentry 연동)
 
 #### 4. 문서화 📚
-- [ ] API 문서 자동 생성 (FastAPI OpenAPI/Swagger)
+- [x] API 문서 자동 생성 (FastAPI OpenAPI/Swagger) ✅ v0.4.0
+  - OpenAPI 3.1.0, 10개 태그 그룹, Swagger UI/ReDoc
 - [ ] 사용자 가이드 초안 (주요 워크플로 사용법)
 - [ ] 운영 가이드 (배포, 트러블슈팅)
 
@@ -261,7 +266,7 @@
 
 - [x] 6개 워크플로 모두 동작 (WF-01~06) ✅
 - [x] E2E 테스트 시나리오 3개 이상 통과 ✅ (10개 시나리오, 49개 테스트)
-- [ ] API 문서 자동 생성 완료
+- [x] API 문서 자동 생성 완료 ✅ (OpenAPI 3.1.0, Swagger UI)
 - [ ] Staging 환경 배포 및 검증
 - [ ] PoC 주간 목표 달성 가능 상태
   - Activity 20+/주
