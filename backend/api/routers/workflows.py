@@ -33,6 +33,11 @@ from backend.agent_runtime.workflows.wf_kpi_digest import (
     KPIDigestPipelineWithDB,
     KPIInput,
 )
+from backend.agent_runtime.workflows.wf_voc_mining import (
+    VoCInput,
+    VoCMiningPipeline,
+    VoCMiningPipelineWithDB,
+)
 from backend.api.deps import get_db
 
 logger = structlog.get_logger()
@@ -506,4 +511,162 @@ async def get_kpi_summary(
         },
         "alerts_count": len(result.alerts),
         "message": "실제 데이터는 GET /api/workflows/kpi-digest를 사용하세요",
+    }
+
+
+# ============================================================
+# WF-03: VoC Mining
+# ============================================================
+
+
+class VoCMiningRequest(BaseModel):
+    """WF-03 VoC Mining 요청"""
+
+    source_type: str = "text"  # csv, excel, api, text
+    text_content: str | None = None  # 텍스트 내용
+    api_data: list[dict[str, Any]] | None = None  # API 데이터
+    play_id: str = "KT_Desk_V01_VoC"
+    source: str = "KT"
+    channel: str = "데스크리서치"
+    min_frequency: int = 5
+    max_themes: int = 5
+    save_to_db: bool = True
+
+
+class VoCThemeSummary(BaseModel):
+    """VoC 테마 요약"""
+
+    theme_id: str
+    name: str
+    frequency: int
+    severity: str
+    keywords: list[str]
+
+
+class VoCMiningResponse(BaseModel):
+    """WF-03 VoC Mining 응답"""
+
+    status: str
+    themes: list[dict[str, Any]]
+    signals: list[dict[str, Any]]
+    brief_candidates: list[dict[str, Any]]
+    summary: dict[str, Any]
+
+
+@router.post("/voc-mining", response_model=VoCMiningResponse)
+async def run_voc_mining(request: VoCMiningRequest, db: AsyncSession = Depends(get_db)):
+    """
+    WF-03: VoC Mining 파이프라인 실행
+
+    VoC/티켓 데이터 → 테마화 → Signal 생성 → Brief 후보
+
+    Args:
+        source_type: 데이터 소스 타입 (csv, excel, api, text)
+        text_content: 텍스트 내용 (source_type=text일 때)
+        api_data: API 데이터 (source_type=api일 때)
+        play_id: Play ID
+        source: 원천 (KT, 그룹사, 대외)
+        channel: 채널
+        min_frequency: 테마 최소 빈도
+        max_themes: 최대 테마 개수
+        save_to_db: DB 저장 여부 (기본: True)
+
+    Returns:
+        themes: 추출된 테마 목록
+        signals: 생성된 Signal 목록
+        brief_candidates: Brief 후보 목록
+        summary: 결과 요약
+    """
+    logger.info(
+        "Running VoC Mining pipeline",
+        source_type=request.source_type,
+        play_id=request.play_id,
+    )
+
+    # 입력 데이터 구성
+    input_data = VoCInput(
+        source_type=request.source_type,
+        text_content=request.text_content,
+        api_data=request.api_data,
+        play_id=request.play_id,
+        source=request.source,
+        channel=request.channel,
+        min_frequency=request.min_frequency,
+        max_themes=request.max_themes,
+    )
+
+    # 파이프라인 실행
+    if request.save_to_db:
+        # DB 저장 포함
+        session_id = generate_session_id("WF-03")
+        run_id = generate_run_id()
+        event_manager = SessionEventManager.get_or_create(session_id)
+        emitter = WorkflowEventEmitter(event_manager, run_id)
+
+        pipeline = VoCMiningPipelineWithDB(emitter, db)
+        result = await pipeline.run(input_data)
+
+        # DB 저장
+        saved = await pipeline.save_to_db(result.signals)
+
+        # 세션 정리
+        SessionEventManager.remove(session_id)
+
+        logger.info(
+            "VoC Mining completed with DB save",
+            saved_signals=len(saved["signals"]),
+        )
+    else:
+        # DB 저장 없이 실행
+        pipeline = VoCMiningPipeline()
+        result = await pipeline.run(input_data)
+
+    return VoCMiningResponse(
+        status="completed",
+        themes=result.themes,
+        signals=result.signals,
+        brief_candidates=result.brief_candidates,
+        summary=result.summary,
+    )
+
+
+@router.post("/voc-mining/preview")
+async def preview_voc_mining(
+    source_type: str = "text",
+    text_content: str | None = None,
+    min_frequency: int = 5,
+    max_themes: int = 5,
+):
+    """
+    VoC Mining 미리보기 (DB 저장 안함)
+
+    빠른 확인용 테마 추출 및 Signal 생성
+    """
+    # 입력 데이터 구성
+    input_data = VoCInput(
+        source_type=source_type,
+        text_content=text_content,
+        min_frequency=min_frequency,
+        max_themes=max_themes,
+    )
+
+    # 기본 파이프라인 실행
+    pipeline = VoCMiningPipeline()
+    result = await pipeline.run(input_data)
+
+    return {
+        "status": "preview",
+        "themes_count": len(result.themes),
+        "themes": [
+            {
+                "theme_id": t.get("theme_id"),
+                "name": t.get("name"),
+                "frequency": t.get("frequency"),
+                "severity": t.get("severity"),
+            }
+            for t in result.themes
+        ],
+        "signals_count": len(result.signals),
+        "brief_candidates_count": len(result.brief_candidates),
+        "message": "실제 실행은 POST /api/workflows/voc-mining를 사용하세요",
     }

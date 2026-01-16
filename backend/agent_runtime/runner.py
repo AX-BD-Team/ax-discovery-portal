@@ -511,7 +511,34 @@ class AgentRuntime:
     async def _run_voc_mining(self, input_data: dict[str, Any], session_id: str) -> dict[str, Any]:
         """WF-03: VoC Mining"""
         self.logger.info("Running WF-03: VoC Mining")
-        return {"workflow_id": "WF-03", "status": "completed"}
+
+        from backend.agent_runtime.workflows.wf_voc_mining import VoCInput, VoCMiningPipeline
+
+        # VoC 입력 생성
+        voc_input = VoCInput(
+            data_source=input_data.get("data_source"),
+            source_type=input_data.get("source_type", "text"),
+            file_content=input_data.get("file_content"),
+            api_data=input_data.get("api_data"),
+            text_content=input_data.get("text_content"),
+            play_id=input_data.get("play_id", "KT_Desk_V01_VoC"),
+            source=input_data.get("source", "KT"),
+            channel=input_data.get("channel", "데스크리서치"),
+            min_frequency=input_data.get("min_frequency", 5),
+            max_themes=input_data.get("max_themes", 5),
+        )
+
+        # 파이프라인 실행
+        pipeline = VoCMiningPipeline()
+        result = await pipeline.run(voc_input)
+
+        return {
+            "workflow_id": "WF-03",
+            "status": "completed",
+            "themes": result.themes,
+            "signals": result.signals,
+            "brief_candidates": result.brief_candidates,
+        }
 
     async def _run_inbound_triage(
         self, input_data: dict[str, Any], session_id: str

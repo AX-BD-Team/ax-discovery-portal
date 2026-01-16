@@ -91,6 +91,13 @@
   - [x] Play 라우팅 로직 (키워드 기반)
   - [x] Scorecard 초안 생성 (5차원 100점 평가)
   - [x] SLA 트래킹 (URGENT: 24h, NORMAL: 48h, LOW: 72h)
+- [x] WF-03 VoC Mining 구현 ✅ v0.4.0
+  - [x] VoC 데이터 핸들러 (CSV, Excel, API, 텍스트)
+  - [x] 3단계 파이프라인 계층 (기본, Events, DB)
+  - [x] 5단계 처리 흐름 (로딩→전처리→테마추출→Signal→Brief후보)
+  - [x] API 엔드포인트 (`/voc-mining`, `/voc-mining/preview`)
+  - [x] Runner 연동 (`_run_voc_mining`)
+  - [x] 단위 테스트 24개 통과
 
 ### 우선순위 3: 고급 기능
 

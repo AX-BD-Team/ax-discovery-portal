@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **WF-03 VoC Mining 워크플로 구현** ✨
+  - 다양한 데이터 소스 지원 (CSV, Excel, API, 텍스트)
+  - VoC 데이터 핸들러 (`voc_data_handlers.py`)
+  - 3단계 파이프라인 계층 (기본, Events, DB)
+  - 5단계 처리 흐름 (로딩 → 전처리 → 테마 추출 → Signal 생성 → Brief 후보)
+  - API 엔드포인트 (`/voc-mining`, `/voc-mining/preview`)
+  - Runner 연동 (`_run_voc_mining`)
+  - 단위 테스트 24개 통과
+
 - **Vector Search API** ✨
   - `/api/search/similar`: 유사 엔티티 검색
   - `/api/search/query`: RAG 기반 자연어 검색
