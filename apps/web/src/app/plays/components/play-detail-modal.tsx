@@ -108,7 +108,7 @@ export function PlayDetailModal({ playId, open, onOpenChange }: PlayDetailModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Play Details</DialogTitle>
         </DialogHeader>
