@@ -100,6 +100,8 @@ jobs:
 
           Co-Authored-By: Claude <noreply@anthropic.com>"
 
+          # 토큰으로 인증하여 푸시
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin ${{ steps.failed-run.outputs.branch }}
 
       - name: Comment on PR (if exists)
