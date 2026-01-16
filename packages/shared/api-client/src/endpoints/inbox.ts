@@ -1,6 +1,13 @@
 import type { Signal, CreateSignalRequest } from '@ax/types'
 import { apiClient } from '../client'
 
+interface SignalListResponse {
+  items: Signal[]
+  total: number
+  page: number
+  page_size: number
+}
+
 /**
  * Inbox API endpoints
  */
@@ -9,7 +16,8 @@ export const inboxApi = {
    * Get all signals
    */
   async getSignals(): Promise<Signal[]> {
-    return apiClient.get('api/inbox').json<Signal[]>()
+    const response = await apiClient.get('api/inbox').json<SignalListResponse>()
+    return response.items
   },
 
   /**
