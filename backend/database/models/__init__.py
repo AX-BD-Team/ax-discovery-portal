@@ -17,11 +17,11 @@ from .play_record import PlayRecord, PlayStatus
 from .scorecard import Decision, NextStep, Scorecard
 from .signal import Signal, SignalChannel, SignalSource, SignalStatus
 from .trace import (
+    DEFAULT_COMPETENCY_QUESTIONS,
     CompetencyQuestion,
     Trace,
     TraceErrorType,
     TraceStatus,
-    DEFAULT_COMPETENCY_QUESTIONS,
 )
 from .triple import AssertionType, PredicateType, Triple, TripleStatus
 from .user import User, UserRole

@@ -68,3 +68,4 @@ public/worker-*.js
 
 # OpenNext build output
 apps/web/.open-next/
+.coverage
