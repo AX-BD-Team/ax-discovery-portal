@@ -21,6 +21,7 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "pydantic>=2.10.0",
     "pydantic-settings>=2.6.0",
+    "email-validator>=2.0.0",  # Render 캐시 문제 해결용 명시적 추가
     "atlassian-python-api>=3.41.0",
     "httpx>=0.28.0",
     "structlog>=24.4.0",
