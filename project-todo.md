@@ -121,12 +121,18 @@
 - [x] WF-06 Confluence Sync 구현 ✅ v0.4.0
   - [x] 데이터 모델 (SyncTargetType, SyncAction, SyncTarget, SyncInput, SyncResult, SyncOutput)
   - [x] 페이지 포맷터 (Signal, Scorecard, Brief, Activity 페이지)
-  - [x] MockConfluenceClient (create/update/append 페이지)
+  - [x] MockConfluenceClient (create/update/append/get/search 페이지)
   - [x] ConfluenceSyncPipeline (5단계 동기화)
   - [x] ConfluenceSyncPipelineWithEvents (AG-UI 이벤트)
   - [x] ConfluenceSyncPipelineWithDB (DB 연동 + page_id 캐싱)
   - [x] API 엔드포인트 5개 (sync, signal, brief, activity-log, preview)
-  - [x] 단위 테스트 45개 통과
+  - [x] **양방향 동기화** ✅
+    - [x] 페이지 파서 (parse_signal_page, parse_scorecard_page, parse_brief_page)
+    - [x] 페이지 타입 자동 감지 (detect_page_type)
+    - [x] Confluence → DB import (import_from_confluence)
+    - [x] 양방향 동기화 (bidirectional_sync)
+    - [x] API 엔드포인트 4개 추가 (/import, /from-db, /bidirectional, /parse-preview)
+  - [x] 단위 테스트 67개 통과
 - [x] Teams 연동 (MCP 서버) ✅ v0.4.0
   - [x] TeamsMCP 클래스 구현 (5개 도구)
   - [x] Incoming Webhook 메시지 전송

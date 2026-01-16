@@ -14,13 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WF-06 Confluence Sync 워크플로 구현** ✨
   - 데이터 모델 (SyncTargetType, SyncAction, SyncTarget, SyncInput, SyncResult, SyncOutput)
   - 페이지 포맷터 (Signal, Scorecard, Brief, Activity Markdown 페이지)
-  - MockConfluenceClient (create/update/append 페이지)
+  - MockConfluenceClient (create/update/append/get/search 페이지)
   - ConfluenceSyncPipeline (5단계: 검증 → 콘텐츠 준비 → 동기화 → 테이블 업데이트 → 확인)
   - ConfluenceSyncPipelineWithEvents (AG-UI 실시간 이벤트)
   - ConfluenceSyncPipelineWithDB (DB 연동, page_id 캐싱, sync_from_db)
-  - API 엔드포인트 5개 (`/confluence-sync`, `/confluence-sync/signal`, `/confluence-sync/brief`, `/confluence-sync/activity-log`, `/confluence-sync/preview`)
+  - **양방향 동기화 구현** 🔄
+    - 페이지 파서 (parse_signal_page, parse_scorecard_page, parse_brief_page)
+    - 페이지 타입 자동 감지 (detect_page_type)
+    - Confluence → DB import (import_from_confluence)
+    - 양방향 동기화 (bidirectional_sync)
+  - API 엔드포인트 9개 (`/confluence-sync`, `/signal`, `/brief`, `/activity-log`, `/preview`, `/import`, `/from-db`, `/bidirectional`, `/parse-preview`)
   - workflows.py 병합 충돌 해결
-  - 단위 테스트 45개 통과
+  - 단위 테스트 67개 통과
 
 - **WF-03 VoC Mining 워크플로 구현** ✨
   - 다양한 데이터 소스 지원 (CSV, Excel, API, 텍스트)
