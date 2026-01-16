@@ -262,17 +262,19 @@ class TestRunFunction:
     @pytest.mark.asyncio
     async def test_run_with_dry_run(self):
         """dry_run으로 실행"""
-        result = await run({
-            "targets": [
-                {
-                    "target_type": "signal",
-                    "target_id": "SIG-2025-001",
-                    "data": {"title": "Test Signal"},
-                    "action": "create_page",
-                }
-            ],
-            "dry_run": True,
-        })
+        result = await run(
+            {
+                "targets": [
+                    {
+                        "target_type": "signal",
+                        "target_id": "SIG-2025-001",
+                        "data": {"title": "Test Signal"},
+                        "action": "create_page",
+                    }
+                ],
+                "dry_run": True,
+            }
+        )
 
         assert len(result["results"]) == 1
         assert result["results"][0]["status"] == "skipped"
@@ -496,9 +498,7 @@ class TestConfluenceSyncPipelineWithEvents:
     @pytest.mark.asyncio
     async def test_emits_run_error_on_exception(self, pipeline, mock_emitter):
         """예외 발생 시 run_error 이벤트 발행"""
-        with patch.object(
-            ConfluenceSyncPipeline, "run", side_effect=Exception("Test error")
-        ):
+        with patch.object(ConfluenceSyncPipeline, "run", side_effect=Exception("Test error")):
             sync_input = SyncInput(targets=[])
 
             with pytest.raises(Exception, match="Test error"):
@@ -870,7 +870,13 @@ class TestPipelineEdgeCases:
             SyncTarget(
                 target_type=SyncTargetType.SCORECARD,
                 target_id="SC-001",
-                data={"scorecard_id": "SC-001", "total_score": 80, "dimensions": {}, "decision": "GO", "rationale": "Test"},
+                data={
+                    "scorecard_id": "SC-001",
+                    "total_score": 80,
+                    "dimensions": {},
+                    "decision": "GO",
+                    "rationale": "Test",
+                },
             ),
         ]
         sync_input = SyncInput(targets=targets)

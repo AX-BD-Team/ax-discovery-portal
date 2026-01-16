@@ -79,12 +79,14 @@ class SyncOutput:
     """동기화 출력"""
 
     results: list[SyncResult] = field(default_factory=list)
-    summary: dict[str, int] = field(default_factory=lambda: {
-        "total": 0,
-        "success": 0,
-        "failed": 0,
-        "skipped": 0,
-    })
+    summary: dict[str, int] = field(
+        default_factory=lambda: {
+            "total": 0,
+            "success": 0,
+            "failed": 0,
+            "skipped": 0,
+        }
+    )
 
 
 # ============================================================
@@ -107,10 +109,12 @@ def format_signal_page(signal: dict[str, Any]) -> str:
 
     evidence_md = ""
     if evidence:
-        evidence_md = "\n".join([
-            f"- [{e.get('title', 'Link')}]({e.get('url', '#')}) - {e.get('note', '')}"
-            for e in evidence
-        ])
+        evidence_md = "\n".join(
+            [
+                f"- [{e.get('title', 'Link')}]({e.get('url', '#')}) - {e.get('note', '')}"
+                for e in evidence
+            ]
+        )
     else:
         evidence_md = "- 없음"
 
@@ -704,7 +708,9 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
                 await self._update_signal_page_id(result.target_id, result.page_id, result.page_url)
                 saved["signals"] += 1
             elif result.target_type == SyncTargetType.SCORECARD:
-                await self._update_scorecard_page_id(result.target_id, result.page_id, result.page_url)
+                await self._update_scorecard_page_id(
+                    result.target_id, result.page_id, result.page_url
+                )
                 saved["scorecards"] += 1
             elif result.target_type == SyncTargetType.BRIEF:
                 await self._update_brief_page_id(result.target_id, result.page_id, result.page_url)
@@ -856,9 +862,7 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
 
         return result
 
-    async def _fetch_signals_from_db(
-        self, signal_ids: list[str] | None
-    ) -> list[dict[str, Any]]:
+    async def _fetch_signals_from_db(self, signal_ids: list[str] | None) -> list[dict[str, Any]]:
         """DB에서 Signal 조회"""
         try:
             from backend.repositories.signal import SignalRepository
@@ -935,9 +939,7 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
             self.logger.warning("Failed to fetch scorecards from DB", error=str(e))
             return []
 
-    async def _fetch_briefs_from_db(
-        self, brief_ids: list[str] | None
-    ) -> list[dict[str, Any]]:
+    async def _fetch_briefs_from_db(self, brief_ids: list[str] | None) -> list[dict[str, Any]]:
         """DB에서 Brief 조회"""
         try:
             from backend.repositories.brief import BriefRepository
@@ -981,14 +983,16 @@ async def run(input_data: dict[str, Any]) -> dict[str, Any]:
     """워크플로 실행 (dict 인터페이스)"""
     targets = []
     for t in input_data.get("targets", []):
-        targets.append(SyncTarget(
-            target_type=SyncTargetType(t.get("target_type", "signal")),
-            target_id=t.get("target_id", ""),
-            data=t.get("data", {}),
-            action=SyncAction(t.get("action", "create_page")),
-            play_id=t.get("play_id"),
-            page_id=t.get("page_id"),
-        ))
+        targets.append(
+            SyncTarget(
+                target_type=SyncTargetType(t.get("target_type", "signal")),
+                target_id=t.get("target_id", ""),
+                data=t.get("data", {}),
+                action=SyncAction(t.get("action", "create_page")),
+                play_id=t.get("play_id"),
+                page_id=t.get("page_id"),
+            )
+        )
 
     sync_input = SyncInput(
         targets=targets,

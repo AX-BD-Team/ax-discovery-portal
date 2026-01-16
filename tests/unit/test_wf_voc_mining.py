@@ -195,11 +195,13 @@ class TestRunFunction:
     @pytest.mark.asyncio
     async def test_run_with_full_input(self):
         """전체 입력으로 실행"""
-        result = await run({
-            "data_source": "full_test_source",
-            "play_id": "CUSTOM_PLAY_ID",
-            "min_frequency": 10,
-        })
+        result = await run(
+            {
+                "data_source": "full_test_source",
+                "play_id": "CUSTOM_PLAY_ID",
+                "min_frequency": 10,
+            }
+        )
 
         assert "themes" in result
         assert len(result["signals"]) > 0
@@ -220,12 +222,14 @@ class TestRunFunction:
     @pytest.mark.asyncio
     async def test_run_with_extended_fields(self):
         """확장된 필드로 실행"""
-        result = await run({
-            "source_type": "text",
-            "text_content": "응답이 너무 느립니다\n절차가 복잡합니다",
-            "play_id": "KT_Desk_V01_VoC",
-            "max_themes": 3,
-        })
+        result = await run(
+            {
+                "source_type": "text",
+                "text_content": "응답이 너무 느립니다\n절차가 복잡합니다",
+                "play_id": "KT_Desk_V01_VoC",
+                "max_themes": 3,
+            }
+        )
 
         assert "themes" in result
         assert "signals" in result

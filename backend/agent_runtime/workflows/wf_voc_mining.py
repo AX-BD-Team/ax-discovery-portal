@@ -238,10 +238,7 @@ class VoCMiningPipeline:
             handler = get_handler("text")
 
         # 데이터 파싱
-        if (
-            input_data.source_type in ("csv", "excel")
-            and input_data.file_content
-        ):
+        if input_data.source_type in ("csv", "excel") and input_data.file_content:
             records = handler.parse(input_data.file_content)
         elif input_data.source_type == "api" and input_data.api_data:
             records = handler.parse(input_data.api_data)
@@ -335,9 +332,7 @@ class VoCMiningPipeline:
 
         return signals
 
-    async def _select_brief_candidates(
-        self, signals: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    async def _select_brief_candidates(self, signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Brief 후보 선정"""
         # 신뢰도 0.7 이상인 Signal을 Brief 후보로
         candidates = [s for s in signals if s.get("confidence", 0) >= 0.7]
@@ -542,7 +537,10 @@ class VoCMiningPipelineWithDB(VoCMiningPipelineWithEvents):
     """
     WF-03: VoC Mining with DB Integration
 
-    데이터베이스 연동을 포함한 완전한 파이프라인
+    데이터베이스 연동을 포함한 완전한 파이프라인:
+    - Signal 저장 (자동 ID 생성)
+    - Scorecard 자동 생성 (confidence >= 0.7인 Signal)
+    - 트랜잭션 관리
     """
 
     def __init__(self, emitter: "WorkflowEventEmitter", db: "AsyncSession"):
@@ -550,32 +548,161 @@ class VoCMiningPipelineWithDB(VoCMiningPipelineWithEvents):
         self.db = db
         self.logger = logger.bind(workflow="WF-03", with_db=True)
 
+    async def run(self, input_data: VoCInput) -> VoCOutput:
+        """파이프라인 실행 (DB 저장 포함)"""
+        # 부모 클래스 실행 (이벤트 발행 포함)
+        result = await super().run(input_data)
+
+        # DB 저장
+        saved = await self.save_to_db(result.signals)
+
+        # 결과에 저장 정보 추가
+        result.summary["saved_signals"] = len(saved["signals"])
+        result.summary["saved_scorecards"] = len(saved["scorecards"])
+
+        return result
+
     async def save_to_db(
         self,
         signals: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        """결과를 DB에 저장"""
-        from backend.database.models.signal import SignalStatus
+        """결과를 DB에 저장
+
+        Args:
+            signals: 생성된 Signal 목록
+
+        Returns:
+            저장 결과 (signals, scorecards ID 목록)
+        """
+        from backend.database.models.scorecard import Decision, NextStep
+        from backend.database.models.signal import (
+            SignalChannel,
+            SignalSource,
+            SignalStatus,
+        )
+        from backend.database.repositories.scorecard import scorecard_repo
         from backend.database.repositories.signal import signal_repo
 
-        saved = {"signals": []}
+        saved = {"signals": [], "scorecards": []}
 
-        # Signal 저장
         for signal_data in signals:
             try:
+                # 1. Signal ID 생성
                 signal_id = await signal_repo.generate_signal_id(self.db)
-                signal_data["signal_id"] = signal_id
-                signal_data["status"] = SignalStatus.NEW
 
-                db_signal = await signal_repo.create(self.db, signal_data)
+                # 2. Signal 데이터 준비
+                db_signal_data = {
+                    "signal_id": signal_id,
+                    "title": signal_data.get("title", "VoC Signal"),
+                    "source": self._map_source(signal_data.get("source", "KT")),
+                    "channel": self._map_channel(signal_data.get("channel", "데스크리서치")),
+                    "play_id": signal_data.get("play_id", "KT_Desk_V01_VoC"),
+                    "pain": signal_data.get("pain", ""),
+                    "evidence": signal_data.get("evidence", []),
+                    "tags": signal_data.get("tags", []),
+                    "status": SignalStatus.NEW,
+                    "confidence": signal_data.get("confidence", 0.5),
+                }
+
+                # 3. Signal 저장
+                db_signal = await signal_repo.create(self.db, db_signal_data)
                 saved["signals"].append(db_signal.signal_id)
-
                 self.logger.info("Signal saved", signal_id=signal_id)
-            except Exception as e:
-                self.logger.error("Failed to save signal", error=str(e))
 
+                # 4. 높은 신뢰도 Signal에 대해 Scorecard 자동 생성
+                confidence = signal_data.get("confidence", 0.5)
+                if confidence >= 0.7:
+                    scorecard_id = await scorecard_repo.generate_scorecard_id(self.db)
+
+                    # VoC 기반 점수 산정 (휴리스틱)
+                    base_score = int(confidence * 100)
+                    dimension_scores = {
+                        "strategic_fit": min(base_score + 5, 100),
+                        "market_size": base_score,
+                        "feasibility": base_score - 5,
+                        "urgency": min(base_score + 10, 100),  # VoC는 긴급도 높음
+                        "competitive": base_score,
+                    }
+                    total_score = sum(dimension_scores.values()) / 5
+
+                    # 판정 결정
+                    if total_score >= 80:
+                        decision = Decision.GO
+                        next_step = NextStep.BRIEF
+                    elif total_score >= 60:
+                        decision = Decision.PIVOT
+                        next_step = NextStep.NEED_MORE_EVIDENCE
+                    else:
+                        decision = Decision.HOLD
+                        next_step = NextStep.NEED_MORE_EVIDENCE
+
+                    scorecard_data = {
+                        "scorecard_id": scorecard_id,
+                        "signal_id": signal_id,
+                        "total_score": total_score,
+                        "dimension_scores": dimension_scores,
+                        "red_flags": [],
+                        "recommendation": {
+                            "decision": decision.value,
+                            "next_step": next_step.value,
+                            "rationale": f"VoC 데이터 기반 자동 평가 (신뢰도: {confidence:.0%})",
+                        },
+                        "scored_by": "VoCMiningPipeline",
+                    }
+
+                    await scorecard_repo.create(self.db, scorecard_data)
+                    saved["scorecards"].append(scorecard_id)
+
+                    # Signal 상태 업데이트
+                    db_signal.status = SignalStatus.SCORED
+                    self.logger.info(
+                        "Scorecard created",
+                        scorecard_id=scorecard_id,
+                        signal_id=signal_id,
+                        total_score=total_score,
+                    )
+
+            except Exception as e:
+                self.logger.error(
+                    "Failed to save signal",
+                    error=str(e),
+                    signal_title=signal_data.get("title"),
+                )
+
+        # 트랜잭션 커밋
         await self.db.commit()
+
+        self.logger.info(
+            "DB save completed",
+            signals_saved=len(saved["signals"]),
+            scorecards_saved=len(saved["scorecards"]),
+        )
+
         return saved
+
+    def _map_source(self, source: str) -> "SignalSource":
+        """문자열을 SignalSource enum으로 변환"""
+        from backend.database.models.signal import SignalSource
+
+        source_map = {
+            "KT": SignalSource.KT,
+            "그룹사": SignalSource.GROUP,
+            "대외": SignalSource.EXTERNAL,
+        }
+        return source_map.get(source, SignalSource.KT)
+
+    def _map_channel(self, channel: str) -> "SignalChannel":
+        """문자열을 SignalChannel enum으로 변환"""
+        from backend.database.models.signal import SignalChannel
+
+        channel_map = {
+            "데스크리서치": SignalChannel.DESK_RESEARCH,
+            "자사활동": SignalChannel.INTERNAL_ACTIVITY,
+            "영업PM": SignalChannel.SALES_PM,
+            "인바운드": SignalChannel.INBOUND,
+            "아웃바운드": SignalChannel.OUTBOUND,
+        }
+        return channel_map.get(channel, SignalChannel.DESK_RESEARCH)
 
 
 # ============================================================
@@ -627,6 +754,45 @@ async def run_with_events(
     )
 
     pipeline = VoCMiningPipelineWithEvents(emitter)
+    result = await pipeline.run(voc_input)
+
+    return {
+        "themes": result.themes,
+        "signals": result.signals,
+        "brief_candidates": result.brief_candidates,
+        "summary": result.summary,
+    }
+
+
+async def run_with_db(
+    input_data: dict[str, Any],
+    emitter: "WorkflowEventEmitter",
+    db: "AsyncSession",
+) -> dict[str, Any]:
+    """DB 저장을 포함한 워크플로 실행
+
+    Args:
+        input_data: 입력 데이터
+        emitter: 이벤트 발행기
+        db: 데이터베이스 세션
+
+    Returns:
+        themes, signals, brief_candidates, summary, saved 정보
+    """
+    voc_input = VoCInput(
+        data_source=input_data.get("data_source"),
+        source_type=input_data.get("source_type", "text"),
+        file_content=input_data.get("file_content"),
+        api_data=input_data.get("api_data"),
+        text_content=input_data.get("text_content"),
+        play_id=input_data.get("play_id", "KT_Desk_V01_VoC"),
+        source=input_data.get("source", "KT"),
+        channel=input_data.get("channel", "데스크리서치"),
+        min_frequency=input_data.get("min_frequency", 5),
+        max_themes=input_data.get("max_themes", 5),
+    )
+
+    pipeline = VoCMiningPipelineWithDB(emitter, db)
     result = await pipeline.run(voc_input)
 
     return {
