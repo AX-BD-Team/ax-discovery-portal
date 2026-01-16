@@ -246,11 +246,15 @@
 - [ ] 리드타임 측정 (Signal→Brief ≤7일, Brief→S2 ≤14일)
 
 #### 2. 데모 준비 🎬
-- [ ] 데모 시나리오 작성 (3개 핵심 플로우)
+- [x] 데모 시나리오 작성 (3개 핵심 플로우) ✅
+  - docs/DEMO_SCENARIOS.md 작성
   - 세미나 등록 → Signal 생성 → Scorecard 평가
   - VoC 분석 → Brief 자동 생성 → Confluence 동기화
   - Inbound 요청 → Triage → S2 승인
-- [ ] 데모 데이터 준비 (샘플 Activity, Signal, Brief)
+- [x] 데모 데이터 준비 (샘플 Activity, Signal, Brief) ✅
+  - docs/demo-data/ 디렉토리 생성
+  - scenario1_seminar.json, scenario2_voc.csv, scenario3_inbound.json
+  - api_calls.sh 데모 스크립트
 - [ ] 발표 자료 초안 (PoC 결과 요약)
 
 #### 3. 문서화 완성 📚

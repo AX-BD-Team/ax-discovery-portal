@@ -1,0 +1,208 @@
+{
+  "_comment": "시나리오 2: VoC 분석 → Brief → Confluence 동기화",
+  "_description": "고객 VOC 데이터를 분석하여 사업기회를 발굴하고 Brief를 자동 생성",
+
+  "voc_mining_input": {
+    "source_type": "csv",
+    "source_path": "scenario2_voc.csv",
+    "date_range": {
+      "start": "2026-01-08",
+      "end": "2026-01-16"
+    },
+    "filters": {
+      "sentiment": ["urgent", "interested"],
+      "min_records": 5
+    }
+  },
+
+  "expected_themes": [
+    {
+      "theme_id": "THEME-001",
+      "name": "제조업 품질검사 자동화",
+      "frequency": 5,
+      "sentiment_distribution": {
+        "urgent": 4,
+        "interested": 0,
+        "concerned": 1
+      },
+      "customers": ["에이텍제조", "이테크제조", "지테크", "아이제조", "씨테크제조"],
+      "keywords": ["품질검사", "AI", "자동화", "비전검사", "불량률"],
+      "total_potential_revenue": "15억원",
+      "priority_score": 95,
+      "brief_candidate": true
+    },
+    {
+      "theme_id": "THEME-002",
+      "name": "물류센터 자동화",
+      "frequency": 3,
+      "sentiment_distribution": {
+        "urgent": 0,
+        "interested": 3,
+        "concerned": 0
+      },
+      "customers": ["베스트물류", "에프로직스", "에이치물류"],
+      "keywords": ["물류", "자동화", "무인화", "분류", "콜드체인"],
+      "total_potential_revenue": "8억원",
+      "priority_score": 72,
+      "brief_candidate": false
+    },
+    {
+      "theme_id": "THEME-003",
+      "name": "유통 재고관리 AI",
+      "frequency": 2,
+      "sentiment_distribution": {
+        "urgent": 1,
+        "interested": 1,
+        "concerned": 0
+      },
+      "customers": ["델타유통", "제이유통"],
+      "keywords": ["재고관리", "AI", "실시간", "통합관리"],
+      "total_potential_revenue": "5억원",
+      "priority_score": 58,
+      "brief_candidate": false
+    }
+  ],
+
+  "generated_signals": [
+    {
+      "signal_id": "SIG-2026-0116-VOC-001",
+      "title": "제조업 AI 품질검사 자동화 수요 (VOC 기반)",
+      "source": "voc",
+      "channel": "multi-channel",
+      "pain_point": "중소제조업체들의 품질검사 자동화 니즈 급증. 5개 고객사에서 동일 문의. 인력 부족, 불량률 관리, 야간 검사 불가 등 공통 Pain Point 확인.",
+      "evidence": [
+        "10일간 5건 동일 카테고리 VOC 접수",
+        "4건 urgent sentiment (긴급)",
+        "아이제조: 3억원 예산 확보 상태",
+        "에이텍제조: 월 불량률 5% 손실"
+      ],
+      "tags": ["품질검사", "AI", "제조업", "VOC", "자동화"],
+      "status": "NEW"
+    }
+  ],
+
+  "expected_brief": {
+    "brief_id": "BRIEF-2026-0116-001",
+    "title": "중소제조업 AI 품질검사 솔루션",
+    "status": "DRAFT",
+    "sections": {
+      "opportunity_summary": {
+        "headline": "중소제조업체의 AI 품질검사 자동화 수요 급증",
+        "key_points": [
+          "10일간 5개 고객사에서 동일 니즈 접수 (VOC 분석)",
+          "4건 urgent sentiment - 시급한 도입 의지",
+          "정부 스마트팩토리 지원사업 연계 가능",
+          "세미나에서도 동일 트렌드 확인 (시너지)"
+        ],
+        "market_context": "중소제조업 품질관리 시장 5,000억원 규모. AI 도입률 15% 미만으로 성장 잠재력 높음."
+      },
+      "target_customer": {
+        "primary": {
+          "segment": "중소제조업체 (100인 미만)",
+          "characteristics": [
+            "수작업 품질검사 운영",
+            "불량률 관리 어려움",
+            "인력 부족/고령화"
+          ],
+          "tam": "5,000억원"
+        },
+        "secondary": {
+          "segment": "정부 지원사업 신청 기업",
+          "characteristics": [
+            "스마트팩토리 구축 계획",
+            "정부 보조금 활용 가능",
+            "초기 투자 부담 감소"
+          ],
+          "tam": "1,000억원"
+        }
+      },
+      "proposed_solution": {
+        "name": "KT AI 품질검사 플랫폼",
+        "description": "5G Edge + AI 비전검사를 결합한 실시간 품질검사 솔루션",
+        "key_features": [
+          "AI 비전검사 (불량 자동 감지)",
+          "5G 기반 실시간 데이터 전송",
+          "클라우드 대시보드 (원격 모니터링)",
+          "불량 패턴 분석 리포트"
+        ],
+        "pricing_model": "월 구독형 SaaS (초기 투자 부담 최소화)",
+        "estimated_price": "월 300~500만원 (라인당)"
+      },
+      "financial_projection": {
+        "tam": "5,000억원 (국내 중소제조업 품질관리 시장)",
+        "sam": "500억원 (AI 기반 솔루션 도입 가능 기업)",
+        "som": "50억원/년 (1차년도 목표)",
+        "growth_projection": {
+          "year1": "50억원",
+          "year2": "120억원",
+          "year3": "200억원"
+        },
+        "margin": "40% (SaaS 모델)"
+      },
+      "next_steps": [
+        {
+          "action": "아이제조 PoC 제안서 발송",
+          "owner": "김영업",
+          "deadline": "2026-01-20",
+          "priority": "HIGH"
+        },
+        {
+          "action": "에이텍제조 현장 방문 및 니즈 상세 파악",
+          "owner": "박영업",
+          "deadline": "2026-01-22",
+          "priority": "HIGH"
+        },
+        {
+          "action": "정부 스마트팩토리 지원사업 연계 방안 검토",
+          "owner": "이기획",
+          "deadline": "2026-01-25",
+          "priority": "MEDIUM"
+        },
+        {
+          "action": "솔루션 데모 환경 구축",
+          "owner": "최개발",
+          "deadline": "2026-01-31",
+          "priority": "MEDIUM"
+        }
+      ],
+      "risks_and_mitigations": [
+        {
+          "risk": "대기업 솔루션 업체 경쟁 (삼성SDS, LG CNS)",
+          "probability": "HIGH",
+          "impact": "MEDIUM",
+          "mitigation": "중소기업 특화 저가형 SaaS 모델로 차별화"
+        },
+        {
+          "risk": "중소기업 IT 인력 부족으로 도입 지연",
+          "probability": "MEDIUM",
+          "impact": "MEDIUM",
+          "mitigation": "턴키 설치 + 원격 운영 지원 서비스 포함"
+        }
+      ]
+    },
+    "metadata": {
+      "created_at": "2026-01-16T10:00:00+09:00",
+      "created_by": "AI Agent (Brief Writer)",
+      "source_signals": ["SIG-2026-0115-001", "SIG-2026-0116-VOC-001"],
+      "related_activities": ["ACT-2026-0115-001"],
+      "confluence_page_id": null,
+      "approval_status": "PENDING",
+      "approver": null
+    }
+  },
+
+  "confluence_sync": {
+    "action": "CREATE",
+    "space_key": "AXBD",
+    "parent_page": "Briefs",
+    "page_title": "BRIEF-2026-0116-001: 중소제조업 AI 품질검사 솔루션",
+    "expected_page_id": "12345678",
+    "labels": ["brief", "draft", "manufacturing", "ai", "quality"],
+    "watchers": ["김팀장", "박매니저"],
+    "notification": {
+      "channel": "teams",
+      "message": "새로운 Brief가 생성되었습니다: 중소제조업 AI 품질검사 솔루션",
+      "mentions": ["@김팀장"]
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "_comment": "시나리오 1: 세미나 → Signal → Scorecard",
+  "_description": "BD팀원이 외부 기술 세미나에 참석 후 사업기회 신호를 포착",
+
+  "activity": {
+    "title": "AI 기반 스마트팩토리 혁신 세미나",
+    "activity_type": "seminar",
+    "date": "2026-01-15",
+    "organizer": "한국산업기술협회",
+    "location": "코엑스 컨퍼런스룸 401호",
+    "attendee": {
+      "name": "김민수",
+      "department": "BD팀",
+      "role": "대리"
+    },
+    "summary": "제조업 AI 도입 현황 및 KT의 기회 영역 발표. 특히 중소제조업체의 품질검사 자동화 수요가 급증하고 있으며, 현재 시장에 적합한 솔루션이 부재한 상황. 정부의 스마트팩토리 지원사업과 연계 시 빠른 시장 진입 가능.",
+    "key_insights": [
+      "중소제조업 품질검사 자동화 수요 급증 (전년 대비 40% 증가)",
+      "기존 솔루션은 대기업 중심으로 가격 장벽 높음 (최소 5억원 이상)",
+      "KT 5G + AI 조합으로 경쟁력 있는 저가형 솔루션 가능",
+      "정부 스마트팩토리 지원사업 예산 2배 증가 (2026년 1조원)"
+    ],
+    "potential_contacts": [
+      {
+        "name": "박영호",
+        "company": "한국산업기술협회",
+        "title": "스마트팩토리 TF장",
+        "email": "yhpark@kiat.or.kr",
+        "phone": "02-6009-3114",
+        "note": "정부 지원사업 연계 논의 가능"
+      },
+      {
+        "name": "정수연",
+        "company": "스마트제조혁신협회",
+        "title": "기술위원장",
+        "email": "syjung@smic.or.kr",
+        "phone": "02-3453-2100",
+        "note": "중소제조업체 네트워크 보유"
+      }
+    ],
+    "attachments": [
+      "세미나_발표자료_AI스마트팩토리.pdf",
+      "참가자_명함_스캔.jpg"
+    ],
+    "follow_up_actions": [
+      "박영호 TF장 미팅 요청 (1주 내)",
+      "스마트팩토리 지원사업 세부 내용 조사",
+      "KT 내부 관련 솔루션 현황 파악"
+    ]
+  },
+
+  "expected_signal": {
+    "signal_id": "SIG-2026-0115-001",
+    "title": "중소제조업 AI 품질검사 자동화 수요",
+    "source": "seminar",
+    "channel": "external",
+    "pain_point": "중소제조업체의 품질검사 자동화 솔루션 부재. 기존 대기업 솔루션은 가격 장벽이 높아(5억원+) 도입 어려움. 수작업 품질검사로 인한 불량률 관리 한계.",
+    "evidence": [
+      "한국산업기술협회 세미나 발표 자료",
+      "중소제조업 AI 도입률 15% 미만 (2025년 산업부 통계)",
+      "품질검사 자동화 문의 전년 대비 40% 증가"
+    ],
+    "tags": ["스마트팩토리", "품질검사", "AI", "중소제조업", "정부지원사업"],
+    "status": "NEW",
+    "created_at": "2026-01-15T17:30:00+09:00"
+  },
+
+  "expected_scorecard": {
+    "signal_id": "SIG-2026-0115-001",
+    "dimensions": {
+      "market_attractiveness": {
+        "score": 18,
+        "max": 20,
+        "rationale": "중소제조업 품질관리 시장 5,000억원 규모. 정부 지원사업 연계로 초기 시장 확보 용이."
+      },
+      "kt_fit": {
+        "score": 16,
+        "max": 20,
+        "rationale": "KT 5G 인프라 + AI 역량 활용 가능. 기존 B2B 영업망 활용 가능."
+      },
+      "competitive_advantage": {
+        "score": 14,
+        "max": 20,
+        "rationale": "저가형 SaaS 모델로 가격 경쟁력 확보 가능. 다만 삼성SDS, LG CNS 등 경쟁사 존재."
+      },
+      "execution_feasibility": {
+        "score": 15,
+        "max": 20,
+        "rationale": "기존 AI 플랫폼 기반 개발 가능. 6개월 내 MVP 출시 가능."
+      },
+      "revenue_potential": {
+        "score": 17,
+        "max": 20,
+        "rationale": "SaaS 월 구독 모델로 안정적 매출. 1차년도 50억원, 3년 후 200억원 예상."
+      }
+    },
+    "total_score": 80,
+    "verdict": "GO",
+    "recommendation": "정부 스마트팩토리 지원사업 연계하여 빠른 시장 진입 권장. 중소제조업체 PoC 2~3건 우선 확보 필요.",
+    "evaluated_at": "2026-01-15T18:00:00+09:00",
+    "evaluated_by": "AI Agent (Scorecard Evaluator)"
+  }
+}
