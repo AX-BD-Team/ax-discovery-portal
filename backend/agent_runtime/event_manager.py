@@ -7,7 +7,7 @@ AG-UI 프로토콜 기반 실시간 이벤트 스트리밍 지원
 
 import asyncio
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -286,9 +286,9 @@ class WorkflowEventEmitter:
 
 def generate_run_id() -> str:
     """실행 ID 생성"""
-    return f"run-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+    return f"run-{datetime.now(UTC).strftime('%Y%m%d%H%M%S%f')}"
 
 
 def generate_session_id(workflow_id: str) -> str:
     """세션 ID 생성"""
-    return f"sess-{workflow_id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+    return f"sess-{workflow_id}-{datetime.now(UTC).strftime('%Y%m%d%H%M%S%f')}"

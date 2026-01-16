@@ -5,7 +5,7 @@ AG-UI 프로토콜 기반 이벤트 타입 정의 (Python)
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -98,7 +98,7 @@ class BaseAgentEvent:
     type: AgentEventType = field(default=AgentEventType.RUN_STARTED)
     run_id: str = ""
     session_id: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat().replace("+00:00", "Z"))
 
     def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
