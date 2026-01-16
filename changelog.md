@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Render 배포 빌드 호환성 개선** 🔧
+  - `asyncpg` → `psycopg[binary]` 교체 (C 빌드 불필요)
+  - PostgreSQL 드라이버 URL 변경 (`postgresql+psycopg`)
+  - Render 무료 플랜에서 빌드 실패 문제 해결
+
 ### Added
 
 - **Cloudflare Pages 정적 배포** ✨
