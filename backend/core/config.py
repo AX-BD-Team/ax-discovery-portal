@@ -61,17 +61,25 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = Field(
         default=60, description="JWT 액세스 토큰 만료 시간 (분)"
     )
-    approval_timeout: int = Field(
-        default=86400, description="승인 타임아웃 (초)"
+    approval_timeout: int = Field(default=86400, description="승인 타임아웃 (초)")
+
+    # =========================================================================
+    # Monitoring - Sentry
+    # =========================================================================
+    sentry_dsn: str = Field(
+        default="",
+        description="Sentry DSN (Data Source Name). 비어있으면 Sentry 비활성화",
+    )
+    app_version: str = Field(
+        default="0.4.0",
+        description="애플리케이션 버전 (Sentry 릴리스 태깅용)",
     )
 
     # =========================================================================
     # Anthropic API
     # =========================================================================
     anthropic_api_key: str = Field(default="", description="Anthropic API 키")
-    agent_model: str = Field(
-        default="claude-sonnet-4-20250514", description="에이전트 모델"
-    )
+    agent_model: str = Field(default="claude-sonnet-4-20250514", description="에이전트 모델")
 
     # =========================================================================
     # Database - PostgreSQL (Render) / Cloudflare D1
@@ -106,44 +114,26 @@ class Settings(BaseSettings):
     # Embeddings - OpenAI
     # =========================================================================
     openai_api_key: str = Field(default="", description="OpenAI API 키")
-    embedding_model: str = Field(
-        default="text-embedding-3-small", description="임베딩 모델"
-    )
+    embedding_model: str = Field(default="text-embedding-3-small", description="임베딩 모델")
 
     # =========================================================================
     # Confluence
     # =========================================================================
-    confluence_base_url: str = Field(
-        default="", description="Confluence 베이스 URL"
-    )
+    confluence_base_url: str = Field(default="", description="Confluence 베이스 URL")
     confluence_api_token: str = Field(default="", description="Confluence API 토큰")
-    confluence_user_email: str = Field(
-        default="", description="Confluence 사용자 이메일"
-    )
-    confluence_space_key: str = Field(
-        default="AXBD", description="Confluence 스페이스 키"
-    )
-    confluence_action_log_page_id: str = Field(
-        default="", description="Action Log 페이지 ID"
-    )
-    confluence_play_db_page_id: str = Field(
-        default="", description="Play DB 페이지 ID"
-    )
-    confluence_live_doc_page_id: str = Field(
-        default="", description="Live Doc 페이지 ID"
-    )
+    confluence_user_email: str = Field(default="", description="Confluence 사용자 이메일")
+    confluence_space_key: str = Field(default="AXBD", description="Confluence 스페이스 키")
+    confluence_action_log_page_id: str = Field(default="", description="Action Log 페이지 ID")
+    confluence_play_db_page_id: str = Field(default="", description="Play DB 페이지 ID")
+    confluence_live_doc_page_id: str = Field(default="", description="Live Doc 페이지 ID")
 
     # =========================================================================
     # Teams / Slack Integration
     # =========================================================================
     teams_webhook_url: str = Field(default="", description="Teams Webhook URL")
-    teams_channel_name: str = Field(
-        default="AX-BD-Alerts", description="Teams 채널 이름"
-    )
+    teams_channel_name: str = Field(default="AX-BD-Alerts", description="Teams 채널 이름")
     slack_webhook_url: str = Field(default="", description="Slack Webhook URL")
-    slack_channel_name: str = Field(
-        default="#ax-bd-alerts", description="Slack 채널 이름"
-    )
+    slack_channel_name: str = Field(default="#ax-bd-alerts", description="Slack 채널 이름")
 
     # =========================================================================
     # Computed Properties
