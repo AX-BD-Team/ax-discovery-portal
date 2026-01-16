@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Auto-fix CI 워크플로우** 🤖
+  - CI 실패 시 Claude Code Action으로 자동 수정 시도
+  - ruff check --fix, ruff format 자동 실행
+  - PR 코멘트로 결과 알림
+  - main 브랜치 제외 (feature 브랜치만 대상)
+
 - **WF-06 Confluence Sync 워크플로 구현** ✨
   - 데이터 모델 (SyncTargetType, SyncAction, SyncTarget, SyncInput, SyncResult, SyncOutput)
   - 페이지 포맷터 (Signal, Scorecard, Brief, Activity Markdown 페이지)
