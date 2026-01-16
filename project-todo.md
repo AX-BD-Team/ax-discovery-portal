@@ -242,7 +242,10 @@
 - [ ] 부하 테스트 기본 설정 (locust 또는 k6)
 
 #### 3. 프로덕션 인프라 🚀
-- [ ] Alembic 마이그레이션 정리 및 실행
+- [x] Alembic 마이그레이션 정리 및 실행 ✅ v0.4.0
+  - 3개 마이그레이션 체인 (entities → users → core tables)
+  - 10개 테이블 (entities, triples, users, signals, scorecards 등)
+  - env.py Settings 통합
 - [x] 환경별 설정 분리 (dev/staging/prod) ✅ v0.4.0
   - backend/core/config.py: Pydantic Settings 기반 중앙 설정
   - .env.development, .env.staging, .env.production 템플릿
