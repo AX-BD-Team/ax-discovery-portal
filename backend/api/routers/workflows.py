@@ -18,6 +18,13 @@ from backend.agent_runtime.event_manager import (
     generate_run_id,
     generate_session_id,
 )
+from backend.agent_runtime.workflows.wf_confluence_sync import (
+    ConfluenceSyncPipeline,
+    SyncAction,
+    SyncInput,
+    SyncTarget,
+    SyncTargetType,
+)
 from backend.agent_runtime.workflows.wf_inbound_triage import (
     InboundInput,
     InboundTriagePipeline,
