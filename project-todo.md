@@ -119,6 +119,14 @@
   - [x] KPI Digest 카드
   - [x] AgentRuntime 연동
   - [x] 단위 테스트 28개 통과
+- [x] **Vector RAG 파이프라인** ✅ v0.4.0
+  - [x] EmbeddingService (OpenAI text-embedding-3-small, 1536차원)
+  - [x] VectorizeClient (Cloudflare Vectorize HTTP API)
+  - [x] RAGService (임베딩 + 벡터 검색 + 컨텍스트 생성)
+  - [x] OntologyService (Entity CRUD + 자동 인덱싱 훅)
+  - [x] Search API 라우터 (시맨틱 검색, 중복 검사, RAG 컨텍스트)
+  - [x] 배치 인덱싱 스크립트 (`ax-index-entities`)
+  - [x] 단위 테스트 95개 통과
 
 ---
 
