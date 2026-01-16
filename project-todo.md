@@ -119,6 +119,14 @@
   - [x] KPI Digest 카드
   - [x] AgentRuntime 연동
   - [x] 단위 테스트 28개 통과
+- [x] Slack 연동 (MCP 서버) ✅ v0.4.0
+  - [x] SlackMCP 클래스 구현 (5개 도구)
+  - [x] Incoming Webhook 메시지 전송
+  - [x] Block Kit 지원
+  - [x] 승인 요청 메시지
+  - [x] KPI Digest 메시지
+  - [x] AgentRuntime 연동
+  - [x] 실제 Webhook 연동 테스트 완료
 - [x] **Vector RAG 파이프라인** ✅ v0.4.0
   - [x] EmbeddingService (OpenAI text-embedding-3-small, 1536차원)
   - [x] VectorizeClient (Cloudflare Vectorize HTTP API)
