@@ -7,12 +7,9 @@ JWT 토큰 생성/검증, 비밀번호 해싱 등 보안 관련 유틸리티
 import os
 from datetime import UTC, datetime, timedelta
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
-
-# 비밀번호 해싱 컨텍스트
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT 설정
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-me-in-production-jwt-secret")
@@ -50,7 +47,7 @@ def get_password_hash(password: str) -> str:
     Returns:
         bcrypt 해시된 비밀번호
     """
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -64,7 +61,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         일치 여부
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+    )
 
 
 # ==================== JWT ====================
