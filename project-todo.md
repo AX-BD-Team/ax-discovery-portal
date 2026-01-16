@@ -231,89 +231,80 @@
 
 ---
 
-## 📝 다음 스프린트 (Week 5)
+## 📝 다음 스프린트 (Week 6 - PoC 마지막 주)
 
-**목표**: Production Readiness & PoC 완성
+**목표**: PoC 완료 및 데모 준비
 
-**테마**: v0.5.0 릴리스 준비 - PoC 6주 목표 달성을 위한 마무리
+**테마**: v0.5.0 릴리스 - PoC 6주 목표 달성 검증 및 최종 발표
 
 ### 작업 항목
 
-#### 1. 워크플로 완성 🔧
-- [x] WF-03 VoC Mining 확장 (VoCMiningPipelineWithDB, VoCMiningPipelineWithEvents) ✅ v0.4.0
-- [x] WF-06 Confluence Sync 구현 (Play DB ↔ Confluence 양방향 동기화) ✅ v0.4.0
-- [x] 워크플로 간 연동 테스트 (WF-01 → WF-02 → WF-04 → WF-05) ✅ v0.4.0
+#### 1. PoC 목표 달성 검증 📊
+- [ ] 실제 데이터 수집 시작 (Activity 20+, Signal 30+/주)
+- [ ] WF-01~06 전체 파이프라인 E2E 테스트
+- [ ] KPI Digest 리포트 생성 테스트 (`/ax:kpi-digest`)
+- [ ] 리드타임 측정 (Signal→Brief ≤7일, Brief→S2 ≤14일)
 
-#### 2. 통합 테스트 강화 🧪
-- [x] E2E 테스트 시나리오 작성 (Signal → Scorecard → Brief 흐름) ✅ v0.4.0
-  - 10개 E2E 시나리오, 25개 테스트 케이스
-  - Signal → Scorecard → Brief 전체 흐름
-  - 워크플로 체인, 동시성, 에러 핸들링, 데이터 일관성
-- [x] API 통합 테스트 (pytest + httpx) ✅ v0.4.0
-  - 24개 API 테스트 케이스 (2개 skip)
-  - Health, Inbox, Workflow, Error Handling, Pagination, Concurrency
-- [x] 부하 테스트 기본 설정 (locust) ✅ v0.4.0
-  - tests/loadtest/locustfile.py: 5개 사용자 클래스
-  - tests/loadtest/run_loadtest.sh: 6개 시나리오 스크립트
-  - quick/standard/stress/spike/endurance/ui 모드
+#### 2. 데모 준비 🎬
+- [ ] 데모 시나리오 작성 (3개 핵심 플로우)
+  - 세미나 등록 → Signal 생성 → Scorecard 평가
+  - VoC 분석 → Brief 자동 생성 → Confluence 동기화
+  - Inbound 요청 → Triage → S2 승인
+- [ ] 데모 데이터 준비 (샘플 Activity, Signal, Brief)
+- [ ] 발표 자료 초안 (PoC 결과 요약)
 
-#### 3. 프로덕션 인프라 🚀
-- [x] Alembic 마이그레이션 정리 및 실행 ✅ v0.4.0
-  - 3개 마이그레이션 체인 (entities → users → core tables)
-  - 10개 테이블 (entities, triples, users, signals, scorecards 등)
-  - env.py Settings 통합
-- [x] 환경별 설정 분리 (dev/staging/prod) ✅ v0.4.0
-  - backend/core/config.py: Pydantic Settings 기반 중앙 설정
-  - .env.development, .env.staging, .env.production 템플릿
-- [x] 헬스체크 엔드포인트 강화 (`/health`, `/ready`) ✅ v0.4.0
-  - /health: Kubernetes liveness probe
-  - /ready: readiness probe (DB, Agent Runtime, Confluence 체크)
-- [x] 로깅/모니터링 설정 (structlog + Sentry 연동) ✅ v0.4.0
-  - backend/core/logging.py: structlog 구조화 로깅
-  - 개발환경: 컬러 콘솔 출력, 프로덕션: JSON 포맷
-  - Sentry 연동 (optional, SENTRY_DSN 설정 시 활성화)
-  - 민감 데이터 필터링 (JWT, API 키)
+#### 3. 문서화 완성 📚
+- [x] 사용자 가이드 작성 (주요 워크플로 사용법) ✅ v0.4.0
+  - docs/USER_GUIDE.md 작성
+  - Quick Start, 6개 워크플로, 웹 UI, API, Claude Code 명령어, FAQ
+- [x] Quick Start 가이드 (5분 내 시작) ✅ USER_GUIDE.md 섹션 1
+- [x] FAQ 문서 (자주 묻는 질문) ✅ USER_GUIDE.md 섹션 7
 
-#### 4. 문서화 📚
-- [x] API 문서 자동 생성 (FastAPI OpenAPI/Swagger) ✅ v0.4.0
-  - OpenAPI 3.1.0, 10개 태그 그룹, Swagger UI/ReDoc
-- [ ] 사용자 가이드 초안 (주요 워크플로 사용법)
-- [x] 운영 가이드 (배포, 트러블슈팅) ✅ v0.4.0
-  - docs/OPERATIONS_GUIDE.md 작성
-  - 환경 구성, 배포, 모니터링, 트러블슈팅, 백업/복구, 보안 섹션
-
-#### 5. UI/UX 개선 🎨
+#### 4. UI/UX 마무리 🎨
 - [ ] 대시보드 KPI 위젯 실데이터 연동
-- [ ] 모바일 반응형 레이아웃 개선
-- [ ] 에러 핸들링 및 사용자 피드백 개선
+- [ ] 에러 핸들링 UX 개선 (사용자 친화적 메시지)
+- [ ] 모바일 반응형 레이아웃 확인
+
+#### 5. 안정화 및 최적화 🔧
+- [ ] 프로덕션 환경 모니터링 설정 (Sentry 알림)
+- [ ] 성능 병목 점검 (느린 API 최적화)
+- [ ] 마지막 버그 수정
 
 ### 성공 조건
 
-- [x] 6개 워크플로 모두 동작 (WF-01~06) ✅
-- [x] E2E 테스트 시나리오 3개 이상 통과 ✅ (10개 시나리오, 49개 테스트)
-- [x] API 문서 자동 생성 완료 ✅ (OpenAPI 3.1.0, Swagger UI)
-- [x] Staging 환경 배포 및 검증 ✅ v0.4.0
-  - URL: https://ax-discovery-api-staging.onrender.com
-  - /health: 200 OK (healthy, v0.4.0, staging)
-  - /ready: 200 OK (database: not_configured, agent_runtime: ok, confluence: configured)
-  - /docs: Swagger UI 정상 (OpenAPI 3.1.0, 71개 엔드포인트)
-  - /api/inbox: 200 OK (Signal 목록)
-  - /api/scorecard: 200 OK (Scorecard 목록)
-  - /api/brief: 200 OK (Brief 목록)
-  - /api/plays: 200 OK (Play 대시보드)
-- [ ] PoC 주간 목표 달성 가능 상태
+- [ ] PoC 주간 목표 달성 검증
   - Activity 20+/주
   - Signal 30+/주
   - Brief 6+/주
   - S2 2~4/주
+- [ ] 데모 시연 성공 (3개 시나리오)
+- [x] 사용자 가이드 문서 완성 ✅ docs/USER_GUIDE.md
+- [ ] v0.5.0 릴리스 및 태그
 
-### PoC 6주 목표 리마인더
+### 일정
 
-| 지표 | 주간 목표 | 현재 상태 |
-|------|----------|----------|
-| Activity | 20+ | 🔧 수집 대기 |
-| Signal | 30+ | 🔧 수집 대기 |
-| Brief | 6+ | 🔧 생성 대기 |
-| S2 (Validation) | 2~4 | 🔧 승인 대기 |
-| Signal→Brief 리드타임 | ≤7일 | ⏳ 측정 대기 |
-| Brief→S2 리드타임 | ≤14일 | ⏳ 측정 대기 |
+| 일자 | 작업 |
+|------|------|
+| Day 1-2 | PoC 목표 달성 검증, 데이터 수집 |
+| Day 3 | 데모 시나리오 작성, 데모 데이터 준비 |
+| Day 4 | 사용자 가이드 작성, UI/UX 마무리 |
+| Day 5 | 최종 점검, v0.5.0 릴리스, PoC 발표 |
+
+---
+
+## ✅ 완료된 스프린트 (Week 5) - 2026-01-16
+
+**목표**: Production Readiness ✅ 달성
+
+**테마**: v0.4.0 릴리스 - 스테이징/프로덕션 배포 완료
+
+**주요 성과**:
+- WF-03 VoC Mining, WF-06 Confluence Sync 구현 완료
+- E2E 테스트 10개 시나리오 (49개 테스트 케이스)
+- 스테이징/프로덕션 배포 및 검증 완료
+- v0.4.0 릴리스 태그 생성
+
+**미완료 → Week 6 이월**:
+- 사용자 가이드 작성
+- 대시보드 KPI 위젯 실데이터 연동
+- 모바일 반응형 레이아웃 개선
