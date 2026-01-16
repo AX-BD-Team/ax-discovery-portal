@@ -2,12 +2,13 @@
 Ontology Service 테스트
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.services.ontology_service import OntologyService
+import pytest
+
 from backend.database.models.entity import Entity, EntityType
 from backend.database.models.triple import PredicateType
+from backend.services.ontology_service import OntologyService
 
 
 class TestOntologyService:

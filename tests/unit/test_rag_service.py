@@ -2,12 +2,13 @@
 RAG Service 테스트
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.services.rag_service import RAGService
+import pytest
+
 from backend.database.models.entity import Entity, EntityType
-from backend.integrations.cloudflare_vectorize.client import VectorMatch, VectorMetadata
+from backend.integrations.cloudflare_vectorize.client import VectorMatch
+from backend.services.rag_service import RAGService
 
 
 class TestRAGService:

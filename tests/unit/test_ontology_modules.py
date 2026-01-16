@@ -7,9 +7,9 @@ Ontology 모듈 단위 테스트
 - backend/database/repositories/ontology.py
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, UTC
+
+import pytest
 
 from backend.agent_runtime.ontology.graph_query import (
     GraphQuery,
@@ -21,7 +21,6 @@ from backend.agent_runtime.ontology.graph_query import (
 )
 from backend.agent_runtime.ontology.validator import (
     PREDICATE_CONSTRAINTS,
-    PredicateConstraint,
     TripleValidator,
     ValidationErrorCode,
     ValidationResult,
@@ -34,7 +33,6 @@ from backend.database.models.triple import (
     TripleStatus,
 )
 from backend.database.repositories.ontology import OntologyRepository
-
 
 # =============================================================================
 # TripleValidator 테스트

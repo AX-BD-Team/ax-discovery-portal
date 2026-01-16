@@ -11,7 +11,6 @@ import pytest
 
 from backend.integrations.mcp_slack.server import MCP_TOOLS, SlackMCP
 
-
 # ========== Fixtures ==========
 
 

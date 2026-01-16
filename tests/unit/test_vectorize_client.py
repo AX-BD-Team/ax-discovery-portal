@@ -2,13 +2,14 @@
 Cloudflare Vectorize Client 테스트
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from backend.integrations.cloudflare_vectorize.client import (
     VectorizeClient,
-    VectorMetadata,
     VectorMatch,
+    VectorMetadata,
 )
 
 

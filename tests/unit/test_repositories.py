@@ -9,7 +9,7 @@ Repositories 단위 테스트
 - PlayRecordRepository (play_record.py)
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

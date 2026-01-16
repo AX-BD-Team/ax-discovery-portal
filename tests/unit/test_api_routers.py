@@ -18,7 +18,6 @@ from fastapi.testclient import TestClient
 from backend.api.main import app
 from backend.database.models.user import User, UserRole
 
-
 # ============================================================
 # Test Fixtures
 # ============================================================
@@ -89,7 +88,7 @@ class TestStreamRouter:
             "backend.api.routers.stream.SessionEventManager"
         ) as mock_manager_cls, patch(
             "backend.api.routers.stream.SeminarPipelineWithEvents"
-        ) as mock_pipeline_cls:
+        ):
             # Mock 설정
             mock_manager = MagicMock()
             mock_queue = asyncio.Queue()

@@ -2,11 +2,12 @@
 Embedding Service 테스트
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.services.embedding_service import EmbeddingService
+import pytest
+
 from backend.database.models.entity import Entity, EntityType
+from backend.services.embedding_service import EmbeddingService
 
 
 class TestEmbeddingService:

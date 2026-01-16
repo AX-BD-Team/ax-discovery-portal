@@ -10,7 +10,6 @@ import pytest
 
 from backend.integrations.mcp_confluence.server import MCP_TOOLS, ConfluenceMCP
 
-
 # ========== Fixtures ==========
 
 

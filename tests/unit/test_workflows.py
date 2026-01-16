@@ -6,7 +6,7 @@ backend/agent_runtime/workflows/wf_inbound_triage.py 테스트
 backend/agent_runtime/workflows/wf_kpi_digest.py 테스트
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -472,7 +472,7 @@ class TestSLACalculation:
     def test_urgent_sla(self):
         """URGENT = 24시간"""
         deadline = calculate_sla_deadline("URGENT")
-        expected = datetime.utcnow() + timedelta(hours=24)
+        expected = datetime.now(UTC) + timedelta(hours=24)
 
         # 1분 이내 차이
         assert abs((deadline - expected).total_seconds()) < 60
@@ -480,21 +480,21 @@ class TestSLACalculation:
     def test_normal_sla(self):
         """NORMAL = 48시간"""
         deadline = calculate_sla_deadline("NORMAL")
-        expected = datetime.utcnow() + timedelta(hours=48)
+        expected = datetime.now(UTC) + timedelta(hours=48)
 
         assert abs((deadline - expected).total_seconds()) < 60
 
     def test_low_sla(self):
         """LOW = 72시간"""
         deadline = calculate_sla_deadline("LOW")
-        expected = datetime.utcnow() + timedelta(hours=72)
+        expected = datetime.now(UTC) + timedelta(hours=72)
 
         assert abs((deadline - expected).total_seconds()) < 60
 
     def test_invalid_urgency_defaults_to_normal(self):
         """유효하지 않은 긴급도 → NORMAL"""
         deadline = calculate_sla_deadline("INVALID")
-        expected = datetime.utcnow() + timedelta(hours=48)
+        expected = datetime.now(UTC) + timedelta(hours=48)
 
         assert abs((deadline - expected).total_seconds()) < 60
 
@@ -618,8 +618,8 @@ class TestInboundTriagePipeline:
 
         # URGENT는 24시간 SLA
         deadline = datetime.fromisoformat(result.sla_deadline)
-        expected_min = datetime.utcnow() + timedelta(hours=23)
-        expected_max = datetime.utcnow() + timedelta(hours=25)
+        expected_min = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=23)
+        expected_max = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=25)
 
         assert expected_min < deadline < expected_max
 

@@ -6,11 +6,9 @@ TeamsMCP 클래스의 각 메서드를 테스트합니다.
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 
 from backend.integrations.mcp_teams.server import MCP_TOOLS, TeamsMCP
-
 
 # ========== Fixtures ==========
 
