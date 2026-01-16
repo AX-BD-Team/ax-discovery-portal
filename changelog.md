@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Teams MCP 서버** ✨
+  - `teams.send_message`: 채널에 텍스트 메시지 전송
+  - `teams.send_notification`: 알림 전송 (info/success/warning/error 레벨)
+  - `teams.send_card`: Adaptive Card 전송
+  - `teams.request_approval`: 승인 요청 카드 전송
+  - `teams.send_kpi_digest`: KPI Digest 카드 전송
+  - AgentRuntime 연동 (12개 MCP 도구: Confluence 7개 + Teams 5개)
+  - 단위 테스트 28개
+
 - **Cloudflare Pages 정적 배포** ✨
   - Next.js static export 설정 (`output: 'export'`)
   - wrangler.toml Pages 배포 설정

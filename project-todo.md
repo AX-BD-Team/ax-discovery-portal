@@ -111,7 +111,14 @@
   - [x] Top Plays 선정 (성과 우수 Play 순위)
   - [x] 추천 사항 생성 (AI 기반 개선 권고)
   - [x] 단위 테스트 31개 통과
-- [ ] Teams 연동 (MCP 서버)
+- [x] Teams 연동 (MCP 서버) ✅ v0.4.0
+  - [x] TeamsMCP 클래스 구현 (5개 도구)
+  - [x] Incoming Webhook 메시지 전송
+  - [x] Adaptive Card 지원
+  - [x] 승인 요청 카드
+  - [x] KPI Digest 카드
+  - [x] AgentRuntime 연동
+  - [x] 단위 테스트 28개 통과
 
 ---
 

@@ -54,6 +54,53 @@ def sample_agent_markdown(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
+def mock_teams_mcp():
+    """TeamsMCP Mock"""
+    mock = AsyncMock()
+
+    # send_message
+    mock.send_message.return_value = {
+        "status": "sent",
+        "channel": "Test-Channel",
+        "timestamp": "2026-01-16T12:00:00",
+    }
+
+    # send_notification
+    mock.send_notification.return_value = {
+        "status": "sent",
+        "level": "info",
+        "channel": "Test-Channel",
+        "timestamp": "2026-01-16T12:00:00",
+    }
+
+    # send_card
+    mock.send_card.return_value = {
+        "status": "sent",
+        "channel": "Test-Channel",
+        "timestamp": "2026-01-16T12:00:00",
+    }
+
+    # request_approval
+    mock.request_approval.return_value = {
+        "status": "pending",
+        "item_id": "BRF-001",
+        "item_type": "Brief",
+        "channel": "Test-Channel",
+        "timestamp": "2026-01-16T12:00:00",
+    }
+
+    # send_kpi_digest
+    mock.send_kpi_digest.return_value = {
+        "status": "sent",
+        "period": "2026-W03",
+        "channel": "Test-Channel",
+        "timestamp": "2026-01-16T12:00:00",
+    }
+
+    return mock
+
+
+@pytest.fixture
 def mock_confluence_mcp():
     """ConfluenceMCP Mock"""
     mock = AsyncMock()
