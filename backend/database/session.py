@@ -12,7 +12,7 @@ logger = structlog.get_logger()
 
 # 환경변수에서 데이터베이스 URL 가져오기
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5432/ax_discovery"
+    "DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
 )
 
 # 비동기 엔진 생성

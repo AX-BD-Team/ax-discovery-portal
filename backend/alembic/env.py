@@ -37,7 +37,7 @@ target_metadata = Base.metadata
 def get_url():
     """환경변수에서 DATABASE_URL 가져오기"""
     return os.getenv(
-        "DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5432/ax_discovery"
+        "DATABASE_URL", "postgresql+psycopg://user:password@localhost:5432/ax_discovery"
     )
 
 
