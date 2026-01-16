@@ -7,7 +7,7 @@ Scorecard 평가 API (D1 HTTP API 사용)
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from backend.integrations.cloudflare_d1.repositories import scorecard_d1_repo, signal_d1_repo
 
@@ -39,8 +39,7 @@ class ScorecardResponse(BaseModel):
     recommendation: Recommendation
     created_at: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ScorecardListResponse(BaseModel):

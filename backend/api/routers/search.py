@@ -7,7 +7,7 @@ Vector RAG 기반 의미 검색 API
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend.database.models.entity import EntityType
 from backend.services.rag_service import rag_service
@@ -40,8 +40,7 @@ class SearchResultItem(BaseModel):
     confidence: float | None = None
     external_ref_id: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SemanticSearchResponse(BaseModel):

@@ -861,13 +861,15 @@ class TestWorkflowsRouter:
             patch("backend.api.routers.workflows.InboundTriagePipeline") as mock_pipeline_cls,
             patch("backend.api.routers.workflows.get_db"),
         ):
+            # InboundOutput 필드에 맞춤
             mock_result = MagicMock()
-            mock_result.signal = {"signal_id": "SIG-001"}
+            mock_result.signal_id = "SIG-001"
             mock_result.is_duplicate = False
-            mock_result.similar_signals = []
-            mock_result.assigned_play_id = "KT_Inbound_I01"
+            mock_result.duplicate_of = None
+            mock_result.play_id = "KT_Inbound_I01"
             mock_result.scorecard = {"scorecard_id": "SC-001"}
-            mock_result.sla = {"hours": 48, "deadline": "2024-01-03T00:00:00"}
+            mock_result.sla_deadline = "2024-01-03T00:00:00"
+            mock_result.next_action = "Triage"
             mock_result.summary = {}
 
             mock_pipeline = AsyncMock()
@@ -894,14 +896,19 @@ class TestWorkflowsRouter:
             patch("backend.api.routers.workflows.InboundTriagePipeline") as mock_pipeline_cls,
             patch("backend.api.routers.workflows.get_db"),
         ):
+            # InboundOutput 필드에 맞춤 (중복 케이스)
             mock_result = MagicMock()
-            mock_result.signal = None
+            mock_result.signal_id = None
             mock_result.is_duplicate = True
-            mock_result.similar_signals = [{"signal_id": "SIG-existing"}]
-            mock_result.assigned_play_id = None
+            mock_result.duplicate_of = "SIG-existing"
+            mock_result.play_id = ""
             mock_result.scorecard = None
-            mock_result.sla = {"hours": 48}
-            mock_result.summary = {"duplicate_count": 1}
+            mock_result.sla_deadline = ""
+            mock_result.next_action = ""
+            mock_result.summary = {
+                "similar_signals": [{"signal_id": "SIG-existing"}],
+                "duplicate_count": 1,
+            }
 
             mock_pipeline = AsyncMock()
             mock_pipeline.run = AsyncMock(return_value=mock_result)

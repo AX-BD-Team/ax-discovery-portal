@@ -107,7 +107,7 @@ async def health():
     """상세 헬스체크"""
     return {
         "status": "healthy",
-        "version": "0.1.0",
+        "version": "0.4.0",  # pyproject.toml과 동기화
         "components": {"database": "ok", "agent_runtime": "ok", "confluence": "ok"},
     }
 

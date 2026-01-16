@@ -275,27 +275,59 @@ class VoCMiningPipeline:
         return unique_records
 
     async def _analyze_themes(self, input_data: VoCInput) -> list[dict[str, Any]]:
-        """VoC 데이터에서 테마 추출"""
-        # TODO: VoCAnalyst Agent 호출
-        # LLM을 사용하여 테마 클러스터링
+        """VoC 데이터에서 테마 추출
 
+        1. 데이터 로딩
+        2. 전처리 (중복 제거)
+        3. 휴리스틱 기반 테마 추출 (TODO: LLM 클러스터링으로 확장)
+        """
+        # 데이터 로딩 및 전처리
+        records = await self._load_data(input_data)
+        records = await self._preprocess(records)
+
+        return self._extract_themes_from_records(
+            records, input_data.min_frequency, input_data.max_themes
+        )
+
+    def _extract_themes_from_records(
+        self,
+        records: list[VoCRecord],
+        min_frequency: int = 5,
+        max_themes: int = 5,
+    ) -> list[dict[str, Any]]:
+        """사전 로딩된 레코드에서 테마 추출
+
+        Args:
+            records: 전처리된 VoC 레코드
+            min_frequency: 최소 빈도
+            max_themes: 최대 테마 개수
+
+        Returns:
+            테마 목록 (dict 형식)
+        """
+        if not records:
+            self.logger.warning("No records to analyze")
+            return []
+
+        # 테마 추출 (휴리스틱 기반)
+        themes = extract_themes_from_records(
+            records,
+            min_frequency=min_frequency,
+            max_themes=max_themes,
+        )
+
+        # VoCTheme -> dict 변환
         return [
             {
-                "theme_id": "THEME-001",
-                "name": "응답 시간 지연",
-                "frequency": 45,
-                "severity": "HIGH",
-                "keywords": ["느림", "대기", "시간"],
-                "sample_tickets": [],
-            },
-            {
-                "theme_id": "THEME-002",
-                "name": "복잡한 절차",
-                "frequency": 32,
-                "severity": "MEDIUM",
-                "keywords": ["복잡", "어려움", "단계"],
-                "sample_tickets": [],
-            },
+                "theme_id": theme.theme_id,
+                "name": theme.name,
+                "frequency": theme.frequency,
+                "severity": theme.severity.value,
+                "keywords": theme.keywords,
+                "sample_tickets": theme.sample_texts,
+                "confidence": theme.confidence,
+            }
+            for theme in themes
         ]
 
     async def _create_signals(
@@ -408,14 +440,16 @@ class VoCMiningPipelineWithEvents(VoCMiningPipeline):
                 result={"unique_records": len(records)},
             )
 
-            # Step 3: 테마 추출
+            # Step 3: 테마 추출 (사전 로딩된 레코드 사용)
             await self.emitter.emit_step_started(
                 step_id="THEME_EXTRACTION",
                 step_index=2,
                 step_label="테마 추출",
-                message="VoC 데이터에서 테마를 추출하고 있습니다...",
+                message=f"{len(records)}개 레코드에서 테마를 추출하고 있습니다...",
             )
-            themes = await self._analyze_themes(input_data)
+            themes = self._extract_themes_from_records(
+                records, input_data.min_frequency, input_data.max_themes
+            )
 
             # 테마 Surface 발행
             for theme in themes:

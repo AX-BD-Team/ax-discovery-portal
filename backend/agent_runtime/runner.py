@@ -509,10 +509,26 @@ class AgentRuntime:
         }
 
     async def _run_voc_mining(self, input_data: dict[str, Any], session_id: str) -> dict[str, Any]:
-        """WF-03: VoC Mining"""
+        """WF-03: VoC Mining
+
+        Args:
+            input_data: 입력 데이터
+                - with_events: 이벤트 발행 여부 (기본값: False)
+                - with_db: DB 저장 여부 (기본값: False)
+                - 기타 VoCInput 필드
+            session_id: 세션 ID
+
+        Returns:
+            워크플로 실행 결과
+        """
         self.logger.info("Running WF-03: VoC Mining")
 
-        from backend.agent_runtime.workflows.wf_voc_mining import VoCInput, VoCMiningPipeline
+        from backend.agent_runtime.workflows.wf_voc_mining import (
+            VoCInput,
+            VoCMiningPipeline,
+            VoCMiningPipelineWithDB,
+            VoCMiningPipelineWithEvents,
+        )
 
         # VoC 입력 생성
         voc_input = VoCInput(
@@ -528,17 +544,69 @@ class AgentRuntime:
             max_themes=input_data.get("max_themes", 5),
         )
 
-        # 파이프라인 실행
-        pipeline = VoCMiningPipeline()
-        result = await pipeline.run(voc_input)
+        # 옵션 확인
+        with_events = input_data.get("with_events", False)
+        with_db = input_data.get("with_db", False)
 
-        return {
-            "workflow_id": "WF-03",
-            "status": "completed",
-            "themes": result.themes,
-            "signals": result.signals,
-            "brief_candidates": result.brief_candidates,
-        }
+        # 파이프라인 선택 및 실행
+        if with_db:
+            # DB 연동 버전 (이벤트 포함)
+            from backend.agent_runtime.event_manager import (
+                SessionEventManager,
+                WorkflowEventEmitter,
+            )
+            from backend.database.session import SessionLocal
+
+            event_manager = SessionEventManager.get_or_create(session_id)
+            emitter = WorkflowEventEmitter(event_manager, run_id=f"WF-03-{session_id}")
+
+            async with SessionLocal() as db:
+                pipeline = VoCMiningPipelineWithDB(emitter, db)
+                result = await pipeline.run(voc_input)
+
+            return {
+                "workflow_id": "WF-03",
+                "status": "completed",
+                "themes": result.themes,
+                "signals": result.signals,
+                "brief_candidates": result.brief_candidates,
+                "summary": result.summary,
+            }
+
+        elif with_events:
+            # 이벤트 발행 버전
+            from backend.agent_runtime.event_manager import (
+                SessionEventManager,
+                WorkflowEventEmitter,
+            )
+
+            event_manager = SessionEventManager.get_or_create(session_id)
+            emitter = WorkflowEventEmitter(event_manager, run_id=f"WF-03-{session_id}")
+
+            pipeline = VoCMiningPipelineWithEvents(emitter)
+            result = await pipeline.run(voc_input)
+
+            return {
+                "workflow_id": "WF-03",
+                "status": "completed",
+                "themes": result.themes,
+                "signals": result.signals,
+                "brief_candidates": result.brief_candidates,
+                "summary": result.summary,
+            }
+
+        else:
+            # 기본 버전
+            pipeline = VoCMiningPipeline()
+            result = await pipeline.run(voc_input)
+
+            return {
+                "workflow_id": "WF-03",
+                "status": "completed",
+                "themes": result.themes,
+                "signals": result.signals,
+                "brief_candidates": result.brief_candidates,
+            }
 
     async def _run_inbound_triage(
         self, input_data: dict[str, Any], session_id: str
