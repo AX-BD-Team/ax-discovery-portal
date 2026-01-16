@@ -18,16 +18,16 @@ load_dotenv()
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-from alembic import context
-from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import create_async_engine
+from alembic import context  # noqa: E402
+from sqlalchemy import pool  # noqa: E402
+from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
 # Import Base directly (not through __init__ to avoid session initialization)
-from backend.database.base import Base
+from backend.database.base import Base  # noqa: E402
 
 # Import all models to ensure they are registered with Base.metadata
 # These imports must be after Base is imported
-from backend.database.models import (  # noqa: F401
+from backend.database.models import (  # noqa: E402, F401
     ActionLog,
     CompetencyQuestion,
     Entity,
