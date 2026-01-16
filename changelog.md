@@ -9,7 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Pydantic V2 스타일 마이그레이션** ✨
+  - `class Config` → `model_config = ConfigDict(...)` 변환 (9개 파일)
+  - `pydantic_settings.SettingsConfigDict` 사용 (deps.py)
+  - deprecation 경고 완전 제거
+
 ### Added
+
+- **E2E 테스트 스위트** 🧪
+  - `tests/e2e/test_e2e_flows.py`: 25개 E2E 워크플로 테스트
+  - `tests/e2e/test_api_integration.py`: 26개 API 통합 테스트
+  - Signal → Scorecard → Brief 플로우 검증
+  - WF-01~06 전체 워크플로 커버리지
+
+- **InboundOutput 매핑 버그 수정** 🐛
+  - `workflows.py`: InboundOutput → InboundTriageResponse 필드 매핑 수정
+  - `signal_id`, `play_id`, `sla_deadline`, `next_action` 올바른 매핑
+
+- **Auto-fix CI 워크플로우** 🤖
+  - CI 실패 시 Claude Code Action으로 자동 수정 시도
+  - ruff check --fix, ruff format 자동 실행
+  - PR 코멘트로 결과 알림
+  - main 브랜치 제외 (feature 브랜치만 대상)
 
 - **WF-06 Confluence Sync 워크플로 구현** ✨
   - 데이터 모델 (SyncTargetType, SyncAction, SyncTarget, SyncInput, SyncResult, SyncOutput)

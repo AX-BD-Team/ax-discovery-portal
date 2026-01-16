@@ -14,6 +14,8 @@ load_dotenv()
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.responses import JSONResponse
 
 from .routers import (
     auth,
@@ -29,6 +31,91 @@ from .routers import (
 )
 
 logger = structlog.get_logger()
+
+# ============================================================
+# OpenAPI 메타데이터
+# ============================================================
+
+API_VERSION = "0.4.0"
+
+# 태그 설명 (Swagger UI에서 그룹화)
+TAGS_METADATA = [
+    {
+        "name": "auth",
+        "description": "JWT 기반 사용자 인증 및 권한 관리",
+    },
+    {
+        "name": "inbox",
+        "description": "Signal 관리 - 사업기회 신호 등록, 조회, Triage",
+    },
+    {
+        "name": "scorecard",
+        "description": "Scorecard 관리 - Signal 5차원 평가 (100점 만점)",
+    },
+    {
+        "name": "brief",
+        "description": "Brief 관리 - 1-Page Brief 생성 및 승인 워크플로",
+    },
+    {
+        "name": "plays",
+        "description": "Play Dashboard - Play별 Signal/Brief 현황 조회",
+    },
+    {
+        "name": "workflows",
+        "description": "워크플로 실행 - WF-01~06 파이프라인 (세미나, 인터뷰, VoC, Triage, KPI, Confluence)",
+    },
+    {
+        "name": "stream",
+        "description": "SSE 스트리밍 - AG-UI 실시간 이벤트 구독",
+    },
+    {
+        "name": "ontology",
+        "description": "Knowledge Graph - Entity/Triple 기반 온톨로지 관리",
+    },
+    {
+        "name": "xai",
+        "description": "Explainable AI - 의사결정 근거 및 추론 경로 조회",
+    },
+    {
+        "name": "search",
+        "description": "시맨틱 검색 - Vector RAG 기반 유사도 검색",
+    },
+]
+
+# API 설명 (Markdown 지원)
+API_DESCRIPTION = """
+# AX Discovery Portal API
+
+**AX BD팀 멀티에이전트 기반 사업기회 포착 엔진**
+
+## 🎯 핵심 기능
+
+- **Signal 수집**: 3원천(KT/그룹사/대외) × 5채널에서 사업기회 신호 포착
+- **Scorecard 평가**: 5차원 100점 평가로 GO/PIVOT/HOLD/NO_GO 판정
+- **Brief 생성**: 1-Page Brief 자동 생성 및 승인 워크플로
+- **워크플로 자동화**: WF-01~06 파이프라인으로 전체 흐름 자동화
+
+## 📊 워크플로
+
+| ID | 이름 | 설명 |
+|---|---|---|
+| WF-01 | Seminar Pipeline | 세미나 URL → Activity → Signal |
+| WF-02 | Interview-to-Brief | 인터뷰 노트 → Signal → Scorecard → Brief |
+| WF-03 | VoC Mining | VoC 데이터 → 테마 추출 → Signal |
+| WF-04 | Inbound Triage | 인바운드 요청 → 중복체크 → Play 라우팅 |
+| WF-05 | KPI Digest | 주간/월간 KPI 리포트 생성 |
+| WF-06 | Confluence Sync | DB ↔ Confluence 양방향 동기화 |
+
+## 🔐 인증
+
+JWT 토큰 기반 인증을 사용합니다. `/api/auth/login`에서 토큰을 발급받아
+`Authorization: Bearer <token>` 헤더에 포함하세요.
+
+## 📚 추가 문서
+
+- [GitHub Repository](https://github.com/anthropics/ax-discovery-portal)
+- [Confluence Space](https://your-confluence.atlassian.net/wiki/spaces/AX)
+"""
 
 
 @asynccontextmanager
@@ -49,9 +136,27 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AX Discovery Portal API",
-    description="AX BD팀 멀티에이전트 기반 사업기회 포착 엔진",
-    version="0.4.0",
+    description=API_DESCRIPTION,
+    version=API_VERSION,
+    openapi_tags=TAGS_METADATA,
     lifespan=lifespan,
+    # OpenAPI 문서 경로
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    # 추가 메타데이터
+    contact={
+        "name": "AX BD Team",
+        "email": "ax-bd@kt.com",
+    },
+    license_info={
+        "name": "Proprietary",
+        "url": "https://kt.com",
+    },
+    servers=[
+        {"url": "http://localhost:8000", "description": "Local Development"},
+        {"url": "https://ax-discovery-portal.onrender.com", "description": "Production (Render)"},
+    ],
 )
 
 # CORS 설정
@@ -107,7 +212,7 @@ async def health():
     """상세 헬스체크"""
     return {
         "status": "healthy",
-        "version": "0.4.0",  # pyproject.toml과 동기화
+        "version": API_VERSION,
         "components": {"database": "ok", "agent_runtime": "ok", "confluence": "ok"},
     }
 

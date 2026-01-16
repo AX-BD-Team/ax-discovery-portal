@@ -340,10 +340,14 @@ async def run_inbound_triage(request: InboundTriageRequest, db: AsyncSession = D
 
     # InboundOutput → InboundTriageResponse 필드 매핑
     # signal dict 구성 (InboundOutput에는 signal_id만 있음)
-    signal_dict = {
-        "signal_id": result.signal_id,
-        "play_id": result.play_id,
-    } if result.signal_id else None
+    signal_dict = (
+        {
+            "signal_id": result.signal_id,
+            "play_id": result.play_id,
+        }
+        if result.signal_id
+        else None
+    )
 
     # sla dict 구성 (InboundOutput에는 sla_deadline과 next_action이 별도로 있음)
     sla_dict = {

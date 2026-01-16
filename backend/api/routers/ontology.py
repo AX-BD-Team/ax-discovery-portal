@@ -47,8 +47,7 @@ class EntityResponse(BaseModel):
     updated_at: datetime
     created_by: str | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EntityListResponse(BaseModel):
@@ -90,8 +89,7 @@ class TripleResponse(BaseModel):
     subject: EntityResponse | None = None
     object: EntityResponse | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TripleListResponse(BaseModel):
