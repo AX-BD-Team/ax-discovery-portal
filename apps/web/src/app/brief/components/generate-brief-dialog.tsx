@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
   Badge,
+  toast,
 } from '@ax/ui'
 import { FileText, Loader2 } from 'lucide-react'
 
@@ -47,7 +48,9 @@ export function GenerateBriefDialog({
 
   const handleGenerate = () => {
     if (!selectedSignalId) {
-      alert('Please select a signal')
+      toast.warning('Signal 선택 필요', {
+        description: 'Brief를 생성할 Signal을 선택해주세요.',
+      })
       return
     }
     generateMutation.mutate(selectedSignalId)

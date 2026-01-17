@@ -22,6 +22,7 @@ export {
   DialogTrigger,
 } from './components/dialog'
 export { Separator } from './components/separator'
+export { Toaster, toast } from './components/toast'
 
 // Agentic Components (AXIS)
 export * from './agentic'

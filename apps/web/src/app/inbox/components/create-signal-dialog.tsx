@@ -18,6 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  toast,
 } from '@ax/ui'
 import { SIGNAL_SOURCES, SIGNAL_CHANNELS } from '@ax/config'
 
@@ -64,7 +65,9 @@ export function CreateSignalDialog({ open, onOpenChange, onSuccess }: CreateSign
     e.preventDefault()
 
     if (!formData.title || !formData.pain) {
-      alert('Title and Pain Point are required')
+      toast.warning('입력 오류', {
+        description: 'Title과 Pain Point는 필수 입력 항목입니다.',
+      })
       return
     }
 

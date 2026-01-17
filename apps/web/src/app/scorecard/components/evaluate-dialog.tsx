@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
   Badge,
+  toast,
 } from '@ax/ui'
 import { TrendingUp, Loader2 } from 'lucide-react'
 
@@ -45,7 +46,9 @@ export function EvaluateDialog({ open, onOpenChange, availableSignals }: Evaluat
 
   const handleEvaluate = () => {
     if (!selectedSignalId) {
-      alert('Please select a signal to evaluate')
+      toast.warning('Signal 선택 필요', {
+        description: '평가할 Signal을 선택해주세요.',
+      })
       return
     }
     evaluateMutation.mutate(selectedSignalId)
