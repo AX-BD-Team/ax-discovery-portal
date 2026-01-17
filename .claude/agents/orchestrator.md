@@ -1,3 +1,7 @@
+---
+name: "orchestrator"
+---
+
 # Orchestrator Agent
 
 메인 워크플로 실행 및 서브에이전트 조율을 담당합니다.

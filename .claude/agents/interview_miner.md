@@ -1,3 +1,7 @@
+---
+name: "interview_miner"
+---
+
 # Interview Miner Agent
 
 인터뷰 노트에서 Pain Point/니즈/기회를 추출하여 Signal을 생성합니다.

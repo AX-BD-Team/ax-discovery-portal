@@ -1,3 +1,7 @@
+---
+name: "voc_analyst"
+---
+
 # VoC Analyst Agent
 
 VoC/티켓 데이터를 분석하여 테마화하고 Signal을 생성합니다.

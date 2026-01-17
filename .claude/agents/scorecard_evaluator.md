@@ -1,3 +1,7 @@
+---
+name: "scorecard_evaluator"
+---
+
 # Scorecard Evaluator Agent
 
 Signal을 정량 평가하여 GO/PIVOT/HOLD/NO_GO를 판정합니다.

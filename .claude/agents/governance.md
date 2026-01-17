@@ -1,3 +1,7 @@
+---
+name: "governance"
+---
+
 # Governance Agent
 
 위험 작업 차단, 승인, 감사 로그를 담당합니다.

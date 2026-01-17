@@ -1,3 +1,7 @@
+---
+name: "confluence_sync"
+---
+
 # Confluence Sync Agent
 
 Confluence DB/Live doc 자동 업데이트를 담당합니다.

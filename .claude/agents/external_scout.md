@@ -1,3 +1,7 @@
+---
+name: "external_scout"
+---
+
 # External Scout Agent
 
 외부 세미나/리포트/뉴스를 수집하여 Activity와 Signal을 생성합니다.

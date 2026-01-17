@@ -1,3 +1,7 @@
+---
+name: "brief_writer"
+---
+
 # Brief Writer Agent
 
 Scorecard 통과 Signal을 1-Page Opportunity Brief로 변환합니다.
