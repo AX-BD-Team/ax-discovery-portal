@@ -15,6 +15,21 @@ from backend.database.models.entity import Entity, EntityType
 from .base import CRUDBase
 
 
+def json_value(column, key: str):
+    """
+    JSON 필드에서 값 추출 (SQLite/PostgreSQL 호환)
+
+    Args:
+        column: JSON 컬럼
+        key: JSON 키
+
+    Returns:
+        SQL expression for JSON value extraction
+    """
+    # func.json_extract는 SQLite와 PostgreSQL 모두에서 동작
+    return func.json_extract(column, f"$.{key}")
+
+
 class ActivityRepository(CRUDBase[Entity]):
     """Activity CRUD 저장소"""
 
@@ -54,7 +69,7 @@ class ActivityRepository(CRUDBase[Entity]):
             select(Entity).where(
                 and_(
                     Entity.entity_type == EntityType.ACTIVITY,
-                    Entity.properties["url"].astext == url,
+                    json_value(Entity.properties, "url") == url,
                 )
             )
         )
@@ -103,7 +118,7 @@ class ActivityRepository(CRUDBase[Entity]):
         # 필터 조건
         base_filter = and_(
             Entity.entity_type == EntityType.ACTIVITY,
-            Entity.properties["play_id"].astext == play_id,
+            json_value(Entity.properties, "play_id") == play_id,
         )
 
         # 쿼리 실행
@@ -148,7 +163,7 @@ class ActivityRepository(CRUDBase[Entity]):
         # 필터 조건
         base_filter = and_(
             Entity.entity_type == EntityType.ACTIVITY,
-            Entity.properties["source_type"].astext == source_type,
+            json_value(Entity.properties, "source_type") == source_type,
         )
 
         # 쿼리 실행
@@ -213,7 +228,7 @@ class ActivityRepository(CRUDBase[Entity]):
                     and_(
                         Entity.entity_type == EntityType.ACTIVITY,
                         Entity.name == title,
-                        Entity.properties["date"].astext == date,
+                        json_value(Entity.properties, "date") == date,
                     )
                 )
             )
@@ -349,7 +364,7 @@ class ActivityRepository(CRUDBase[Entity]):
                 .where(
                     and_(
                         Entity.entity_type == EntityType.ACTIVITY,
-                        Entity.properties["source_type"].astext == source_type,
+                        json_value(Entity.properties, "source_type") == source_type,
                     )
                 )
             )

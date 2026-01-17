@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **외부 세미나 수집 시스템 단위 테스트** 🧪
+  - `tests/unit/test_activity_repository.py`: Activity 저장소 테스트 (17개)
+  - `tests/unit/test_external_collectors.py`: RSS/Festa/Eventbrite 수집기 테스트 (35개)
+  - `tests/unit/test_webhook_processor.py`: 웹훅 처리 및 서명 검증 테스트 (29개)
+  - ActivityRepository SQLite/PostgreSQL 호환성 수정 (`json_value` 함수)
+
 - **외부 세미나 수집 시스템 (WF-07: External Scout)** 🔍
   - 다중 소스 수집기 구현: RSS, Festa, Eventbrite
   - `ActivityRepository`: Activity 저장소 (Entity 테이블 기반)
