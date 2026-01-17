@@ -425,9 +425,10 @@ class OntologyRepository:
             EntityType.TOPIC: "TOP",
             EntityType.SCORECARD: "SCR",
             EntityType.BRIEF: "BRF",
-            EntityType.CUSTOMER: "CUS",
+            EntityType.ORGANIZATION: "ORG",  # P1: Customer/Competitor 통합
+            EntityType.CUSTOMER: "CUS",  # deprecated
             EntityType.TECHNOLOGY: "TEC",
-            EntityType.COMPETITOR: "COM",
+            EntityType.COMPETITOR: "COM",  # deprecated
             EntityType.INDUSTRY: "IND",
             EntityType.EVIDENCE: "EVD",
             EntityType.SOURCE: "SRC",

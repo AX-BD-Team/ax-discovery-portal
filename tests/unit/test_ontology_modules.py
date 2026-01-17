@@ -959,9 +959,9 @@ class TestOntologyRepository:
         assert entity_id.startswith("PLY-")
 
     def test_generate_entity_id_organization(self):
-        """Organization 엔티티 ID 생성 (기본 접두사)"""
+        """Organization 엔티티 ID 생성"""
         entity_id = self.repo._generate_entity_id(EntityType.ORGANIZATION)
-        assert entity_id.startswith("ENT-")  # 맵에 없으면 기본값
+        assert entity_id.startswith("ORG-")  # P1: Customer/Competitor 통합
 
     def test_generate_triple_id(self):
         """Triple ID 생성"""
