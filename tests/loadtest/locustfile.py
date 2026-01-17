@@ -225,9 +225,7 @@ class WorkflowUser(HttpUser):
             "company_name": f"테스트기업_{uuid.uuid4().hex[:6]}",
             "contact_name": "테스트담당자",
             "contact_email": "test@example.com",
-            "inquiry_type": random.choice(
-                ["partnership", "product_inquiry", "technical_support"]
-            ),
+            "inquiry_type": random.choice(["partnership", "product_inquiry", "technical_support"]),
             "description": "부하 테스트용 인바운드 문의입니다. AI 기반 솔루션에 관심이 있습니다.",
             "urgency": random.choice(["low", "normal", "urgent"]),
         }
