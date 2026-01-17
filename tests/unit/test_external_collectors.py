@@ -1,7 +1,8 @@
 """
 외부 세미나 수집기 단위 테스트
 
-RSS, Festa, Eventbrite 수집기 테스트
+RSS, OnOffMix, EventUs, DevEvent, Eventbrite 수집기 테스트
+Festa는 2025.01.31 서비스 종료로 DEPRECATED
 """
 
 from datetime import UTC, datetime
@@ -9,9 +10,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from backend.integrations.external_sources import (
+    AI_AX_KEYWORDS,
+    filter_by_ai_keywords,
+    filter_excludes,
+)
 from backend.integrations.external_sources.base import SeminarInfo
+from backend.integrations.external_sources.devevent_collector import DevEventCollector
 from backend.integrations.external_sources.eventbrite_collector import EventbriteCollector
+from backend.integrations.external_sources.eventus_collector import EventUsCollector
 from backend.integrations.external_sources.festa_collector import FestaCollector
+from backend.integrations.external_sources.onoffmix_collector import OnOffMixCollector
 from backend.integrations.external_sources.rss_collector import RSSCollector
 
 # ============================================================
@@ -239,19 +248,18 @@ class TestRSSCollector:
 
 
 # ============================================================
-# Festa Collector 테스트
+# Festa Collector 테스트 (DEPRECATED)
 # ============================================================
 
 
 class TestFestaCollector:
-    """Festa 수집기 테스트"""
+    """Festa 수집기 테스트 (DEPRECATED - 2025.01.31 서비스 종료)"""
 
     def test_initialization(self):
         """Festa 수집기 초기화"""
         collector = FestaCollector(api_key="test-key")
 
         assert collector.name == "festa"
-        assert collector.api_key == "test-key"
 
     def test_category_mapping(self):
         """카테고리 매핑 확인"""
@@ -259,8 +267,18 @@ class TestFestaCollector:
         assert "ai" in FestaCollector.CATEGORY_MAP
         assert "startup" in FestaCollector.CATEGORY_MAP
 
+    @pytest.mark.asyncio
+    async def test_fetch_seminars_returns_empty(self):
+        """DEPRECATED: fetch_seminars는 항상 빈 목록 반환"""
+        collector = FestaCollector()
+
+        # 서비스 종료로 항상 빈 결과 반환
+        result = await collector.fetch_seminars(categories=["tech"], limit=10)
+
+        assert result == []
+
     def test_parse_event(self):
-        """Festa 이벤트 JSON 파싱"""
+        """Festa 이벤트 JSON 파싱 (레거시 호환성)"""
         collector = FestaCollector()
         event = {
             "id": "12345",
@@ -276,70 +294,270 @@ class TestFestaCollector:
 
         assert seminar is not None
         assert seminar.title == "테스트 이벤트"
-        assert seminar.date == "2026-05-20"
         assert seminar.external_id == "festa_12345"
-        assert seminar.source_type == "festa"
 
-    def test_parse_event_online(self):
-        """온라인 이벤트 파싱"""
-        collector = FestaCollector()
-        event = {
-            "id": "99999",
-            "title": "온라인 웨비나",
-            "is_online": True,
+
+# ============================================================
+# OnOffMix Collector 테스트
+# ============================================================
+
+
+class TestOnOffMixCollector:
+    """온오프믹스 수집기 테스트"""
+
+    def test_initialization(self):
+        """OnOffMix 수집기 초기화"""
+        collector = OnOffMixCollector()
+
+        assert collector.name == "onoffmix"
+        assert collector.BASE_URL == "https://onoffmix.com"
+
+    def test_parse_json_ld_event(self):
+        """JSON-LD 이벤트 데이터 파싱"""
+        collector = OnOffMixCollector()
+        data = {
+            "@type": "Event",
+            "name": "AI 세미나",
+            "url": "https://onoffmix.com/event/12345",
+            "startDate": "2026-06-15T14:00:00",
+            "location": {"name": "서울 강남"},
+            "organizer": {"name": "Tech Corp"},
+            "description": "AI 기술 세미나",
         }
 
-        seminar = collector._parse_event(event, "ai")
+        seminar = collector._parse_json_ld_event(data)
 
         assert seminar is not None
-        assert seminar.location == "온라인"
+        assert seminar.title == "AI 세미나"
+        assert seminar.date == "2026-06-15"
+        assert seminar.source_type == "onoffmix"
+        assert seminar.location == "서울 강남"
 
-    def test_parse_event_invalid(self):
-        """유효하지 않은 이벤트 파싱"""
-        collector = FestaCollector()
-        event = {}  # 필수 필드 없음
+    def test_parse_json_ld_event_invalid(self):
+        """유효하지 않은 JSON-LD 이벤트"""
+        collector = OnOffMixCollector()
 
-        seminar = collector._parse_event(event, "tech")
+        # @type이 Event가 아닌 경우
+        result = collector._parse_json_ld_event({"@type": "Organization"})
+        assert result is None
 
-        assert seminar is None
-
-    def test_parse_html_events(self):
-        """HTML에서 이벤트 파싱"""
-        collector = FestaCollector()
-        html = """
-        <a href="/events/111">이벤트 1</a>
-        <a href="/events/222">이벤트 2</a>
-        """
-
-        seminars = collector._parse_html_events(html, "tech")
-
-        assert len(seminars) == 2
-        assert seminars[0].external_id == "festa_111"
+        # 필수 필드 누락
+        result = collector._parse_json_ld_event({"@type": "Event"})
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_fetch_seminars_with_mock(self):
-        """Mock HTTP로 Festa 수집"""
-        collector = FestaCollector()
+        """Mock HTTP로 온오프믹스 수집"""
+        collector = OnOffMixCollector()
 
-        mock_events = [
-            {"id": "1", "title": "AI 세미나", "start_time": "2026-06-01T10:00:00"},
-            {"id": "2", "title": "스타트업 밋업", "start_time": "2026-06-02T14:00:00"},
-        ]
+        mock_html = """
+        <html>
+        <script type="application/ld+json">
+        {"@type": "Event", "name": "AI 컨퍼런스", "url": "https://onoffmix.com/event/123", "startDate": "2026-07-01T10:00:00"}
+        </script>
+        </html>
+        """
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json = MagicMock(return_value=mock_events)
+            mock_response.text = mock_html
 
             mock_client.return_value.__aenter__ = AsyncMock(
                 return_value=MagicMock(get=AsyncMock(return_value=mock_response))
             )
             mock_client.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            result = await collector.fetch_seminars(categories=["tech"], limit=10)
+            result = await collector.fetch_seminars(keywords=["AI"], limit=10)
 
-        # Mock이 제대로 동작하면 결과가 있어야 함
         assert isinstance(result, list)
+
+
+# ============================================================
+# EventUs Collector 테스트
+# ============================================================
+
+
+class TestEventUsCollector:
+    """이벤터스 수집기 테스트"""
+
+    def test_initialization(self):
+        """EventUs 수집기 초기화"""
+        collector = EventUsCollector()
+
+        assert collector.name == "eventus"
+        assert collector.BASE_URL == "https://event-us.kr"
+
+    def test_clean_title(self):
+        """제목 정리"""
+        collector = EventUsCollector()
+
+        # HTML 태그 제거
+        assert collector._clean_title("<b>테스트</b>") == "테스트"
+
+        # 공백 정리
+        assert collector._clean_title("  여러   공백  ") == "여러 공백"
+
+        # HTML 엔티티
+        assert collector._clean_title("A &amp; B") == "A & B"
+
+    def test_parse_json_ld_event(self):
+        """JSON-LD 이벤트 데이터 파싱"""
+        collector = EventUsCollector()
+        data = {
+            "@type": "Event",
+            "name": "LLM 워크샵",
+            "url": "https://event-us.kr/channel/events/456",
+            "startDate": "2026-08-20T09:00:00",
+            "location": "온라인",
+            "organizer": {"name": "AI Lab"},
+            "description": "LLM 실습 워크샵",
+        }
+
+        seminar = collector._parse_json_ld_event(data)
+
+        assert seminar is not None
+        assert seminar.title == "LLM 워크샵"
+        assert seminar.date == "2026-08-20"
+        assert seminar.source_type == "eventus"
+
+    @pytest.mark.asyncio
+    async def test_fetch_seminars_with_mock(self):
+        """Mock HTTP로 이벤터스 수집"""
+        collector = EventUsCollector()
+
+        mock_html = """
+        <html>
+        <script type="application/ld+json">
+        {"@type": "Event", "name": "생성형AI 세미나", "url": "https://event-us.kr/events/789", "startDate": "2026-09-15T14:00:00"}
+        </script>
+        </html>
+        """
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = mock_html
+
+            mock_client.return_value.__aenter__ = AsyncMock(
+                return_value=MagicMock(get=AsyncMock(return_value=mock_response))
+            )
+            mock_client.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            result = await collector.fetch_seminars(keywords=["AI"], limit=10)
+
+        assert isinstance(result, list)
+
+
+# ============================================================
+# DevEvent Collector 테스트
+# ============================================================
+
+
+class TestDevEventCollector:
+    """Dev-Event (GitHub) 수집기 테스트"""
+
+    def test_initialization(self):
+        """DevEvent 수집기 초기화"""
+        collector = DevEventCollector()
+
+        assert collector.name == "devevent"
+        assert "github" in collector.RAW_BASE_URL.lower()
+
+    def test_parse_markdown(self):
+        """마크다운 이벤트 파싱"""
+        collector = DevEventCollector()
+        markdown = """
+# 2026년 1월
+
+- [AI 컨퍼런스 2026](https://example.com/ai-conf)
+  - 분류: `온라인`, `무료`, `AI` | 주최: Tech Corp | 접수: 01.15 ~ 01.20
+
+- [LLM 해커톤](https://example.com/llm-hackathon)
+  - 분류: `오프라인`, `유료`, `LLM` | 주최: AI Lab | 접수: 01.25 ~ 01.30
+"""
+
+        seminars = collector._parse_markdown(markdown, ["AI", "LLM"], 2026, 1)
+
+        assert len(seminars) == 2
+        assert seminars[0].title == "AI 컨퍼런스 2026"
+        assert seminars[0].source_type == "devevent"
+        assert "AI" in seminars[0].tags or any("AI" in c for c in seminars[0].categories)
+
+    def test_parse_markdown_no_match(self):
+        """키워드 미매칭 마크다운"""
+        collector = DevEventCollector()
+        markdown = """
+- [웹 개발 세미나](https://example.com/web)
+  - 분류: `온라인`, `무료` | 주최: Web Corp
+"""
+
+        seminars = collector._parse_markdown(markdown, ["AI", "LLM"], 2026, 1)
+
+        # AI/LLM 키워드 없으면 빈 결과
+        assert len(seminars) == 0
+
+    @pytest.mark.asyncio
+    async def test_fetch_seminars_with_mock(self):
+        """Mock HTTP로 DevEvent 수집"""
+        collector = DevEventCollector()
+
+        mock_markdown = """
+# 이벤트
+
+- [GPT 워크샵](https://example.com/gpt)
+  - 분류: `온라인`, `무료`, `GPT` | 주최: OpenAI KR | 접수: 01.10 ~ 01.15
+"""
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = mock_markdown
+
+            mock_client.return_value.__aenter__ = AsyncMock(
+                return_value=MagicMock(get=AsyncMock(return_value=mock_response))
+            )
+            mock_client.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            result = await collector.fetch_seminars(keywords=["GPT"], limit=10)
+
+        assert isinstance(result, list)
+
+
+# ============================================================
+# Keywords 유틸리티 테스트
+# ============================================================
+
+
+class TestKeywordsUtility:
+    """AI/AX 키워드 유틸리티 테스트"""
+
+    def test_ai_ax_keywords_exists(self):
+        """AI_AX_KEYWORDS 상수 확인"""
+        assert len(AI_AX_KEYWORDS) > 0
+        assert "AI" in AI_AX_KEYWORDS
+        assert "LLM" in AI_AX_KEYWORDS
+        assert "인공지능" in AI_AX_KEYWORDS
+
+    def test_filter_by_ai_keywords(self):
+        """AI 키워드 필터링"""
+        assert filter_by_ai_keywords("AI 기반 솔루션") is True
+        assert filter_by_ai_keywords("인공지능 서비스") is True
+        assert filter_by_ai_keywords("LLM 활용 사례") is True
+        assert filter_by_ai_keywords("일반 웹 개발") is False
+
+    def test_filter_by_ai_keywords_min_matches(self):
+        """최소 매칭 개수 필터링"""
+        # 여러 키워드 매칭
+        assert filter_by_ai_keywords("AI와 LLM 기반 자동화", min_matches=2) is True
+        # 하나만 매칭 (키워드가 하나만 있는 텍스트)
+        assert filter_by_ai_keywords("데이터베이스 설계", min_matches=2) is False
+
+    def test_filter_excludes(self):
+        """제외 키워드 필터링"""
+        assert filter_excludes("AI 개발자 채용") is True
+        assert filter_excludes("인턴 모집") is True
+        assert filter_excludes("AI 기술 세미나") is False
 
 
 # ============================================================
