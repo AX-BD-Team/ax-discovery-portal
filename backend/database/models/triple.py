@@ -36,34 +36,55 @@ from backend.database.base import Base
 
 
 class PredicateType(enum.Enum):
-    """관계 유형 (17종)"""
+    """관계 유형 (28종) - BD 특화 온톨로지 v2"""
 
-    # 핵심 관계
+    # ===== Pipeline Flow Relations (6종) =====
+    GENERATES = "generates"  # v2: Activity -> Signal
+    EVALUATES_TO = "evaluates_to"  # v2: Signal -> Scorecard
+    SUMMARIZED_IN = "summarized_in"  # v2: Signal -> Brief
+    VALIDATED_BY = "validated_by"  # v2: Brief -> Validation
+    PILOTS_AS = "pilots_as"  # v2: Validation -> Pilot
+    PROGRESSES_TO = "progresses_to"  # v2: 단계 전환 (일반)
+
+    # ===== Topic Relations (4종) =====
     HAS_PAIN = "has_pain"  # Signal -> Topic
-    HAS_SCORECARD = "has_scorecard"  # Signal -> Scorecard
-    HAS_BRIEF = "has_brief"  # Signal -> Brief
-    BELONGS_TO_PLAY = "belongs_to_play"  # Signal -> Play
-
-    # 토픽 관계
     SIMILAR_TO = "similar_to"  # Topic <-> Topic (양방향)
     PARENT_OF = "parent_of"  # Topic -> Topic (계층)
-    RELATED_TO = "related_to"  # Topic -> Topic (연관)
+    ADDRESSES = "addresses"  # v2: Technology -> Topic (해결하는 Pain)
 
-    # 맥락 관계 (Organization 기반 역할 모델)
+    # ===== Organization Relations (6종) =====
     TARGETS = "targets"  # Signal -> Organization
-    USES_TECHNOLOGY = "uses_technology"  # Signal -> Technology
-    COMPETES_WITH = "competes_with"  # Signal -> Organization (deprecated, use HAS_ROLE)
-    IN_INDUSTRY = "in_industry"  # Signal/Organization -> Industry
-    HAS_ROLE = "has_role"  # Organization -> Play/Signal (역할: customer, competitor, partner)
+    EMPLOYS = "employs"  # v2: Organization -> Person
+    PARTNERS_WITH = "partners_with"  # v2: Organization <-> Organization
+    COMPETES_WITH = "competes_with"  # Organization <-> Organization
+    SUBSIDIARY_OF = "subsidiary_of"  # v2: Organization -> Organization
+    IN_INDUSTRY = "in_industry"  # Organization -> Industry
 
-    # 증거 관계
-    SUPPORTED_BY = "supported_by"  # Signal/Scorecard/Brief -> Evidence (필수)
-    SOURCED_FROM = "sourced_from"  # Evidence -> Source (필수)
-    INFERRED_FROM = "inferred_from"  # Triple/Brief/Scorecard -> ReasoningStep
-    LEADS_TO = "leads_to"  # ReasoningStep -> ReasoningStep
+    # ===== Person Relations (4종) =====
+    OWNS = "owns"  # v2: Person -> Signal/Brief (소유자)
+    DECIDES = "decides"  # v2: Person -> Decision
+    ATTENDED = "attended"  # v2: Person -> Meeting
+    REPORTS_TO = "reports_to"  # v2: Person -> Person
 
-    # 정규화 관계
-    SAME_AS = "same_as"  # Entity -> Entity (동일 실체 연결)
+    # ===== Evidence Relations (4종) =====
+    SUPPORTED_BY = "supported_by"  # Any -> Evidence
+    SOURCED_FROM = "sourced_from"  # Evidence -> Source
+    INFERRED_FROM = "inferred_from"  # Any -> ReasoningStep
+    CONTRADICTS = "contradicts"  # v2: Evidence <-> Evidence
+
+    # ===== Operational Relations (4종) =====
+    BELONGS_TO_PLAY = "belongs_to_play"  # Signal -> Play
+    SCHEDULED_FOR = "scheduled_for"  # v2: Task -> Meeting
+    ACHIEVES = "achieves"  # v2: Task -> Milestone
+    SAME_AS = "same_as"  # Entity <-> Entity (동일 실체)
+
+    # ===== Deprecated (하위 호환용) =====
+    HAS_SCORECARD = "has_scorecard"  # deprecated: use EVALUATES_TO
+    HAS_BRIEF = "has_brief"  # deprecated: use SUMMARIZED_IN
+    RELATED_TO = "related_to"  # deprecated: use more specific relations
+    USES_TECHNOLOGY = "uses_technology"  # deprecated: use ADDRESSES
+    HAS_ROLE = "has_role"  # deprecated: use EMPLOYS + role property
+    LEADS_TO = "leads_to"  # deprecated: use PROGRESSES_TO
 
 
 class TripleStatus(enum.Enum):

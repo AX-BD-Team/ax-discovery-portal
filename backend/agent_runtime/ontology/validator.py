@@ -97,92 +97,172 @@ class PredicateConstraint:
     exclude_from_path: bool = False
 
 
-# P0: Predicate별 도메인/레인지/필수연결 제약
+# v2: Predicate별 도메인/레인지/필수연결 제약 (28종)
 PREDICATE_CONSTRAINTS: dict[PredicateType, PredicateConstraint] = {
-    # ===== 핵심 관계 =====
-    PredicateType.HAS_SCORECARD: PredicateConstraint(
+    # ===== Pipeline Flow Relations (6종) =====
+    PredicateType.GENERATES: PredicateConstraint(
+        subject_types={EntityType.ACTIVITY},
+        object_types={EntityType.SIGNAL},
+        requires_evidence=True,
+        min_confidence=0.7,
+    ),
+    PredicateType.EVALUATES_TO: PredicateConstraint(
         subject_types={EntityType.SIGNAL},
         object_types={EntityType.SCORECARD},
-        requires_evidence=False,  # Scorecard 자체가 평가 결과
     ),
-    PredicateType.HAS_BRIEF: PredicateConstraint(
+    PredicateType.SUMMARIZED_IN: PredicateConstraint(
         subject_types={EntityType.SIGNAL},
         object_types={EntityType.BRIEF},
     ),
-    PredicateType.BELONGS_TO_PLAY: PredicateConstraint(
-        subject_types={EntityType.SIGNAL, EntityType.BRIEF},
-        object_types={EntityType.PLAY},
+    PredicateType.VALIDATED_BY: PredicateConstraint(
+        subject_types={EntityType.BRIEF},
+        object_types={EntityType.VALIDATION},
     ),
+    PredicateType.PILOTS_AS: PredicateConstraint(
+        subject_types={EntityType.VALIDATION},
+        object_types={EntityType.PILOT},
+    ),
+    PredicateType.PROGRESSES_TO: PredicateConstraint(
+        subject_types={
+            EntityType.ACTIVITY, EntityType.SIGNAL, EntityType.SCORECARD,
+            EntityType.BRIEF, EntityType.VALIDATION, EntityType.PILOT,
+        },
+        object_types={
+            EntityType.ACTIVITY, EntityType.SIGNAL, EntityType.SCORECARD,
+            EntityType.BRIEF, EntityType.VALIDATION, EntityType.PILOT,
+        },
+    ),
+    # ===== Topic Relations (4종) =====
     PredicateType.HAS_PAIN: PredicateConstraint(
         subject_types={EntityType.SIGNAL},
         object_types={EntityType.TOPIC},
     ),
-    # ===== 토픽 관계 =====
     PredicateType.SIMILAR_TO: PredicateConstraint(
-        subject_types={EntityType.TOPIC, EntityType.SIGNAL},
-        object_types={EntityType.TOPIC, EntityType.SIGNAL},
+        subject_types={EntityType.TOPIC, EntityType.SIGNAL, EntityType.TREND},
+        object_types={EntityType.TOPIC, EntityType.SIGNAL, EntityType.TREND},
     ),
     PredicateType.PARENT_OF: PredicateConstraint(
-        subject_types={EntityType.TOPIC},
-        object_types={EntityType.TOPIC},
+        subject_types={EntityType.TOPIC, EntityType.INDUSTRY},
+        object_types={EntityType.TOPIC, EntityType.INDUSTRY},
     ),
-    PredicateType.RELATED_TO: PredicateConstraint(
-        subject_types={EntityType.TOPIC, EntityType.SIGNAL, EntityType.TECHNOLOGY},
-        object_types={EntityType.TOPIC, EntityType.SIGNAL, EntityType.TECHNOLOGY},
+    PredicateType.ADDRESSES: PredicateConstraint(
+        subject_types={EntityType.TECHNOLOGY},
+        object_types={EntityType.TOPIC, EntityType.TREND},
     ),
-    # ===== 맥락 관계 (Organization 기반 역할 모델) =====
+    # ===== Organization Relations (6종) =====
     PredicateType.TARGETS: PredicateConstraint(
-        subject_types={EntityType.SIGNAL, EntityType.BRIEF},
-        object_types={EntityType.ORGANIZATION, EntityType.CUSTOMER},  # Customer는 deprecated
+        subject_types={EntityType.SIGNAL, EntityType.BRIEF, EntityType.ACTIVITY},
+        object_types={EntityType.ORGANIZATION, EntityType.CUSTOMER},
     ),
-    PredicateType.USES_TECHNOLOGY: PredicateConstraint(
-        subject_types={EntityType.SIGNAL, EntityType.BRIEF, EntityType.ORGANIZATION},
-        object_types={EntityType.TECHNOLOGY},
+    PredicateType.EMPLOYS: PredicateConstraint(
+        subject_types={EntityType.ORGANIZATION, EntityType.TEAM},
+        object_types={EntityType.PERSON},
+    ),
+    PredicateType.PARTNERS_WITH: PredicateConstraint(
+        subject_types={EntityType.ORGANIZATION},
+        object_types={EntityType.ORGANIZATION},
     ),
     PredicateType.COMPETES_WITH: PredicateConstraint(
-        subject_types={EntityType.SIGNAL, EntityType.ORGANIZATION},
+        subject_types={EntityType.ORGANIZATION},
         object_types={EntityType.ORGANIZATION, EntityType.COMPETITOR},
-        deprecated=True,
-        deprecated_message="Use HAS_ROLE with role='competitor' instead",
+    ),
+    PredicateType.SUBSIDIARY_OF: PredicateConstraint(
+        subject_types={EntityType.ORGANIZATION},
+        object_types={EntityType.ORGANIZATION},
     ),
     PredicateType.IN_INDUSTRY: PredicateConstraint(
-        subject_types={EntityType.SIGNAL, EntityType.ORGANIZATION, EntityType.CUSTOMER},
-        object_types={EntityType.INDUSTRY},
+        subject_types={EntityType.ORGANIZATION, EntityType.SIGNAL, EntityType.CUSTOMER},
+        object_types={EntityType.INDUSTRY, EntityType.MARKET_SEGMENT},
     ),
-    PredicateType.HAS_ROLE: PredicateConstraint(
-        subject_types={EntityType.ORGANIZATION},
-        object_types={EntityType.PLAY, EntityType.SIGNAL},
-        # properties에 {"role": "customer|competitor|partner"} 필요
+    # ===== Person Relations (4종) =====
+    PredicateType.OWNS: PredicateConstraint(
+        subject_types={EntityType.PERSON},
+        object_types={EntityType.SIGNAL, EntityType.BRIEF, EntityType.TASK},
     ),
-    # ===== 증거 관계 (P0: 필수 연결) =====
+    PredicateType.DECIDES: PredicateConstraint(
+        subject_types={EntityType.PERSON},
+        object_types={EntityType.DECISION},
+    ),
+    PredicateType.ATTENDED: PredicateConstraint(
+        subject_types={EntityType.PERSON},
+        object_types={EntityType.MEETING, EntityType.ACTIVITY},
+    ),
+    PredicateType.REPORTS_TO: PredicateConstraint(
+        subject_types={EntityType.PERSON},
+        object_types={EntityType.PERSON},
+    ),
+    # ===== Evidence Relations (4종) =====
     PredicateType.SUPPORTED_BY: PredicateConstraint(
-        subject_types={EntityType.SIGNAL, EntityType.SCORECARD, EntityType.BRIEF},
+        subject_types=set(EntityType),  # 모든 타입
         object_types={EntityType.EVIDENCE},
-        requires_evidence=False,  # 이 관계 자체가 증거 연결
     ),
     PredicateType.SOURCED_FROM: PredicateConstraint(
         subject_types={EntityType.EVIDENCE},
         object_types={EntityType.SOURCE},
-        requires_source=False,  # 이 관계 자체가 출처 연결
     ),
     PredicateType.INFERRED_FROM: PredicateConstraint(
-        subject_types={
-            EntityType.BRIEF,
-            EntityType.SCORECARD,
-            # Triple 자체는 Entity가 아니므로 ReasoningStep으로 연결
-        },
+        subject_types={EntityType.BRIEF, EntityType.SCORECARD, EntityType.DECISION},
         object_types={EntityType.REASONING_STEP},
-        exclude_from_path=True,  # 경로 탐색에서 제외 (아무거나 연결되는 경로 방지)
+        exclude_from_path=True,
+    ),
+    PredicateType.CONTRADICTS: PredicateConstraint(
+        subject_types={EntityType.EVIDENCE},
+        object_types={EntityType.EVIDENCE},
+    ),
+    # ===== Operational Relations (4종) =====
+    PredicateType.BELONGS_TO_PLAY: PredicateConstraint(
+        subject_types={EntityType.SIGNAL, EntityType.BRIEF, EntityType.ACTIVITY},
+        object_types={EntityType.PLAY},
+    ),
+    PredicateType.SCHEDULED_FOR: PredicateConstraint(
+        subject_types={EntityType.TASK},
+        object_types={EntityType.MEETING, EntityType.MILESTONE},
+    ),
+    PredicateType.ACHIEVES: PredicateConstraint(
+        subject_types={EntityType.TASK, EntityType.PILOT},
+        object_types={EntityType.MILESTONE},
+    ),
+    PredicateType.SAME_AS: PredicateConstraint(
+        subject_types=set(EntityType),
+        object_types=set(EntityType),
+    ),
+    # ===== Deprecated (하위 호환) =====
+    PredicateType.HAS_SCORECARD: PredicateConstraint(
+        subject_types={EntityType.SIGNAL},
+        object_types={EntityType.SCORECARD},
+        deprecated=True,
+        deprecated_message="Use EVALUATES_TO instead",
+    ),
+    PredicateType.HAS_BRIEF: PredicateConstraint(
+        subject_types={EntityType.SIGNAL},
+        object_types={EntityType.BRIEF},
+        deprecated=True,
+        deprecated_message="Use SUMMARIZED_IN instead",
+    ),
+    PredicateType.RELATED_TO: PredicateConstraint(
+        subject_types={EntityType.TOPIC, EntityType.SIGNAL, EntityType.TECHNOLOGY},
+        object_types={EntityType.TOPIC, EntityType.SIGNAL, EntityType.TECHNOLOGY},
+        deprecated=True,
+        deprecated_message="Use more specific relations (SIMILAR_TO, ADDRESSES, etc.)",
+    ),
+    PredicateType.USES_TECHNOLOGY: PredicateConstraint(
+        subject_types={EntityType.SIGNAL, EntityType.ORGANIZATION},
+        object_types={EntityType.TECHNOLOGY},
+        deprecated=True,
+        deprecated_message="Use ADDRESSES instead",
+    ),
+    PredicateType.HAS_ROLE: PredicateConstraint(
+        subject_types={EntityType.ORGANIZATION},
+        object_types={EntityType.PLAY, EntityType.SIGNAL},
+        deprecated=True,
+        deprecated_message="Use EMPLOYS with role property instead",
     ),
     PredicateType.LEADS_TO: PredicateConstraint(
         subject_types={EntityType.REASONING_STEP},
         object_types={EntityType.REASONING_STEP},
+        deprecated=True,
+        deprecated_message="Use PROGRESSES_TO instead",
         exclude_from_path=True,
-    ),
-    # ===== 정규화 관계 =====
-    PredicateType.SAME_AS: PredicateConstraint(
-        subject_types=set(EntityType),  # 모든 타입 허용
-        object_types=set(EntityType),
     ),
 }
 

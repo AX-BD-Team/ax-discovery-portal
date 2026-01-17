@@ -420,20 +420,38 @@ class OntologyRepository:
 
     def _generate_entity_id(self, entity_type: EntityType) -> str:
         """엔티티 ID 생성"""
+        # v2: 22종 EntityType ID Prefix 매핑
         prefix_map = {
+            # Pipeline Entities (7종)
+            EntityType.ACTIVITY: "ACT",
             EntityType.SIGNAL: "SIG",
             EntityType.TOPIC: "TOP",
             EntityType.SCORECARD: "SCR",
             EntityType.BRIEF: "BRF",
-            EntityType.ORGANIZATION: "ORG",  # P1: Customer/Competitor 통합
-            EntityType.CUSTOMER: "CUS",  # deprecated
+            EntityType.VALIDATION: "VAL",
+            EntityType.PILOT: "PLT",
+            # Organization Entities (3종)
+            EntityType.ORGANIZATION: "ORG",
+            EntityType.PERSON: "PER",
+            EntityType.TEAM: "TEM",
+            # Market Context (4종)
             EntityType.TECHNOLOGY: "TEC",
-            EntityType.COMPETITOR: "COM",  # deprecated
             EntityType.INDUSTRY: "IND",
+            EntityType.MARKET_SEGMENT: "MKT",
+            EntityType.TREND: "TRD",
+            # Evidence & Reasoning (4종)
             EntityType.EVIDENCE: "EVD",
             EntityType.SOURCE: "SRC",
             EntityType.REASONING_STEP: "RST",
+            EntityType.DECISION: "DEC",
+            # Operational (4종)
             EntityType.PLAY: "PLY",
+            EntityType.MEETING: "MTG",
+            EntityType.TASK: "TSK",
+            EntityType.MILESTONE: "MLS",
+            # Deprecated (하위 호환)
+            EntityType.CUSTOMER: "CUS",
+            EntityType.COMPETITOR: "COM",
         }
         prefix = prefix_map.get(entity_type, "ENT")
         unique_part = str(uuid4())[:8].upper()

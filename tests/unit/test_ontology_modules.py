@@ -175,13 +175,15 @@ class TestTripleValidator:
         assert result.is_valid is True
 
     def test_validate_uses_technology_valid(self):
-        """USES_TECHNOLOGY: Brief -> Technology (유효)"""
+        """USES_TECHNOLOGY: Signal -> Technology (유효, deprecated)"""
         result = self.validator.validate(
-            subject_type=EntityType.BRIEF,
+            subject_type=EntityType.SIGNAL,
             predicate=PredicateType.USES_TECHNOLOGY,
             object_type=EntityType.TECHNOLOGY,
         )
+        # v2: USES_TECHNOLOGY는 deprecated (ADDRESSES 사용 권장)
         assert result.is_valid is True
+        assert any(e.code == ValidationErrorCode.DEPRECATED_PREDICATE for e in result.warnings)
 
     def test_validate_in_industry_valid(self):
         """IN_INDUSTRY: Organization -> Industry (유효)"""
@@ -286,15 +288,16 @@ class TestTripleValidator:
 
     # ----- deprecated 테스트 -----
 
-    def test_validate_competes_with_deprecated(self):
-        """COMPETES_WITH: deprecated 경고"""
+    def test_validate_competes_with_valid(self):
+        """COMPETES_WITH: Organization -> Organization (v2에서 활성화)"""
         result = self.validator.validate(
-            subject_type=EntityType.SIGNAL,
+            subject_type=EntityType.ORGANIZATION,
             predicate=PredicateType.COMPETES_WITH,
             object_type=EntityType.ORGANIZATION,
         )
-        assert result.is_valid is True  # 경고만 발생
-        assert any(e.code == ValidationErrorCode.DEPRECATED_PREDICATE for e in result.warnings)
+        # v2: COMPETES_WITH는 더 이상 deprecated가 아님
+        assert result.is_valid is True
+        assert not any(e.code == ValidationErrorCode.DEPRECATED_PREDICATE for e in result.warnings)
 
     # ----- 신뢰도 테스트 -----
 
@@ -311,9 +314,10 @@ class TestTripleValidator:
 
     def test_validate_high_confidence_verified(self):
         """높은 신뢰도 + 경고 없으면 VERIFIED 상태 제안"""
+        # v2: EVALUATES_TO 사용 (HAS_SCORECARD는 deprecated)
         result = self.validator.validate(
             subject_type=EntityType.SIGNAL,
-            predicate=PredicateType.HAS_SCORECARD,
+            predicate=PredicateType.EVALUATES_TO,
             object_type=EntityType.SCORECARD,
             confidence=0.9,
             evidence_ids=["EVD-001"],
@@ -381,7 +385,8 @@ class TestTripleValidator:
         )
         assert PredicateType.HAS_PAIN in allowed
         assert PredicateType.SIMILAR_TO in allowed
-        assert PredicateType.RELATED_TO in allowed
+        # v2: RELATED_TO는 deprecated이므로 제외됨
+        assert PredicateType.RELATED_TO not in allowed
 
     def test_get_allowed_predicates_signal_evidence(self):
         """Signal -> Evidence 허용 predicates"""
@@ -414,13 +419,17 @@ class TestTripleValidator:
     def test_get_path_safe_predicates_excludes_deprecated(self):
         """경로 안전 predicates에서 deprecated 제외"""
         safe = self.validator.get_path_safe_predicates()
-        assert PredicateType.COMPETES_WITH not in safe
+        # v2: HAS_SCORECARD, HAS_BRIEF, RELATED_TO 등이 deprecated
+        assert PredicateType.HAS_SCORECARD not in safe
+        assert PredicateType.HAS_BRIEF not in safe
+        assert PredicateType.RELATED_TO not in safe
 
     def test_get_path_safe_predicates_includes_core(self):
         """경로 안전 predicates에 핵심 관계 포함"""
         safe = self.validator.get_path_safe_predicates()
-        assert PredicateType.HAS_SCORECARD in safe
-        assert PredicateType.HAS_BRIEF in safe
+        # v2: EVALUATES_TO, SUMMARIZED_IN 사용 (HAS_SCORECARD, HAS_BRIEF는 deprecated)
+        assert PredicateType.EVALUATES_TO in safe
+        assert PredicateType.SUMMARIZED_IN in safe
         assert PredicateType.BELONGS_TO_PLAY in safe
         assert PredicateType.SUPPORTED_BY in safe
 
@@ -489,11 +498,12 @@ class TestPredicateConstraints:
         constraint = PREDICATE_CONSTRAINTS[PredicateType.LEADS_TO]
         assert constraint.exclude_from_path is True
 
-    def test_competes_with_deprecated(self):
-        """COMPETES_WITH는 deprecated"""
+    def test_competes_with_not_deprecated(self):
+        """COMPETES_WITH는 v2에서 활성화 (deprecated 아님)"""
         constraint = PREDICATE_CONSTRAINTS[PredicateType.COMPETES_WITH]
-        assert constraint.deprecated is True
-        assert constraint.deprecated_message is not None
+        assert constraint.deprecated is False
+        assert EntityType.ORGANIZATION in constraint.subject_types
+        assert EntityType.ORGANIZATION in constraint.object_types
 
 
 # =============================================================================
@@ -608,7 +618,8 @@ class TestGraphQuery:
         """기본 predicate 필터 (경로 안전 predicates)"""
         options = PathOptions()
         predicates = self.graph_query._build_predicate_filter(options)
-        assert PredicateType.HAS_SCORECARD in predicates
+        # v2: EVALUATES_TO 사용 (HAS_SCORECARD는 deprecated)
+        assert PredicateType.EVALUATES_TO in predicates
         assert PredicateType.INFERRED_FROM not in predicates
 
     def test_build_predicate_filter_allowed_only(self):

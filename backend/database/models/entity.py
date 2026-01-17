@@ -19,28 +19,43 @@ from backend.database.base import Base
 
 
 class EntityType(enum.Enum):
-    """엔티티 유형 (13종)"""
+    """엔티티 유형 (22종) - BD 특화 온톨로지 v2"""
 
-    # Core Entities
-    SIGNAL = "Signal"
-    TOPIC = "Topic"
-    SCORECARD = "Scorecard"
-    BRIEF = "Brief"
+    # ===== Pipeline Entities (7종) =====
+    ACTIVITY = "Activity"  # v2: 세미나/미팅/인바운드 등 활동
+    SIGNAL = "Signal"  # 사업 기회 신호
+    TOPIC = "Topic"  # Pain Point / Trend
+    SCORECARD = "Scorecard"  # 100점 평가
+    BRIEF = "Brief"  # 1-Page 요약
+    VALIDATION = "Validation"  # v2: S2 검증 결과
+    PILOT = "Pilot"  # v2: S3 파일럿 프로젝트
 
-    # Context Entities
-    ORGANIZATION = "Organization"  # P1: Customer/Competitor 통합 (역할은 Triple로)
+    # ===== Organization Entities (3종) =====
+    ORGANIZATION = "Organization"  # 회사/기관 (역할 분리)
+    PERSON = "Person"  # v2: 담당자/의사결정자
+    TEAM = "Team"  # v2: BD팀/고객팀
+
+    # ===== Market Context (4종) =====
+    TECHNOLOGY = "Technology"  # 기술/솔루션
+    INDUSTRY = "Industry"  # 산업/버티컬
+    MARKET_SEGMENT = "MarketSegment"  # v2: 시장 세그먼트
+    TREND = "Trend"  # v2: 시장 트렌드
+
+    # ===== Evidence & Reasoning (4종) =====
+    EVIDENCE = "Evidence"  # 근거 자료
+    SOURCE = "Source"  # 출처 (Confluence, 기사 등)
+    REASONING_STEP = "ReasoningStep"  # 추론 단계
+    DECISION = "Decision"  # v2: GO/NOGO 결정
+
+    # ===== Operational (4종) =====
+    PLAY = "Play"  # BD Play (사업 영역)
+    MEETING = "Meeting"  # v2: 미팅 기록
+    TASK = "Task"  # v2: 후속 조치
+    MILESTONE = "Milestone"  # v2: 주요 이정표
+
+    # ===== Deprecated (하위 호환용) =====
     CUSTOMER = "Customer"  # deprecated: Organization + HAS_ROLE 사용 권장
-    TECHNOLOGY = "Technology"
     COMPETITOR = "Competitor"  # deprecated: Organization + HAS_ROLE 사용 권장
-    INDUSTRY = "Industry"
-
-    # Evidence Entities
-    EVIDENCE = "Evidence"
-    SOURCE = "Source"
-    REASONING_STEP = "ReasoningStep"
-
-    # Operational Entities
-    PLAY = "Play"
 
 
 class SyncStatus(enum.Enum):
