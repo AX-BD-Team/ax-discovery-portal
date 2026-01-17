@@ -40,6 +40,13 @@ from backend.services.play_sync_triggers import (
 )
 from backend.services.rag_service import RAGService, rag_service
 from backend.services.task_converter import TaskConverter, TaskTemplate, task_converter
+from backend.services.todo_parser import TodoItem, TodoList, TodoParser, todo_parser
+from backend.services.todo_sync_service import (
+    ProgressReport,
+    SyncDiff,
+    TodoSyncService,
+    todo_sync_service,
+)
 
 __all__ = [
     # Embedding
@@ -85,4 +92,13 @@ __all__ = [
     # Approval
     "ApprovalService",
     "approval_service",
+    # ToDo
+    "TodoParser",
+    "todo_parser",
+    "TodoItem",
+    "TodoList",
+    "TodoSyncService",
+    "todo_sync_service",
+    "SyncDiff",
+    "ProgressReport",
 ]

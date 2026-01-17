@@ -231,13 +231,10 @@ class TodoParser:
             re.DOTALL,
         )
 
-        # 간단한 리스트 항목 패턴 (li 태그)
-        list_item_pattern = re.compile(r"<li[^>]*>(.*?)</li>", re.DOTALL)
-
         # Phase 섹션 분리
         sections = re.split(r"(<h2[^>]*>.*?</h2>)", html)
 
-        for i, section in enumerate(sections):
+        for section in sections:
             # Phase 헤더 확인
             phase_match = phase_pattern.search(section)
             if phase_match:

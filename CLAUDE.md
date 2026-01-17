@@ -19,6 +19,7 @@
 | ax-sprint | 5-day Sprint 플랜 수립 | Sprint 체크리스트 |
 | ax-confluence | Confluence 동기화 규칙 | DB/Live doc 업데이트 |
 | ax-wrap-up | 작업 정리 + 테스트 + 커밋 | 문서 업데이트 + Git commit |
+| ax-todo | ToDo 관리 + Confluence 동기화 | 진행현황 리포트 + 차이점 분석 |
 
 **상세 문서**: [docs/guides/methodology.md](docs/guides/methodology.md)
 
@@ -114,6 +115,7 @@
 | ax-sprint | 5-day Sprint 플랜 수립 | Sprint 체크리스트 |
 | ax-confluence | Confluence 동기화 규칙 | DB/Live doc 업데이트 |
 | ax-wrap-up | 작업 정리 + 테스트 + 커밋 | 문서 업데이트 + Git commit |
+| ax-todo | ToDo 관리 + Confluence 동기화 | 진행현황 리포트 + 차이점 분석 |
 
 ### 관리 및 사용법
 
