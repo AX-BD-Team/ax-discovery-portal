@@ -89,8 +89,8 @@ export default function Home() {
               <>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   {[
-                    { label: 'Activity', actual: kpiDigest.activity_actual ?? kpiDigest.metrics?.total_activities ?? 0, target: kpiDigest.activity_target ?? 20, icon: '📋' },
-                    { label: 'Signal', actual: kpiDigest.signal_actual ?? kpiDigest.metrics?.new_signals ?? 0, target: kpiDigest.signal_target ?? 30, icon: '📡' },
+                    { label: 'Activity', actual: kpiDigest.activity_actual ?? 0, target: kpiDigest.activity_target ?? 20, icon: '📋' },
+                    { label: 'Signal', actual: kpiDigest.signal_actual ?? 0, target: kpiDigest.signal_target ?? 30, icon: '📡' },
                     { label: 'Brief', actual: kpiDigest.brief_actual ?? 0, target: kpiDigest.brief_target ?? 6, icon: '📝' },
                     { label: 'S2', actual: kpiDigest.s2_actual ?? 0, target: kpiDigest.s2_target ?? '2~4', icon: '✅', isRange: true },
                   ].map((metric, idx) => {
@@ -279,16 +279,16 @@ export default function Home() {
 
           <Card className="transition-shadow hover:shadow-lg">
             <CardHeader>
-              <CardTitle>🤖 Agent Workflows</CardTitle>
-              <CardDescription>자동화된 워크플로우</CardDescription>
+              <CardTitle>📅 외부 세미나</CardTitle>
+              <CardDescription>세미나/이벤트 수집</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-gray-600">
-                Claude Agent SDK 기반 6개 워크플로우를 실행합니다.
+                외부 세미나, 컨퍼런스, 이벤트 정보를 수집합니다.
               </p>
-              <Button className="w-full" variant="secondary" disabled>
-                Coming Soon
-              </Button>
+              <Link href="/activities">
+                <Button className="w-full">세미나 보기</Button>
+              </Link>
             </CardContent>
           </Card>
 

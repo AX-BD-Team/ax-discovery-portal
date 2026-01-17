@@ -15,21 +15,6 @@ from backend.database.models.entity import Entity, EntityType
 from .base import CRUDBase
 
 
-def json_value(column, key: str):
-    """
-    JSON 필드에서 값 추출 (SQLite/PostgreSQL 호환)
-
-    Args:
-        column: JSON 컬럼
-        key: JSON 키
-
-    Returns:
-        SQL expression for JSON value extraction
-    """
-    # func.json_extract는 SQLite와 PostgreSQL 모두에서 동작
-    return func.json_extract(column, f"$.{key}")
-
-
 class ActivityRepository(CRUDBase[Entity]):
     """Activity CRUD 저장소"""
 
@@ -65,15 +50,18 @@ class ActivityRepository(CRUDBase[Entity]):
         Returns:
             Entity | None
         """
+        # 모든 Activity 조회 후 Python에서 URL 필터링 (PostgreSQL JSON 호환성)
         result = await db.execute(
-            select(Entity).where(
-                and_(
-                    Entity.entity_type == EntityType.ACTIVITY,
-                    json_value(Entity.properties, "url") == url,
-                )
-            )
+            select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
         )
-        return result.scalar_one_or_none()
+        all_activities = result.scalars().all()
+
+        for activity in all_activities:
+            props = activity.properties or {}
+            if props.get("url") == url:
+                return activity
+
+        return None
 
     async def get_by_external_id(self, db: AsyncSession, external_id: str) -> Entity | None:
         """
@@ -115,29 +103,22 @@ class ActivityRepository(CRUDBase[Entity]):
         Returns:
             (list[Entity], int): Activity 목록 + 총 개수
         """
-        # 필터 조건
-        base_filter = and_(
-            Entity.entity_type == EntityType.ACTIVITY,
-            json_value(Entity.properties, "play_id") == play_id,
-        )
-
-        # 쿼리 실행
-        query = (
+        # 모든 Activity 조회
+        result = await db.execute(
             select(Entity)
-            .where(base_filter)
+            .where(Entity.entity_type == EntityType.ACTIVITY)
             .order_by(Entity.created_at.desc())
-            .offset(skip)
-            .limit(limit)
         )
+        all_activities = list(result.scalars().all())
 
-        result = await db.execute(query)
-        items = list(result.scalars().all())
+        # Python에서 play_id 필터링 (PostgreSQL JSON 호환성)
+        filtered = [
+            a for a in all_activities
+            if (a.properties or {}).get("play_id") == play_id
+        ]
 
-        # 총 개수 조회
-        count_result = await db.execute(
-            select(func.count()).select_from(Entity).where(base_filter)
-        )
-        total = count_result.scalar() or 0
+        total = len(filtered)
+        items = filtered[skip : skip + limit]
 
         return items, total
 
@@ -160,29 +141,22 @@ class ActivityRepository(CRUDBase[Entity]):
         Returns:
             (list[Entity], int): Activity 목록 + 총 개수
         """
-        # 필터 조건
-        base_filter = and_(
-            Entity.entity_type == EntityType.ACTIVITY,
-            json_value(Entity.properties, "source_type") == source_type,
-        )
-
-        # 쿼리 실행
-        query = (
+        # 모든 Activity 조회
+        result = await db.execute(
             select(Entity)
-            .where(base_filter)
+            .where(Entity.entity_type == EntityType.ACTIVITY)
             .order_by(Entity.created_at.desc())
-            .offset(skip)
-            .limit(limit)
         )
+        all_activities = list(result.scalars().all())
 
-        result = await db.execute(query)
-        items = list(result.scalars().all())
+        # Python에서 source_type 필터링 (PostgreSQL JSON 호환성)
+        filtered = [
+            a for a in all_activities
+            if (a.properties or {}).get("source_type") == source_type
+        ]
 
-        # 총 개수 조회
-        count_result = await db.execute(
-            select(func.count()).select_from(Entity).where(base_filter)
-        )
-        total = count_result.scalar() or 0
+        total = len(filtered)
+        items = filtered[skip : skip + limit]
 
         return items, total
 
@@ -223,18 +197,16 @@ class ActivityRepository(CRUDBase[Entity]):
 
         # 3. 제목 + 날짜 조합으로 체크 (유사 중복)
         if title and date:
+            # 모든 Activity 조회 후 Python에서 필터링 (PostgreSQL JSON 호환성)
             result = await db.execute(
-                select(Entity).where(
-                    and_(
-                        Entity.entity_type == EntityType.ACTIVITY,
-                        Entity.name == title,
-                        json_value(Entity.properties, "date") == date,
-                    )
-                )
+                select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
             )
-            existing = result.scalar_one_or_none()
-            if existing:
-                return existing
+            all_activities = result.scalars().all()
+
+            for activity in all_activities:
+                props = activity.properties or {}
+                if activity.name == title and props.get("date") == date:
+                    return activity
 
         return None
 

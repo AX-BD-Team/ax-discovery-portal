@@ -90,23 +90,6 @@ class ActivityStatsResponse(BaseModel):
 # ============================================================
 
 
-@router.get("/test")
-async def test_activity_db(db: AsyncSession = Depends(get_db)):
-    """DB 연결 테스트"""
-    try:
-        from sqlalchemy import select
-
-        from backend.database.models.entity import Entity, EntityType
-
-        result = await db.execute(
-            select(Entity).where(Entity.entity_type == EntityType.ACTIVITY).limit(1)
-        )
-        items = list(result.scalars().all())
-        return {"status": "ok", "count": len(items)}
-    except Exception as e:
-        return {"status": "error", "error": str(e), "type": type(e).__name__}
-
-
 @router.get("", response_model=ActivityListResponse)
 async def list_activities(
     play_id: str | None = Query(None, description="Play ID 필터"),

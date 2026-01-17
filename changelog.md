@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **외부 세미나 프론트엔드 페이지 구현** 📅
+  - `apps/web/src/app/activities/page.tsx`: 세미나 목록 페이지
+    - 소스 타입별 필터링 (RSS, Festa, Eventbrite, 수동)
+    - 검색 기능 (제목, 설명, 주최자, 카테고리)
+    - 페이지네이션
+    - 통계 카드 (전체, 소스별 개수)
+  - `packages/shared/api-client/src/endpoints/activities.ts`: Activities API 클라이언트
+  - 메인 페이지에 "외부 세미나" 카드 추가 (`/activities` 링크)
+
+- **실제 세미나 데이터 수집 (36건)**
+  - RSS 피드: AWS 한국 블로그, 네이버 D2, 토스 테크
+  - 키워드 필터링: AI, LLM, AWS, Cloud, ML 등
+  - `.env` 세미나 수집 설정 추가 (`SEMINAR_RSS_FEEDS`, `SEMINAR_KEYWORDS`)
+
+### Fixed
+
+- **PostgreSQL JSON 쿼리 호환성 수정** 🔧
+  - `backend/database/repositories/activity.py`: `json_extract` → Python 기반 필터링
+  - `get_by_url`, `list_by_play`, `list_by_source_type`, `check_duplicate` 메서드 수정
+  - PostgreSQL에서 JSON 필드 조회 시 발생하던 오류 해결
+
 - **Confluence 페이지 자동 생성 및 연동** 📄
   - Confluence API를 통한 페이지 자동 생성
     - 프로젝트 현황 페이지 (Page ID: 753665)
