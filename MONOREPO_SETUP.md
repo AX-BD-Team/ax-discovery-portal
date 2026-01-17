@@ -110,6 +110,8 @@ pnpm dev:web
 cd apps/web && pnpm dev
 ```
 
+> **Note**: `uvicorn` 명령어가 실행되지 않는 경우, 가상 환경이 활성화되어 있는지 확인하세요. 자세한 내용은 [Troubleshooting](#uvicorn-command-not-found) 섹션을 참조하세요.
+
 #### 옵션 2: 동시 실행 (권장)
 
 ```bash
@@ -208,6 +210,23 @@ CORS_ORIGINS = [
     "http://localhost:5173",
     # 추가 포트
 ]
+```
+
+### Uvicorn Command Not Found
+`uvicorn` 명령어를 찾을 수 없다는 오류가 발생하는 경우 (Windows):
+
+**방법 1: 가상 환경 활성화 후 실행 (권장)**
+```powershell
+# 가상 환경 활성화
+.\backend\.venv\Scripts\Activate.ps1
+
+# 서버 실행
+uvicorn backend.api.main:app --reload --port 8000
+```
+
+**방법 2: 가상 환경의 Python으로 직접 실행**
+```powershell
+& .\backend\.venv\Scripts\python.exe -m uvicorn backend.api.main:app --reload --port 8000
 ```
 
 ## 배포
