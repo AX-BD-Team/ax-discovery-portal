@@ -165,7 +165,21 @@ await slack.send_notification(
 | 변수 | 용도 | 예시 |
 |------|------|------|
 | `CONFLUENCE_ACTION_LOG_PAGE_ID` | Action Log 페이지 ID | 786433 |
+| `CONFLUENCE_TODO_PAGE_ID` | Project TODO 페이지 ID | 720932 |
+| `CONFLUENCE_PLAY_DB_PAGE_ID` | Play DB 페이지 ID | 720899 |
 | `SLACK_WEBHOOK_URL` | Slack Incoming Webhook | https://hooks.slack.com/... |
+
+#### Confluence 페이지 구조
+
+```
+Project TODO (720932) ─────────────── 스프린트 단위 진행현황
+    │
+    ├── EXT_Desk_D01 ToDo List (753719) ── Play별 세부 작업
+    └── ...
+
+Play DB (720899) ──────────────────── 세부 작업 페이지 링크만 포함
+Action Log (786433) ───────────────── 작업 이력 기록
+```
 
 #### 동기화 조건
 

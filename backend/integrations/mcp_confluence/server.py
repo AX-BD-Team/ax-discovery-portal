@@ -143,7 +143,12 @@ class ConfluenceMCP:
 
             body_html = self._markdown_to_confluence(body_md)
 
-            page = self.client.update_page(page_id=page_id, title=current["title"], body=body_html)
+            page = self.client.update_page(
+                page_id=page_id,
+                title=current["title"],
+                body=body_html,
+                type="page"
+            )
 
             return {"page_id": page_id, "version": page["version"]["number"], "url": current["url"]}
         except Exception as e:

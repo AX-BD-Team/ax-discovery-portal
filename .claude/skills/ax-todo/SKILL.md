@@ -209,16 +209,63 @@ print(f"동기화 결과: {result['status']}")
 | `--dry-run` | 실제 변경 없이 미리보기 | false |
 | `--path <path>` | project-todo.md 경로 지정 | project-todo.md |
 
+## Confluence 페이지 구조
+
+```
+Project TODO (720932) ─────────────── 스프린트 단위 진행현황
+    │
+    ├── EXT_Desk_D01 ToDo List (753719) ── Play별 세부 작업
+    ├── EXT_Desk_D02 ToDo List (TBD)
+    └── ...
+
+Play DB (720899) ──────────────────── 세부 작업 페이지 링크만 포함
+```
+
+**역할 분리**:
+
+| 페이지 | 용도 | 내용 |
+|--------|------|------|
+| Project TODO | 스프린트 진행현황 | 버전별 진행률, Phase별 요약 |
+| Play ToDo (하위) | Play별 세부 작업 | 상세 체크리스트, 담당자, 목표일 |
+| Play DB | Play 진행현황 DB | 통계 테이블 + 하위 페이지 링크 |
+
 ## 환경 변수
 
-| 변수 | 용도 | 필수 |
+| 변수 | 용도 | 예시 |
 |------|------|------|
-| `CONFLUENCE_TODO_PAGE_ID` | Confluence ToDo 페이지 ID | 선택 |
+| `CONFLUENCE_TODO_PAGE_ID` | Project TODO 페이지 ID | 720932 |
+| `CONFLUENCE_PLAY_DB_PAGE_ID` | Play DB 페이지 ID | 720899 |
 
 **설정 예시** (.env):
 
 ```env
-CONFLUENCE_TODO_PAGE_ID=123456789
+CONFLUENCE_TODO_PAGE_ID=720932
+CONFLUENCE_PLAY_DB_PAGE_ID=720899
+```
+
+## Play ToDo 하위 페이지 관리
+
+새로운 Play ToDo 페이지 생성 시:
+
+```python
+# 1. Project TODO 하위에 페이지 생성
+await confluence.create_page(
+    title=f"{play_id} ToDo List",
+    body_md=todo_content,
+    parent_id="720932"  # Project TODO
+)
+
+# 2. Project TODO에 링크 추가
+await confluence.append_to_page(
+    page_id="720932",
+    append_md=f"- [{play_id} ToDo List](page_url)"
+)
+
+# 3. Play DB에 링크 추가
+await confluence.append_to_page(
+    page_id="720899",
+    append_md=f"- [{play_id} ToDo List](page_url)"
+)
 ```
 
 ## 출력 예시

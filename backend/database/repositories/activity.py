@@ -333,7 +333,7 @@ class ActivityRepository(CRUDBase[Entity]):
 
         # 소스 타입별 개수 (Python에서 집계)
         source_types = ["rss", "festa", "eventbrite", "manual"]
-        by_source_type = {st: 0 for st in source_types}
+        by_source_type = dict.fromkeys(source_types, 0)
         for activity in all_activities:
             props = activity.properties or {}
             st = props.get("source_type", "manual")

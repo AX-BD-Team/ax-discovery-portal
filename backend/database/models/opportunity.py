@@ -10,10 +10,10 @@ import enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from backend.database.models.approval_request import ApprovalRequest
     from backend.database.models.brief import OpportunityBrief
     from backend.database.models.signal import Signal
     from backend.database.models.stage_transition import StageTransition
-    from backend.database.models.approval_request import ApprovalRequest
 
 from sqlalchemy import JSON, Enum, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship

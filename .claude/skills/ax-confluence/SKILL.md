@@ -95,23 +95,37 @@ POST /api/workflows/confluence-sync
 📎 https://confluence.../ax-discovery-portal
 ```
 
-## Confluence 구조
+## Confluence 페이지 구조
 
 ```
 AX-BD Space
-├── Play 진행현황 DB (QTD)          ← 주간 집계
-├── Action Log DB                  ← 실시간 기록
+├── Project TODO (720932) ─────────── 스프린트 단위 진행현황
+│   ├── EXT_Desk_D01 ToDo (753719)   ── Play별 세부 작업
+│   ├── EXT_Desk_D02 ToDo (TBD)
+│   └── ...
+├── Play 진행현황 DB (720899) ─────── 43개 Play 통계 테이블 + 하위 페이지 링크
+├── Action Log (786433) ────────────── 작업 이력 기록
+├── 프로젝트 현황 (753665) ─────────── 개요 페이지
 ├── Plays/
 │   ├── EXT_Desk_D01_Seminar/
 │   │   └── Live doc              ← 이벤트별 append
 │   ├── KT_Sales_S01_Interview/
 │   │   └── Live doc
 │   └── ...
-├── Briefs/
-│   ├── BRF-2025-001/
-│   └── ...
-└── 프로젝트 현황                   ← 개요 페이지
+└── Briefs/
+    ├── BRF-2025-001/
+    └── ...
 ```
+
+**페이지 역할**:
+
+| 페이지 | ID | 용도 |
+|--------|-----|------|
+| Project TODO | 720932 | 스프린트 진행현황, Play ToDo 하위 페이지 부모 |
+| Play DB | 720899 | 43개 Play 통계 테이블, 하위 페이지 링크 |
+| Action Log | 786433 | 작업 이력 append |
+| 프로젝트 현황 | 753665 | 프로젝트 개요 |
+| EXT_Desk_D01 ToDo | 753719 | 세미나파이프라인 세부 작업 |
 
 ## Play DB 필드
 
@@ -156,9 +170,17 @@ AX-BD Space
 ## 환경 변수
 
 ```env
-CONFLUENCE_URL=https://your-domain.atlassian.net/wiki
+# Confluence 연결
+CONFLUENCE_BASE_URL=https://your-domain.atlassian.net/wiki
 CONFLUENCE_API_TOKEN=your-api-token
-CONFLUENCE_SPACE_KEY=AX
+CONFLUENCE_USER_EMAIL=your-email@example.com
+CONFLUENCE_SPACE_KEY=AB
+
+# 페이지 ID
+CONFLUENCE_TODO_PAGE_ID=720932       # Project TODO (스프린트 진행현황)
+CONFLUENCE_PLAY_DB_PAGE_ID=720899    # Play DB (통계 테이블)
+CONFLUENCE_ACTION_LOG_PAGE_ID=786433 # Action Log
+CONFLUENCE_PROJECT_STATUS_PAGE_ID=753665  # 프로젝트 현황
 ```
 
 ## 관련 커맨드

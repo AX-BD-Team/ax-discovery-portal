@@ -13,6 +13,29 @@ Confluence DB/Live doc 자동 업데이트를 담당합니다.
 - Action Log 기록
 - Live doc append
 - 주간 배치 동기화
+- Play ToDo 하위 페이지 관리
+
+## Confluence 페이지 구조
+
+```
+Project TODO (720932) ─────────────── 스프린트 단위 진행현황
+    │
+    ├── EXT_Desk_D01 ToDo List (753719) ── Play별 세부 작업
+    ├── EXT_Desk_D02 ToDo List (TBD)
+    └── ...
+
+Play DB (720899) ──────────────────── Play 진행현황 테이블 + 하위 페이지 링크
+Action Log (786433) ───────────────── 작업 이력 기록
+```
+
+**페이지 역할**:
+
+| 페이지 | ID | 용도 |
+|--------|-----|------|
+| Project TODO | 720932 | 스프린트 진행현황, Play ToDo 하위 페이지 부모 |
+| Play DB | 720899 | 43개 Play 통계 테이블, 하위 페이지 링크 |
+| Action Log | 786433 | 작업 이력 append |
+| EXT_Desk_D01 ToDo | 753719 | 세미나파이프라인 세부 작업 |
 
 ## MCP Tools 사용
 
@@ -128,10 +151,48 @@ async def safe_update_page(page_id, new_content):
 {
   "agent_id": "confluence_sync",
   "skill": "ax-confluence",
-  "play_db_id": "${CONFLUENCE_PLAY_DB_ID}",
-  "action_log_db_id": "${CONFLUENCE_ACTION_LOG_DB_ID}",
+  "pages": {
+    "project_todo": "${CONFLUENCE_TODO_PAGE_ID}",
+    "play_db": "${CONFLUENCE_PLAY_DB_PAGE_ID}",
+    "action_log": "${CONFLUENCE_ACTION_LOG_PAGE_ID}"
+  },
+  "play_todo_pages": {
+    "EXT_Desk_D01": "753719"
+  },
   "sync_schedule": "0 18 * * 5",
   "retry_count": 3,
   "retry_delay": 2
 }
+```
+
+## Play ToDo 페이지 생성
+
+새 Play의 ToDo 페이지 생성 흐름:
+
+```python
+async def create_play_todo_page(play_id: str, todo_content: str):
+    """Play별 ToDo 하위 페이지 생성"""
+
+    # 1. Project TODO 하위에 페이지 생성
+    result = await confluence.create_page(
+        title=f"{play_id} ToDo List",
+        body_md=todo_content,
+        parent_id=CONFLUENCE_TODO_PAGE_ID  # 720932
+    )
+    page_id = result["page_id"]
+    page_url = result["url"]
+
+    # 2. Project TODO에 링크 추가
+    await confluence.append_to_page(
+        page_id=CONFLUENCE_TODO_PAGE_ID,
+        append_md=f"\n- [{play_id} ToDo List]({page_url})"
+    )
+
+    # 3. Play DB에 링크 추가
+    await confluence.append_to_page(
+        page_id=CONFLUENCE_PLAY_DB_PAGE_ID,  # 720899
+        append_md=f"\n- [{play_id} ToDo List]({page_url})"
+    )
+
+    return {"page_id": page_id, "url": page_url}
 ```
