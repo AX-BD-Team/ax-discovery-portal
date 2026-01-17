@@ -475,6 +475,409 @@ class SeminarPipelineWithEvents(SeminarPipeline):
             raise
 
 
+# 온톨로지 통합 파이프라인
+@dataclass
+class SeminarOntologyInput:
+    """온톨로지 통합을 위한 세미나 입력 데이터"""
+
+    url: str
+    aar_content: str | None = None  # AAR 문서 내용 (엔티티 추출용)
+    themes: list[str] | None = None
+    play_id: str = "EXT_Desk_D01_Seminar"
+
+
+@dataclass
+class OntologyResult:
+    """온톨로지 생성 결과"""
+
+    activity_entity_id: str | None = None
+    signal_entity_ids: list[str] = None
+    entity_count: int = 0
+    triple_count: int = 0
+    extraction_notes: str | None = None
+
+    def __post_init__(self):
+        if self.signal_entity_ids is None:
+            self.signal_entity_ids = []
+
+
+@dataclass
+class SeminarPipelineWithOntologyResult:
+    """온톨로지 통합 워크플로 결과"""
+
+    activity: ActivityOutput
+    aar_template: AARTemplate
+    signals: list[dict[str, Any]]
+    confluence_live_doc_updated: bool
+    ontology: OntologyResult
+
+
+class SeminarPipelineWithOntology(SeminarPipelineWithEvents):
+    """
+    WF-01: Seminar Pipeline with Ontology Integration
+
+    세미나 워크플로 + 온톨로지 자동 생성:
+    URL → Activity → Activity Entity → AAR → LLM 추출 → Entity Resolution → Signal/Triple 생성
+
+    단계:
+    1. METADATA_EXTRACTION: URL 메타데이터 추출
+    2. ACTIVITY_CREATION: Activity 생성
+    3. ACTIVITY_ENTITY_CREATION: Activity → Entity 변환
+    4. AAR_TEMPLATE_GENERATION: AAR 템플릿 생성
+    5. ENTITY_EXTRACTION: LLM 엔티티 추출
+    6. RELATION_EXTRACTION: LLM 관계 추출
+    7. ENTITY_RESOLUTION: 동일 엔티티 식별/병합
+    8. SIGNAL_CREATION: Signal Entity 생성
+    9. TRIPLE_CREATION: 관계 Triple 생성
+    10. CONFLUENCE_UPDATE: Confluence 업데이트
+    """
+
+    # 확장된 단계 정의
+    STEPS = [
+        {"id": "METADATA_EXTRACTION", "label": "메타데이터 추출"},
+        {"id": "ACTIVITY_CREATION", "label": "Activity 생성"},
+        {"id": "ACTIVITY_ENTITY_CREATION", "label": "Activity Entity 생성"},
+        {"id": "AAR_TEMPLATE_GENERATION", "label": "AAR 템플릿 생성"},
+        {"id": "ENTITY_EXTRACTION", "label": "엔티티 추출"},
+        {"id": "RELATION_EXTRACTION", "label": "관계 추출"},
+        {"id": "ENTITY_RESOLUTION", "label": "엔티티 해결"},
+        {"id": "SIGNAL_CREATION", "label": "Signal 생성"},
+        {"id": "TRIPLE_CREATION", "label": "Triple 생성"},
+        {"id": "CONFLUENCE_UPDATE", "label": "Confluence 업데이트"},
+    ]
+
+    def __init__(self, emitter: "WorkflowEventEmitter", db_session=None):
+        super().__init__(emitter)
+        self.db_session = db_session
+        self.logger = logger.bind(workflow="WF-01", with_ontology=True)
+
+    async def run_with_ontology(
+        self, input_data: SeminarOntologyInput
+    ) -> SeminarPipelineWithOntologyResult:
+        """온톨로지 통합 워크플로 실행"""
+        from backend.services.llm_extraction_service import llm_extraction_service
+        from backend.services.ontology_integration_service import ontology_integration_service
+
+        self.logger.info(
+            "Starting seminar pipeline with ontology",
+            url=input_data.url,
+            has_aar=input_data.aar_content is not None,
+        )
+
+        # 실행 시작 이벤트
+        await self.emitter.emit_run_started(
+            workflow_id="WF-01-ONTOLOGY",
+            input_data={
+                "url": input_data.url,
+                "themes": input_data.themes,
+                "play_id": input_data.play_id,
+                "has_aar_content": input_data.aar_content is not None,
+            },
+            steps=self.STEPS,
+        )
+
+        ontology_result = OntologyResult()
+
+        try:
+            # Step 1: 메타데이터 추출
+            await self.emitter.emit_step_started(
+                step_id="METADATA_EXTRACTION",
+                step_index=0,
+                step_label="메타데이터 추출",
+                message=f"URL에서 세미나 정보를 추출하고 있습니다: {input_data.url}",
+            )
+            metadata = await self._extract_metadata(input_data.url)
+            await self.emitter.emit_step_finished(
+                step_id="METADATA_EXTRACTION",
+                step_index=0,
+                result={"title": metadata.get("title"), "date": metadata.get("date")},
+            )
+
+            # Step 2: Activity 생성
+            await self.emitter.emit_step_started(
+                step_id="ACTIVITY_CREATION",
+                step_index=1,
+                step_label="Activity 생성",
+                message="Activity를 생성하고 있습니다...",
+            )
+            seminar_input = SeminarInput(
+                url=input_data.url,
+                themes=input_data.themes,
+                play_id=input_data.play_id,
+            )
+            activity = await self._create_activity(seminar_input, metadata)
+
+            await self.emitter.emit_surface(
+                surface_id=f"activity-{activity.activity_id}",
+                surface={
+                    "id": f"activity-{activity.activity_id}",
+                    "type": "activity_preview",
+                    "title": "Activity 생성 완료",
+                    "activity": {
+                        "activity_id": activity.activity_id,
+                        "title": activity.title,
+                        "date": activity.date,
+                        "url": activity.url,
+                        "play_id": activity.play_id,
+                    },
+                },
+            )
+            await self.emitter.emit_step_finished(
+                step_id="ACTIVITY_CREATION",
+                step_index=1,
+                result={"activity_id": activity.activity_id},
+            )
+
+            # Step 3: Activity Entity 생성
+            await self.emitter.emit_step_started(
+                step_id="ACTIVITY_ENTITY_CREATION",
+                step_index=2,
+                step_label="Activity Entity 생성",
+                message="Activity를 온톨로지 Entity로 변환하고 있습니다...",
+            )
+
+            if self.db_session:
+                activity_entity = await ontology_integration_service.create_activity_entity(
+                    db=self.db_session,
+                    activity_id=activity.activity_id,
+                    title=activity.title,
+                    activity_type="seminar",
+                    url=activity.url,
+                    date=activity.date,
+                    created_by="WF-01-ONTOLOGY",
+                )
+                ontology_result.activity_entity_id = activity_entity.entity_id
+                ontology_result.entity_count += 1
+
+            await self.emitter.emit_step_finished(
+                step_id="ACTIVITY_ENTITY_CREATION",
+                step_index=2,
+                result={"activity_entity_id": ontology_result.activity_entity_id},
+            )
+
+            # Step 4: AAR 템플릿 생성
+            await self.emitter.emit_step_started(
+                step_id="AAR_TEMPLATE_GENERATION",
+                step_index=3,
+                step_label="AAR 템플릿 생성",
+                message="AAR 템플릿을 생성하고 있습니다...",
+            )
+            aar = await self._generate_aar_template(activity, metadata)
+
+            await self.emitter.emit_surface(
+                surface_id=f"aar-{activity.activity_id}",
+                surface={
+                    "id": f"aar-{activity.activity_id}",
+                    "type": "aar_template",
+                    "title": "AAR 템플릿",
+                    "activityId": aar.activity_id,
+                    "content": aar.content,
+                },
+            )
+            await self.emitter.emit_step_finished(
+                step_id="AAR_TEMPLATE_GENERATION",
+                step_index=3,
+            )
+
+            # AAR 내용이 있으면 엔티티/관계 추출 진행
+            signals: list[dict[str, Any]] = []
+
+            if input_data.aar_content and self.db_session:
+                # Step 5: 엔티티 추출
+                await self.emitter.emit_step_started(
+                    step_id="ENTITY_EXTRACTION",
+                    step_index=4,
+                    step_label="엔티티 추출",
+                    message="AAR 문서에서 엔티티를 추출하고 있습니다...",
+                )
+                extracted_entities = await llm_extraction_service.extract_entities(
+                    input_data.aar_content
+                )
+                await self.emitter.emit_step_finished(
+                    step_id="ENTITY_EXTRACTION",
+                    step_index=4,
+                    result={"entity_count": len(extracted_entities)},
+                )
+
+                # Step 6: 관계 추출
+                await self.emitter.emit_step_started(
+                    step_id="RELATION_EXTRACTION",
+                    step_index=5,
+                    step_label="관계 추출",
+                    message="엔티티 간 관계를 추출하고 있습니다...",
+                )
+                extracted_relations = await llm_extraction_service.extract_relations(
+                    input_data.aar_content, extracted_entities
+                )
+                await self.emitter.emit_step_finished(
+                    step_id="RELATION_EXTRACTION",
+                    step_index=5,
+                    result={"relation_count": len(extracted_relations)},
+                )
+
+                # Step 7: Entity Resolution
+                await self.emitter.emit_step_started(
+                    step_id="ENTITY_RESOLUTION",
+                    step_index=6,
+                    step_label="엔티티 해결",
+                    message="동일 엔티티를 식별하고 병합하고 있습니다...",
+                )
+                from backend.services.llm_extraction_service import ExtractionResult
+
+                extraction_result = ExtractionResult(
+                    entities=extracted_entities,
+                    relations=extracted_relations,
+                )
+                await self.emitter.emit_step_finished(
+                    step_id="ENTITY_RESOLUTION",
+                    step_index=6,
+                    result={"entities": len(extracted_entities)},
+                )
+
+                # Step 8: Signal 생성
+                await self.emitter.emit_step_started(
+                    step_id="SIGNAL_CREATION",
+                    step_index=7,
+                    step_label="Signal 생성",
+                    message="Signal Entity를 생성하고 있습니다...",
+                )
+                # Signal 엔티티 개수 세기
+                signal_entities = [
+                    e for e in extracted_entities
+                    if e.entity_type.value == "Signal"
+                ]
+                await self.emitter.emit_step_finished(
+                    step_id="SIGNAL_CREATION",
+                    step_index=7,
+                    result={"signal_count": len(signal_entities)},
+                )
+
+                # Step 9: Triple 생성
+                await self.emitter.emit_step_started(
+                    step_id="TRIPLE_CREATION",
+                    step_index=8,
+                    step_label="Triple 생성",
+                    message="온톨로지를 생성하고 있습니다...",
+                )
+                creation_result = await ontology_integration_service.create_from_extraction(
+                    db=self.db_session,
+                    extraction_result=extraction_result,
+                    source_ref=activity.activity_id,
+                    created_by="WF-01-ONTOLOGY",
+                )
+
+                ontology_result.entity_count += creation_result.entity_created_count
+                ontology_result.triple_count = creation_result.triple_created_count
+                ontology_result.signal_entity_ids = [
+                    e.entity_id for e in creation_result.created_entities
+                    if e.entity_type.value == "Signal"
+                ]
+                ontology_result.extraction_notes = (
+                    f"Created {creation_result.entity_created_count} entities, "
+                    f"merged {creation_result.entity_merged_count}, "
+                    f"created {creation_result.triple_created_count} triples"
+                )
+
+                # Surface로 온톨로지 결과 발행
+                await self.emitter.emit_surface(
+                    surface_id=f"ontology-{activity.activity_id}",
+                    surface={
+                        "id": f"ontology-{activity.activity_id}",
+                        "type": "ontology_result",
+                        "title": "온톨로지 생성 결과",
+                        "activityId": activity.activity_id,
+                        "entityCount": ontology_result.entity_count,
+                        "tripleCount": ontology_result.triple_count,
+                        "signalCount": len(ontology_result.signal_entity_ids),
+                    },
+                )
+
+                await self.emitter.emit_step_finished(
+                    step_id="TRIPLE_CREATION",
+                    step_index=8,
+                    result={
+                        "entity_count": creation_result.entity_created_count,
+                        "triple_count": creation_result.triple_created_count,
+                    },
+                )
+
+                # Signal 정보를 결과에 추가
+                for signal_entity in creation_result.created_entities:
+                    if signal_entity.entity_type.value == "Signal":
+                        signals.append({
+                            "entity_id": signal_entity.entity_id,
+                            "title": signal_entity.name,
+                            "pain": signal_entity.properties.get("pain", ""),
+                        })
+
+            else:
+                # AAR 없으면 스킵
+                for step_index, step in enumerate(self.STEPS[4:9], start=4):
+                    await self.emitter.emit_step_started(
+                        step_id=step["id"],
+                        step_index=step_index,
+                        step_label=step["label"],
+                        message="AAR 내용이 없어 스킵합니다.",
+                    )
+                    await self.emitter.emit_step_finished(
+                        step_id=step["id"],
+                        step_index=step_index,
+                        result={"skipped": True},
+                    )
+
+            # Step 10: Confluence 업데이트
+            await self.emitter.emit_step_started(
+                step_id="CONFLUENCE_UPDATE",
+                step_index=9,
+                step_label="Confluence 업데이트",
+                message="Confluence에 기록하고 있습니다...",
+            )
+            confluence_updated = await self._update_confluence(activity)
+            await self.emitter.emit_step_finished(
+                step_id="CONFLUENCE_UPDATE",
+                step_index=9,
+                result={"confluence_updated": confluence_updated},
+            )
+
+            # 결과 생성
+            result = SeminarPipelineWithOntologyResult(
+                activity=activity,
+                aar_template=aar,
+                signals=signals,
+                confluence_live_doc_updated=confluence_updated,
+                ontology=ontology_result,
+            )
+
+            # 실행 완료 이벤트
+            await self.emitter.emit_run_finished(
+                result={
+                    "activity_id": activity.activity_id,
+                    "title": activity.title,
+                    "confluence_updated": confluence_updated,
+                    "signals_count": len(signals),
+                    "ontology": {
+                        "activity_entity_id": ontology_result.activity_entity_id,
+                        "entity_count": ontology_result.entity_count,
+                        "triple_count": ontology_result.triple_count,
+                    },
+                }
+            )
+
+            self.logger.info(
+                "Seminar pipeline with ontology completed",
+                activity_id=activity.activity_id,
+                entity_count=ontology_result.entity_count,
+                triple_count=ontology_result.triple_count,
+            )
+
+            return result
+
+        except Exception as e:
+            self.logger.error("Seminar pipeline with ontology error", error=str(e))
+            await self.emitter.emit_run_error(str(e), recoverable=False)
+            raise
+
+
 # 타입 힌트를 위한 import (순환 참조 방지)
 if __name__ != "__main__":
     from backend.agent_runtime.event_manager import WorkflowEventEmitter

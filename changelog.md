@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **세미나-BD 온톨로지 통합 (WF-01 확장)** 🧠
+  - `LLMExtractionService`: Claude API 기반 엔티티/관계 추출 (`llm_extraction_service.py`)
+  - `EntityResolutionService`: 동일 엔티티 식별 및 병합 (`entity_resolution_service.py`)
+  - `OntologyIntegrationService`: 추출 결과 → Entity/Triple 변환 (`ontology_integration_service.py`)
+  - `SeminarPipelineWithOntology`: 10단계 온톨로지 통합 워크플로
+    - URL → Activity Entity → LLM 추출 → Entity Resolution → Signal/Triple 생성
+  - 프롬프트 로더: `.claude/prompts/*.md` 자동 로딩
+  - Triple Validator 연동: 도메인/레인지 제약 검증
+  - 단위 테스트 47개 + 통합 테스트 5개 (총 52개)
+
 - **외부 세미나 수집 시스템 단위 테스트** 🧪
   - `tests/unit/test_activity_repository.py`: Activity 저장소 테스트 (17개)
   - `tests/unit/test_external_collectors.py`: RSS/Festa/Eventbrite 수집기 테스트 (35개)
