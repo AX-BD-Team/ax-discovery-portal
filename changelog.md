@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **대시보드 KPI 위젯 및 에러 핸들링 UX 개선** 🎨
+  - 메인 대시보드에 실시간 KPI 위젯 추가 (주간 Activity, Signal, Brief, S2 현황)
+  - 사이클 타임 표시 (Signal→Brief, Brief→S2 리드타임)
+  - Toast 알림 시스템 추가 (sonner 라이브러리)
+  - 글로벌 에러 페이지 추가 (`error.tsx`)
+  - React Query 에러 핸들링 개선 (QueryCache, MutationCache)
+  - alert() → toast 대체 (사용자 친화적 알림)
+  - 모바일 반응형 레이아웃 개선 (패딩, 폰트, 그리드)
+
 - **신규 Agent 추가 (interview_miner, voc_analyst)** 🤖
   - `interview_miner`: 인터뷰 노트 → Pain Point/니즈 추출 → Signal 생성
   - `voc_analyst`: VoC 데이터 클러스터링 → 테마화 → Signal/Brief 후보
