@@ -353,22 +353,20 @@ class ActivityRepository(CRUDBase[Entity]):
         )
         total = total_result.scalar() or 0
 
-        # 소스 타입별 개수
-        source_types = ["rss", "festa", "eventbrite", "manual"]
-        by_source_type = {}
+        # 모든 Activity 조회 후 Python에서 집계 (JSON 쿼리 호환성 문제 우회)
+        all_activities_result = await db.execute(
+            select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
+        )
+        all_activities = list(all_activities_result.scalars().all())
 
-        for source_type in source_types:
-            count_result = await db.execute(
-                select(func.count())
-                .select_from(Entity)
-                .where(
-                    and_(
-                        Entity.entity_type == EntityType.ACTIVITY,
-                        json_value(Entity.properties, "source_type") == source_type,
-                    )
-                )
-            )
-            by_source_type[source_type] = count_result.scalar() or 0
+        # 소스 타입별 개수 (Python에서 집계)
+        source_types = ["rss", "festa", "eventbrite", "manual"]
+        by_source_type = {st: 0 for st in source_types}
+        for activity in all_activities:
+            props = activity.properties or {}
+            st = props.get("source_type", "manual")
+            if st in by_source_type:
+                by_source_type[st] += 1
 
         # 오늘 수집된 Activity 수
         today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
