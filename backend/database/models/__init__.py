@@ -11,11 +11,22 @@ P0 변경사항:
 """
 
 from .action_log import ActionLog, ActionType
+from .approval_request import ApprovalRequest, ApprovalStatus, ApprovalType
 from .brief import BriefStatus, OpportunityBrief, ValidationMethod
 from .entity import Entity, EntityType, SyncStatus
-from .play_record import PlayRecord, PlayStatus
+from .opportunity import Opportunity, OpportunityStage
+from .play_record import (
+    PlayChannel,
+    PlayCycle,
+    PlayPriority,
+    PlayRecord,
+    PlaySource,
+    PlayStatus,
+)
 from .scorecard import Decision, NextStep, Scorecard
 from .signal import Signal, SignalChannel, SignalSource, SignalStatus
+from .stage_transition import GateDecision, StageTransition, TransitionTrigger
+from .task import Task, TaskPriority, TaskStatus
 from .trace import (
     DEFAULT_COMPETENCY_QUESTIONS,
     CompetencyQuestion,
@@ -40,9 +51,28 @@ __all__ = [
     "OpportunityBrief",
     "ValidationMethod",
     "BriefStatus",
+    # Opportunity (Stage System)
+    "Opportunity",
+    "OpportunityStage",
+    # StageTransition
+    "StageTransition",
+    "TransitionTrigger",
+    "GateDecision",
+    # ApprovalRequest (HITL)
+    "ApprovalRequest",
+    "ApprovalStatus",
+    "ApprovalType",
     # PlayRecord
     "PlayRecord",
     "PlayStatus",
+    "PlaySource",
+    "PlayChannel",
+    "PlayPriority",
+    "PlayCycle",
+    # Task
+    "Task",
+    "TaskStatus",
+    "TaskPriority",
     # ActionLog
     "ActionLog",
     "ActionType",

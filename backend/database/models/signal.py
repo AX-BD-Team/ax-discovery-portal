@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from backend.database.models.brief import OpportunityBrief
+    from backend.database.models.opportunity import Opportunity
     from backend.database.models.scorecard import Scorecard
 
 from sqlalchemy import JSON, Enum, Float, Index, String, Text
@@ -91,6 +92,13 @@ class Signal(Base, TimestampMixin):
 
     brief: Mapped[OpportunityBrief | None] = relationship(
         "OpportunityBrief", back_populates="signal", uselist=False, cascade="all, delete-orphan"
+    )
+
+    opportunity: Mapped[Opportunity | None] = relationship(
+        "Opportunity",
+        back_populates="signal",
+        uselist=False,
+        foreign_keys="Opportunity.signal_id",
     )
 
     # Indexes

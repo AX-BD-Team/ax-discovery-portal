@@ -24,7 +24,9 @@ from .routers import (
     play_dashboard,
     scorecard,
     search,
+    stages,
     stream,
+    tasks,
     webhooks,
     workflows,
     xai,
@@ -63,6 +65,14 @@ TAGS_METADATA = [
     {
         "name": "plays",
         "description": "Play Dashboard - Play별 Signal/Brief 현황 조회",
+    },
+    {
+        "name": "tasks",
+        "description": "Task 관리 - Play의 ToDoList, 작업 진행 추적",
+    },
+    {
+        "name": "stages",
+        "description": "Stage Pipeline - Opportunity 단계 관리, HITL 승인, 퍼널 분석",
     },
     {
         "name": "workflows",
@@ -202,6 +212,8 @@ app.include_router(activities.router, prefix="/api/activities", tags=["activitie
 app.include_router(scorecard.router, prefix="/api/scorecard", tags=["scorecard"])
 app.include_router(brief.router, prefix="/api/brief", tags=["brief"])
 app.include_router(play_dashboard.router, prefix="/api/plays", tags=["plays"])
+app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(stages.router, prefix="/api/stages", tags=["stages"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(stream.router, tags=["stream"])
