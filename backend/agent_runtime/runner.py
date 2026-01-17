@@ -89,126 +89,201 @@ class AgentRuntime:
         slack_mcp = SlackMCP()
 
         # SDK 도구 생성 (각 MCP 메서드를 래핑)
-        # NOTE: @tool 데코레이터 타입 시그니처가 SDK 버전마다 다름 - type: ignore 처리
-        @tool(name="confluence.search_pages")  # type: ignore[call-arg, arg-type]
-        async def search_pages(query: str, limit: int = 10):
+        # SDK 0.1.19 API: @tool(name, description, input_schema)
+        @tool(
+            "confluence.search_pages",
+            "Confluence 페이지 검색",
+            {"query": str, "limit": int},
+        )
+        async def search_pages(args: dict):
             """Confluence 페이지 검색"""
-            return await confluence_mcp.search_pages(query, limit)
+            return await confluence_mcp.search_pages(args["query"], args.get("limit", 10))
 
-        @tool(name="confluence.get_page")  # type: ignore[call-arg, arg-type]
-        async def get_page(page_id: str):
+        @tool(
+            "confluence.get_page",
+            "Confluence 페이지 조회",
+            {"page_id": str},
+        )
+        async def get_page(args: dict):
             """Confluence 페이지 조회"""
-            return await confluence_mcp.get_page(page_id)
+            return await confluence_mcp.get_page(args["page_id"])
 
-        @tool(name="confluence.create_page")  # type: ignore[call-arg, arg-type]
-        async def create_page(title: str, body_md: str, parent_page_id: str | None = None):
+        @tool(
+            "confluence.create_page",
+            "Confluence 페이지 생성",
+            {"title": str, "body_md": str, "parent_page_id": str},
+        )
+        async def create_page(args: dict):
             """Confluence 페이지 생성"""
-            return await confluence_mcp.create_page(title, body_md, parent_page_id)
+            return await confluence_mcp.create_page(
+                args["title"], args["body_md"], args.get("parent_page_id")
+            )
 
-        @tool(name="confluence.update_page")  # type: ignore[call-arg, arg-type]
-        async def update_page(page_id: str, body_md: str, title: str | None = None):
+        @tool(
+            "confluence.update_page",
+            "Confluence 페이지 업데이트",
+            {"page_id": str, "body_md": str, "title": str},
+        )
+        async def update_page(args: dict):
             """Confluence 페이지 업데이트"""
-            # title이 str | None인데 update_page는 int | None을 기대 - version으로 사용됨
-            return await confluence_mcp.update_page(page_id, body_md, None)
+            return await confluence_mcp.update_page(args["page_id"], args["body_md"], None)
 
-        @tool(name="confluence.append_to_page")  # type: ignore[call-arg, arg-type]
-        async def append_to_page(page_id: str, append_md: str):
+        @tool(
+            "confluence.append_to_page",
+            "Confluence 페이지에 내용 추가",
+            {"page_id": str, "append_md": str},
+        )
+        async def append_to_page(args: dict):
             """Confluence 페이지에 내용 추가"""
-            return await confluence_mcp.append_to_page(page_id, append_md)
+            return await confluence_mcp.append_to_page(args["page_id"], args["append_md"])
 
-        @tool(name="confluence.add_labels")  # type: ignore[call-arg, arg-type]
-        async def add_labels(page_id: str, labels: list[str]):
+        @tool(
+            "confluence.add_labels",
+            "Confluence 페이지에 라벨 추가",
+            {"page_id": str, "labels": list},
+        )
+        async def add_labels(args: dict):
             """Confluence 페이지에 라벨 추가"""
-            return await confluence_mcp.add_labels(page_id, labels)
+            return await confluence_mcp.add_labels(args["page_id"], args["labels"])
 
-        @tool(name="confluence.increment_play_activity_count")  # type: ignore[call-arg, arg-type]
-        async def increment_play_activity_count(page_id: str, play_id: str):
+        @tool(
+            "confluence.increment_play_activity_count",
+            "Play DB 테이블에서 activity_qtd 증가",
+            {"page_id": str, "play_id": str},
+        )
+        async def increment_play_activity_count(args: dict):
             """Play DB 테이블에서 activity_qtd 증가"""
-            return await confluence_mcp.increment_play_activity_count(page_id, play_id)
+            return await confluence_mcp.increment_play_activity_count(
+                args["page_id"], args["play_id"]
+            )
 
         # Teams MCP 도구
-        @tool(name="teams.send_message")  # type: ignore[call-arg, arg-type]
-        async def teams_send_message(text: str, title: str | None = None):
+        @tool(
+            "teams.send_message",
+            "Teams 채널에 텍스트 메시지 전송",
+            {"text": str, "title": str},
+        )
+        async def teams_send_message(args: dict):
             """Teams 채널에 텍스트 메시지 전송"""
-            return await teams_mcp.send_message(text, title)
+            return await teams_mcp.send_message(args["text"], args.get("title"))
 
-        @tool(name="teams.send_notification")  # type: ignore[call-arg, arg-type]
-        async def teams_send_notification(
-            text: str, title: str, level: str = "info", facts: dict | None = None
-        ):
+        @tool(
+            "teams.send_notification",
+            "Teams 채널에 알림 전송 (색상 강조 지원)",
+            {"text": str, "title": str, "level": str, "facts": dict},
+        )
+        async def teams_send_notification(args: dict):
             """Teams 채널에 알림 전송 (색상 강조 지원)"""
-            return await teams_mcp.send_notification(text, title, level, facts)
+            return await teams_mcp.send_notification(
+                args["text"], args["title"], args.get("level", "info"), args.get("facts")
+            )
 
-        @tool(name="teams.send_card")  # type: ignore[call-arg, arg-type]
-        async def teams_send_card(card: dict):
+        @tool(
+            "teams.send_card",
+            "Teams 채널에 Adaptive Card 전송",
+            {"card": dict},
+        )
+        async def teams_send_card(args: dict):
             """Teams 채널에 Adaptive Card 전송"""
-            return await teams_mcp.send_card(card)
+            return await teams_mcp.send_card(args["card"])
 
-        @tool(name="teams.request_approval")  # type: ignore[call-arg, arg-type]
-        async def teams_request_approval(
-            title: str,
-            description: str,
-            requester: str,
-            item_id: str,
-            item_type: str = "Brief",
-            details: dict | None = None,
-        ):
+        @tool(
+            "teams.request_approval",
+            "Teams 채널에 승인 요청 카드 전송",
+            {
+                "title": str,
+                "description": str,
+                "requester": str,
+                "item_id": str,
+                "item_type": str,
+                "details": dict,
+            },
+        )
+        async def teams_request_approval(args: dict):
             """Teams 채널에 승인 요청 카드 전송"""
             return await teams_mcp.request_approval(
-                title, description, requester, item_id, item_type, details
+                args["title"],
+                args["description"],
+                args["requester"],
+                args["item_id"],
+                args.get("item_type", "Brief"),
+                args.get("details"),
             )
 
-        @tool(name="teams.send_kpi_digest")  # type: ignore[call-arg, arg-type]
-        async def teams_send_kpi_digest(
-            period: str,
-            metrics: dict,
-            alerts: list | None = None,
-            top_plays: list | None = None,
-        ):
+        @tool(
+            "teams.send_kpi_digest",
+            "Teams 채널에 KPI Digest 카드 전송",
+            {"period": str, "metrics": dict, "alerts": list, "top_plays": list},
+        )
+        async def teams_send_kpi_digest(args: dict):
             """Teams 채널에 KPI Digest 카드 전송"""
-            return await teams_mcp.send_kpi_digest(period, metrics, alerts, top_plays)
+            return await teams_mcp.send_kpi_digest(
+                args["period"], args["metrics"], args.get("alerts"), args.get("top_plays")
+            )
 
         # Slack MCP 도구
-        @tool(name="slack.send_message")  # type: ignore[call-arg, arg-type]
-        async def slack_send_message(text: str, title: str | None = None):
+        @tool(
+            "slack.send_message",
+            "Slack 채널에 텍스트 메시지 전송",
+            {"text": str, "title": str},
+        )
+        async def slack_send_message(args: dict):
             """Slack 채널에 텍스트 메시지 전송"""
-            return await slack_mcp.send_message(text, title)
+            return await slack_mcp.send_message(args["text"], args.get("title"))
 
-        @tool(name="slack.send_notification")  # type: ignore[call-arg, arg-type]
-        async def slack_send_notification(
-            text: str, title: str, level: str = "info", fields: dict | None = None
-        ):
+        @tool(
+            "slack.send_notification",
+            "Slack 채널에 알림 전송 (색상 강조 지원)",
+            {"text": str, "title": str, "level": str, "fields": dict},
+        )
+        async def slack_send_notification(args: dict):
             """Slack 채널에 알림 전송 (색상 강조 지원)"""
-            return await slack_mcp.send_notification(text, title, level, fields)
-
-        @tool(name="slack.send_blocks")  # type: ignore[call-arg, arg-type]
-        async def slack_send_blocks(blocks: list):
-            """Slack 채널에 Block Kit 메시지 전송"""
-            return await slack_mcp.send_blocks(blocks)
-
-        @tool(name="slack.request_approval")  # type: ignore[call-arg, arg-type]
-        async def slack_request_approval(
-            title: str,
-            description: str,
-            requester: str,
-            item_id: str,
-            item_type: str = "Brief",
-            details: dict | None = None,
-        ):
-            """Slack 채널에 승인 요청 메시지 전송"""
-            return await slack_mcp.request_approval(
-                title, description, requester, item_id, item_type, details
+            return await slack_mcp.send_notification(
+                args["text"], args["title"], args.get("level", "info"), args.get("fields")
             )
 
-        @tool(name="slack.send_kpi_digest")  # type: ignore[call-arg, arg-type]
-        async def slack_send_kpi_digest(
-            period: str,
-            metrics: dict,
-            alerts: list | None = None,
-            top_plays: list | None = None,
-        ):
+        @tool(
+            "slack.send_blocks",
+            "Slack 채널에 Block Kit 메시지 전송",
+            {"blocks": list},
+        )
+        async def slack_send_blocks(args: dict):
+            """Slack 채널에 Block Kit 메시지 전송"""
+            return await slack_mcp.send_blocks(args["blocks"])
+
+        @tool(
+            "slack.request_approval",
+            "Slack 채널에 승인 요청 메시지 전송",
+            {
+                "title": str,
+                "description": str,
+                "requester": str,
+                "item_id": str,
+                "item_type": str,
+                "details": dict,
+            },
+        )
+        async def slack_request_approval(args: dict):
+            """Slack 채널에 승인 요청 메시지 전송"""
+            return await slack_mcp.request_approval(
+                args["title"],
+                args["description"],
+                args["requester"],
+                args["item_id"],
+                args.get("item_type", "Brief"),
+                args.get("details"),
+            )
+
+        @tool(
+            "slack.send_kpi_digest",
+            "Slack 채널에 KPI Digest 메시지 전송",
+            {"period": str, "metrics": dict, "alerts": list, "top_plays": list},
+        )
+        async def slack_send_kpi_digest(args: dict):
             """Slack 채널에 KPI Digest 메시지 전송"""
-            return await slack_mcp.send_kpi_digest(period, metrics, alerts, top_plays)
+            return await slack_mcp.send_kpi_digest(
+                args["period"], args["metrics"], args.get("alerts"), args.get("top_plays")
+            )
 
         # SDK MCP 서버 생성
         try:

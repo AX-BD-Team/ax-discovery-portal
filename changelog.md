@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Ontology P0 필드 마이그레이션** 🗃️
+  - Entity 테이블: Recency 필드 (`published_at`, `observed_at`, `ingested_at`)
+  - Entity 테이블: Source Sync 필드 (`last_synced_at`, `sync_status`)
+  - Triple 테이블: Lifecycle 필드 (`status`, `assertion_type`, `evidence_span`, `extractor_run_id`, `verified_by`, `verified_at`, `updated_at`)
+  - 복합 인덱스 추가 (`idx_triple_status_predicate`, `idx_triple_status_assertion`)
+  - ORGANIZATION 엔티티 ID 접두사 `ORG-` 매핑 추가
+
 ### Fixed
 
 - **mypy 타입 오류 85개 수정** 🔧
@@ -17,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Repository 반환 타입 수정 (`Sequence` → `list` 변환)
   - 워크플로 파일 변수 타입 어노테이션 추가
   - Pydantic v2 `@computed_field` + `@property` 데코레이터 스택 처리
+
+### Changed
+
+- **Claude Agent SDK @tool API 리팩토링** 🔄
+  - SDK 0.1.19 API 호환: `@tool(name, description, input_schema)` 형식 적용
+  - 도구 함수 시그니처 변경: 개별 파라미터 → `args: dict` 통일
 
 ---
 

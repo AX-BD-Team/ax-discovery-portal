@@ -101,13 +101,19 @@
 
 ### 우선순위 3: 고급 기능
 
-- [x] **Ontology 기반 Knowledge Graph** ✅ v0.4.0
-  - [x] Entity 모델 (12종 EntityType)
-  - [x] Triple 모델 (15종 PredicateType, SPO 구조)
+- [x] **Ontology 기반 Knowledge Graph** ✅ v0.4.0 → v0.5.1 강화
+  - [x] Entity 모델 (13종 EntityType)
+  - [x] Triple 모델 (17종 PredicateType, SPO 구조)
   - [x] OntologyRepository (CRUD + 그래프 탐색)
   - [x] Ontology API 라우터 (9개 엔드포인트)
   - [x] XAI API 라우터 (5개 엔드포인트)
   - [x] Alembic 마이그레이션
+  - [x] **P0 필드 마이그레이션** ✅ v0.5.1
+    - [x] Entity Recency 필드 (published_at, observed_at, ingested_at)
+    - [x] Entity Sync 필드 (last_synced_at, sync_status)
+    - [x] Triple Lifecycle 필드 (status, assertion_type, evidence_span 등)
+    - [x] 복합 인덱스 (status+predicate, status+assertion_type)
+    - [x] ORGANIZATION ID 접두사 ORG- 매핑
 - [ ] Confluence Database API 구현 (db_query, db_upsert_row)
 - [x] 중복 Signal 체크 알고리즘 ✅ v0.3.0 (Jaccard 유사도 기반)
 - [x] WF-05 KPI Digest 구현 ✅ v0.4.0
