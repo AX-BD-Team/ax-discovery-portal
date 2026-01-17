@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **외부 세미나 수집 API 리팩토링** 🎯
+  - Festa.io 서비스 종료(2025.01.31) 대응
+    - `FestaCollector` DEPRECATED 처리 (빈 결과 반환 + 경고)
+  - 새로운 수집기 4개 추가:
+    - `OnOffMixCollector`: 온오프믹스 (웹 스크래핑)
+    - `EventUsCollector`: 이벤터스 (웹 스크래핑)
+    - `DevEventCollector`: GitHub brave-people/Dev-Event (마크다운 파싱)
+    - `keywords.py`: AI/AX 키워드 상수 및 필터 유틸리티
+  - 기본 수집 소스 변경: `rss, onoffmix, eventus, devevent, eventbrite`
+  - AI/AX 키워드 기본 필터링 (상위 10개 키워드)
+  - `wf_external_scout.py` 소스별 파라미터 처리 확장
+
 - **Markdown to Confluence 완전 변환 구현** 📄
   - `markdown2` 라이브러리 도입
   - Confluence Storage Format 완전 변환 지원:

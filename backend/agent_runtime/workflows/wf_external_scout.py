@@ -3,17 +3,23 @@ WF-07: External Scout Pipeline
 
 외부 세미나/이벤트 정보를 자동으로 수집하여 Activity로 등록하는 워크플로
 
-소스:
+지원 소스:
 - RSS 피드 (기술 블로그, 이벤트 사이트)
-- Festa (festa.io)
-- Eventbrite
+- OnOffMix (온오프믹스) - 한국 IT/스타트업 이벤트
+- EventUs (이벤터스) - 한국 IT 이벤트
+- DevEvent (GitHub) - 개발자 커뮤니티 이벤트
+- Eventbrite - 글로벌 이벤트
+
+⚠️ DEPRECATED 소스:
+- Festa (festa.io) - 2025.01.31 서비스 종료
 
 흐름:
-1. 각 소스에서 세미나 정보 수집
-2. 중복 제거 (URL, external_id 기준)
-3. Activity 생성 및 DB 저장
-4. Confluence Action Log 기록
-5. 결과 요약 반환
+1. 각 소스에서 AI/AX 관련 세미나 정보 수집
+2. AI/AX 키워드 필터링
+3. 중복 제거 (URL, external_id 기준)
+4. Activity 생성 및 DB 저장
+5. Confluence Action Log 기록
+6. 결과 요약 반환
 """
 
 import os
@@ -26,8 +32,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.repositories.activity import activity_repo
 from backend.integrations.external_sources import (
+    AI_AX_KEYWORDS,
+    DevEventCollector,
     EventbriteCollector,
+    EventUsCollector,
     FestaCollector,
+    OnOffMixCollector,
     RSSCollector,
     SeminarInfo,
 )
@@ -39,16 +49,23 @@ logger = structlog.get_logger()
 class ExternalScoutInput:
     """외부 스카우트 입력 데이터"""
 
-    # 수집 소스 (rss, festa, eventbrite)
-    sources: list[str] = field(default_factory=lambda: ["rss", "festa", "eventbrite"])
+    # 수집 소스 (rss, onoffmix, eventus, devevent, eventbrite)
+    # ⚠️ festa는 2025.01.31 서비스 종료로 사용 불가
+    sources: list[str] = field(
+        default_factory=lambda: ["rss", "onoffmix", "eventus", "devevent", "eventbrite"]
+    )
 
-    # 필터링
-    keywords: list[str] | None = None  # 키워드 필터
+    # 필터링 (기본: AI/AX 키워드)
+    keywords: list[str] | None = field(
+        default_factory=lambda: AI_AX_KEYWORDS[:10]
+    )  # 상위 10개 AI/AX 키워드
     categories: list[str] | None = None  # 카테고리 필터
 
     # 소스별 설정
     rss_feed_urls: list[str] | None = None  # RSS 피드 URL 목록
-    festa_categories: list[str] | None = None  # Festa 카테고리
+    onoffmix_categories: list[str] | None = None  # 온오프믹스 카테고리 (it, startup)
+    eventus_categories: list[str] | None = None  # 이벤터스 카테고리 (it, startup)
+    devevent_months_back: int = 2  # Dev-Event 몇 개월 전까지 수집
     eventbrite_location: str | None = None  # Eventbrite 지역
     eventbrite_organizer_ids: list[str] | None = None  # Eventbrite 주최자 ID
 
@@ -98,8 +115,12 @@ class ExternalScoutPipeline:
         # 수집기 초기화
         self.collectors = {
             "rss": RSSCollector(),
-            "festa": FestaCollector(),
+            "onoffmix": OnOffMixCollector(),
+            "eventus": EventUsCollector(),
+            "devevent": DevEventCollector(),
             "eventbrite": EventbriteCollector(),
+            # DEPRECATED: 2025.01.31 서비스 종료
+            "festa": FestaCollector(),
         }
 
     async def run(self, input_data: ExternalScoutInput) -> ExternalScoutOutput:
@@ -236,10 +257,19 @@ class ExternalScoutPipeline:
             feed_urls = input_data.rss_feed_urls or self._get_default_rss_feeds()
             kwargs["feed_urls"] = feed_urls
 
-        elif source == "festa":
-            # Festa 카테고리
-            if input_data.festa_categories:
-                kwargs["categories"] = input_data.festa_categories
+        elif source == "onoffmix":
+            # 온오프믹스 카테고리
+            if input_data.onoffmix_categories:
+                kwargs["categories"] = input_data.onoffmix_categories
+
+        elif source == "eventus":
+            # 이벤터스 카테고리
+            if input_data.eventus_categories:
+                kwargs["categories"] = input_data.eventus_categories
+
+        elif source == "devevent":
+            # Dev-Event 수집 기간
+            kwargs["months_back"] = input_data.devevent_months_back
 
         elif source == "eventbrite":
             # Eventbrite 지역 및 주최자
@@ -247,6 +277,14 @@ class ExternalScoutPipeline:
                 kwargs["location"] = input_data.eventbrite_location
             if input_data.eventbrite_organizer_ids:
                 kwargs["organizer_ids"] = input_data.eventbrite_organizer_ids
+
+        elif source == "festa":
+            # DEPRECATED: 경고 로그만 출력, 빈 결과 반환
+            self.logger.warning(
+                "Festa 수집기는 서비스 종료로 사용 불가",
+                source=source,
+                service_ended="2025-01-31",
+            )
 
         # 공통 파라미터
         seminars = await collector.fetch_seminars(
@@ -512,9 +550,11 @@ async def run_external_scout(
     """
     외부 스카우트 파이프라인 실행 (편의 함수)
 
+    AI/AX 관련 세미나를 자동으로 수집합니다.
+
     Args:
-        sources: 수집 소스 목록
-        keywords: 필터 키워드
+        sources: 수집 소스 목록 (기본: rss, onoffmix, eventus, devevent, eventbrite)
+        keywords: 필터 키워드 (기본: AI/AX 상위 10개 키워드)
         categories: 필터 카테고리
         limit_per_source: 소스당 최대 수집 개수
         play_id: Play ID
@@ -523,8 +563,8 @@ async def run_external_scout(
         ExternalScoutOutput: 수집 결과
     """
     input_data = ExternalScoutInput(
-        sources=sources or ["rss", "festa", "eventbrite"],
-        keywords=keywords,
+        sources=sources or ["rss", "onoffmix", "eventus", "devevent", "eventbrite"],
+        keywords=keywords or AI_AX_KEYWORDS[:10],
         categories=categories,
         limit_per_source=limit_per_source,
         play_id=play_id,

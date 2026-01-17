@@ -1,10 +1,14 @@
 """
-Festa 수집기
+Festa 수집기 (DEPRECATED)
 
 Festa (festa.io) 이벤트 플랫폼에서 세미나/이벤트 정보 수집
+
+⚠️ DEPRECATED: Festa.io 서비스가 2025년 1월 31일 종료되었습니다.
+이 모듈은 하위 호환성을 위해 유지되지만, 실제 데이터를 수집하지 않습니다.
+대안으로 OnOffMixCollector, EventUsCollector, DevEventCollector를 사용하세요.
 """
 
-import os
+import warnings
 from datetime import UTC, datetime
 
 import httpx
@@ -17,9 +21,10 @@ logger = structlog.get_logger()
 
 class FestaCollector(BaseSeminarCollector):
     """
-    Festa 이벤트 수집기
+    Festa 이벤트 수집기 (DEPRECATED)
 
-    Festa API를 통해 IT/스타트업 이벤트 수집
+    ⚠️ Festa.io 서비스가 2025년 1월 31일 종료되었습니다.
+    이 클래스는 하위 호환성을 위해 유지되며, 빈 결과를 반환합니다.
     """
 
     # Festa API 기본 URL
@@ -40,10 +45,11 @@ class FestaCollector(BaseSeminarCollector):
     def __init__(self, api_key: str | None = None):
         """
         Args:
-            api_key: Festa API 키 (환경변수 FESTA_API_KEY 사용 가능)
+            api_key: Festa API 키 (미사용 - 서비스 종료)
         """
         super().__init__(name="festa")
-        self.api_key = api_key or os.getenv("FESTA_API_KEY")
+        self.api_key = api_key
+        self._warned = False
 
     async def fetch_seminars(
         self,
@@ -53,75 +59,42 @@ class FestaCollector(BaseSeminarCollector):
         **kwargs,
     ) -> list[SeminarInfo]:
         """
-        Festa에서 세미나 정보 수집
+        Festa에서 세미나 정보 수집 (DEPRECATED - 빈 결과 반환)
+
+        ⚠️ Festa.io 서비스가 2025년 1월 31일 종료되었습니다.
+        이 메서드는 항상 빈 목록을 반환합니다.
+
+        대안:
+        - OnOffMixCollector: 온오프믹스
+        - EventUsCollector: 이벤터스
+        - DevEventCollector: GitHub Dev-Event
 
         Args:
-            keywords: 필터링할 키워드
-            categories: Festa 카테고리 (tech, ai, startup 등)
-            limit: 최대 수집 개수
-            location: 지역 필터 (kwargs, 예: "서울", "온라인")
-            include_past: 지난 이벤트 포함 여부 (kwargs, 기본: False)
+            keywords: 미사용
+            categories: 미사용
+            limit: 미사용
+            **kwargs: 미사용
 
         Returns:
-            list[SeminarInfo]: 수집된 세미나 목록
+            list[SeminarInfo]: 항상 빈 목록
         """
-        location = kwargs.get("location")
-        include_past = kwargs.get("include_past", False)
-
-        all_seminars: list[SeminarInfo] = []
-
-        async with httpx.AsyncClient(timeout=30) as client:
-            # 카테고리별로 수집 (카테고리가 없으면 전체)
-            cats_to_fetch = categories if categories else list(self.CATEGORY_MAP.keys())
-
-            for category in cats_to_fetch:
-                try:
-                    seminars = await self._fetch_by_category(
-                        client,
-                        category,
-                        location=location,
-                        include_past=include_past,
-                    )
-                    all_seminars.extend(seminars)
-                    logger.info(
-                        "Festa 카테고리 수집 완료",
-                        category=category,
-                        count=len(seminars),
-                    )
-                except Exception as e:
-                    logger.error(
-                        "Festa 카테고리 수집 실패",
-                        category=category,
-                        error=str(e),
-                    )
-
-        # 키워드 필터링
-        if keywords:
-            all_seminars = self.filter_by_keywords(all_seminars, keywords)
-
-        # 날짜 범위 필터링
-        if "start_date" in kwargs or "end_date" in kwargs:
-            all_seminars = self.filter_by_date_range(
-                all_seminars,
-                kwargs.get("start_date"),
-                kwargs.get("end_date"),
+        if not self._warned:
+            warnings.warn(
+                "FestaCollector는 더 이상 사용되지 않습니다. "
+                "Festa.io 서비스가 2025년 1월 31일 종료되었습니다. "
+                "OnOffMixCollector, EventUsCollector, DevEventCollector를 사용하세요.",
+                DeprecationWarning,
+                stacklevel=2,
             )
+            self._warned = True
 
-        # 중복 제거 (event_id 기준)
-        seen_ids = set()
-        unique_seminars = []
-        for seminar in all_seminars:
-            if seminar.external_id not in seen_ids:
-                seen_ids.add(seminar.external_id)
-                unique_seminars.append(seminar)
-
-        # 최신순 정렬
-        unique_seminars.sort(
-            key=lambda x: x.date or "9999-99-99",
-            reverse=True,
+        logger.warning(
+            "Festa.io 서비스가 종료되어 데이터를 수집할 수 없습니다",
+            service_ended="2025-01-31",
+            alternatives=["onoffmix", "eventus", "devevent"],
         )
 
-        return unique_seminars[:limit]
+        return []
 
     async def _fetch_by_category(
         self,
