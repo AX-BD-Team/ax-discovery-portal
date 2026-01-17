@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import (
+    activities,
     auth,
     brief,
     inbox,
@@ -24,6 +25,7 @@ from .routers import (
     scorecard,
     search,
     stream,
+    webhooks,
     workflows,
     xai,
 )
@@ -47,6 +49,10 @@ TAGS_METADATA = [
         "description": "Signal 관리 - 사업기회 신호 등록, 조회, Triage",
     },
     {
+        "name": "activities",
+        "description": "Activity 관리 - 외부 세미나/이벤트 수집 결과 조회",
+    },
+    {
         "name": "scorecard",
         "description": "Scorecard 관리 - Signal 5차원 평가 (100점 만점)",
     },
@@ -60,7 +66,11 @@ TAGS_METADATA = [
     },
     {
         "name": "workflows",
-        "description": "워크플로 실행 - WF-01~06 파이프라인 (세미나, 인터뷰, VoC, Triage, KPI, Confluence)",
+        "description": "워크플로 실행 - WF-01~07 파이프라인 (세미나, 인터뷰, VoC, Triage, KPI, Confluence, External Scout)",
+    },
+    {
+        "name": "webhooks",
+        "description": "웹훅 수신 - RSS/Festa/Eventbrite 실시간 이벤트 수신",
     },
     {
         "name": "stream",
@@ -164,10 +174,12 @@ CORS_ORIGINS = [
     "http://localhost:3000",  # Next.js web
     "http://localhost:3001",
     "http://localhost:3002",
+    "http://localhost:3100",  # Next.js web (alternate port)
     "http://localhost:5173",  # Vite dev server (legacy)
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
+    "http://127.0.0.1:3100",
     "http://127.0.0.1:5173",
     # Production - Cloudflare Pages
     "https://ax-discovery-portal.pages.dev",
@@ -186,10 +198,12 @@ app.add_middleware(
 # Auth (JWT 인증)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(inbox.router, prefix="/api/inbox", tags=["inbox"])
+app.include_router(activities.router, prefix="/api/activities", tags=["activities"])
 app.include_router(scorecard.router, prefix="/api/scorecard", tags=["scorecard"])
 app.include_router(brief.router, prefix="/api/brief", tags=["brief"])
 app.include_router(play_dashboard.router, prefix="/api/plays", tags=["plays"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
+app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(stream.router, tags=["stream"])
 # Ontology & XAI
 app.include_router(ontology.router, prefix="/api", tags=["ontology"])

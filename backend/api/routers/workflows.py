@@ -1128,3 +1128,178 @@ async def preview_confluence_page_parsing(
         "parsed_data": parsed,
         "message": "실제 import는 POST /api/workflows/confluence-sync/import를 사용하세요",
     }
+
+
+# ============================================================
+# WF-07: External Scout (외부 세미나 수집)
+# ============================================================
+
+
+class ExternalScoutRequest(BaseModel):
+    """WF-07 외부 스카우트 요청"""
+
+    sources: list[str] = ["rss", "festa", "eventbrite"]  # 수집 소스
+    keywords: list[str] | None = None  # 필터 키워드
+    categories: list[str] | None = None  # 필터 카테고리
+    rss_feed_urls: list[str] | None = None  # RSS 피드 URL 목록
+    festa_categories: list[str] | None = None  # Festa 카테고리
+    eventbrite_location: str | None = None  # Eventbrite 지역
+    limit_per_source: int = 50  # 소스당 최대 수집 개수
+    play_id: str = "EXT_Desk_D01_Seminar"  # Play ID
+    save_to_db: bool = True  # DB 저장 여부
+    sync_confluence: bool = True  # Confluence 동기화 여부
+
+
+class ExternalScoutResponse(BaseModel):
+    """WF-07 외부 스카우트 응답"""
+
+    status: str
+    total_collected: int
+    total_saved: int
+    duplicates_skipped: int
+    by_source: dict[str, Any]
+    activities_count: int
+    confluence_updated: bool
+    confluence_url: str | None
+    duration_seconds: float
+    errors: list[dict[str, Any]]
+
+
+@router.post("/external-scout", response_model=ExternalScoutResponse)
+async def run_external_scout(
+    request: ExternalScoutRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    WF-07: External Scout 파이프라인 실행
+
+    외부 세미나/이벤트 정보를 자동으로 수집하여 Activity로 등록
+
+    지원 소스:
+    - RSS: 기술 블로그, 이벤트 사이트 피드
+    - Festa: festa.io IT/스타트업 이벤트
+    - Eventbrite: 글로벌 이벤트 플랫폼
+
+    Args:
+        sources: 수집 소스 목록 (기본: rss, festa, eventbrite)
+        keywords: 필터링할 키워드 (제목/설명에 포함)
+        categories: 필터링할 카테고리
+        rss_feed_urls: 추가 RSS 피드 URL
+        festa_categories: Festa 카테고리 (tech, ai, startup 등)
+        eventbrite_location: Eventbrite 지역 (예: Korea, Seoul)
+        limit_per_source: 소스당 최대 수집 개수
+        play_id: 저장할 Play ID
+        save_to_db: DB 저장 여부 (기본: True)
+        sync_confluence: Confluence 동기화 여부 (기본: True)
+
+    Returns:
+        total_collected: 총 수집된 세미나 수
+        total_saved: DB에 저장된 Activity 수
+        duplicates_skipped: 중복으로 스킵된 수
+        by_source: 소스별 통계
+        confluence_updated: Confluence 동기화 성공 여부
+        duration_seconds: 실행 시간 (초)
+        errors: 에러 목록
+    """
+    from backend.agent_runtime.workflows.wf_external_scout import (
+        ExternalScoutInput,
+        ExternalScoutPipeline,
+        ExternalScoutPipelineWithDB,
+    )
+
+    logger.info(
+        "Running external scout pipeline",
+        sources=request.sources,
+        keywords=request.keywords,
+        save_to_db=request.save_to_db,
+    )
+
+    # 입력 데이터 구성
+    input_data = ExternalScoutInput(
+        sources=request.sources,
+        keywords=request.keywords,
+        categories=request.categories,
+        rss_feed_urls=request.rss_feed_urls,
+        festa_categories=request.festa_categories,
+        eventbrite_location=request.eventbrite_location,
+        limit_per_source=request.limit_per_source,
+        play_id=request.play_id,
+        save_to_db=request.save_to_db,
+        sync_confluence=request.sync_confluence,
+    )
+
+    # 파이프라인 실행
+    pipeline = ExternalScoutPipelineWithDB(db) if request.save_to_db else ExternalScoutPipeline()
+    result = await pipeline.run(input_data)
+
+    logger.info(
+        "External scout completed",
+        total_collected=result.total_collected,
+        total_saved=result.total_saved,
+        duplicates_skipped=result.duplicates_skipped,
+    )
+
+    return ExternalScoutResponse(
+        status="completed",
+        total_collected=result.total_collected,
+        total_saved=result.total_saved,
+        duplicates_skipped=result.duplicates_skipped,
+        by_source=result.by_source,
+        activities_count=len(result.activities),
+        confluence_updated=result.confluence_updated,
+        confluence_url=result.confluence_url,
+        duration_seconds=result.duration_seconds,
+        errors=result.errors,
+    )
+
+
+@router.post("/external-scout/preview")
+async def preview_external_scout(
+    sources: list[str] | None = None,
+    keywords: list[str] | None = None,
+    limit_per_source: int = 10,
+):
+    """
+    외부 스카우트 미리보기 (DB 저장 안함)
+
+    소스별 수집 가능한 세미나 목록 확인
+
+    Args:
+        sources: 수집 소스 (기본: rss, festa, eventbrite)
+        keywords: 필터 키워드
+        limit_per_source: 소스당 최대 개수 (기본: 10)
+
+    Returns:
+        각 소스별 수집된 세미나 목록 미리보기
+    """
+    from backend.agent_runtime.workflows.wf_external_scout import (
+        ExternalScoutInput,
+        ExternalScoutPipeline,
+    )
+
+    input_data = ExternalScoutInput(
+        sources=sources or ["rss", "festa", "eventbrite"],
+        keywords=keywords,
+        limit_per_source=limit_per_source,
+        save_to_db=False,
+        sync_confluence=False,
+    )
+
+    pipeline = ExternalScoutPipeline()
+    result = await pipeline.run(input_data)
+
+    return {
+        "status": "preview",
+        "total_collected": result.total_collected,
+        "by_source": result.by_source,
+        "activities": [
+            {
+                "title": act.get("title", "")[:50],
+                "url": act.get("url"),
+                "date": act.get("date"),
+                "source_type": act.get("source_type"),
+            }
+            for act in result.activities[:20]  # 최대 20개만 표시
+        ],
+        "message": "실제 실행은 POST /api/workflows/external-scout를 사용하세요",
+    }

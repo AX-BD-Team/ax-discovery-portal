@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **외부 세미나 수집 시스템 (WF-07: External Scout)** 🔍
+  - 다중 소스 수집기 구현: RSS, Festa, Eventbrite
+  - `ActivityRepository`: Activity 저장소 (Entity 테이블 기반)
+  - `ExternalScoutPipeline`: 배치 수집 워크플로 (`wf_external_scout.py`)
+  - 웹훅 엔드포인트: RSS/Festa/Eventbrite 실시간 이벤트 수신
+  - API 엔드포인트:
+    - `POST /api/workflows/external-scout`: 배치 수집 실행
+    - `GET /api/activities`: Activity 목록 조회
+    - `POST /api/webhooks/seminar/{source}`: 웹훅 수신
+  - 환경변수: `SEMINAR_RSS_FEEDS`, `FESTA_API_KEY`, `EVENTBRITE_API_TOKEN` 등
+  - 의존성 추가: `feedparser>=6.0.0`
+
 - **대시보드 KPI 위젯 및 에러 핸들링 UX 개선** 🎨
   - 메인 대시보드에 실시간 KPI 위젯 추가 (주간 Activity, Signal, Brief, S2 현황)
   - 사이클 타임 표시 (Signal→Brief, Brief→S2 리드타임)

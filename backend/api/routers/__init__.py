@@ -1,0 +1,35 @@
+"""
+API 라우터 패키지
+
+모든 라우터 모듈 익스포트
+"""
+
+from . import (
+    activities,
+    auth,
+    brief,
+    inbox,
+    ontology,
+    play_dashboard,
+    scorecard,
+    search,
+    stream,
+    webhooks,
+    workflows,
+    xai,
+)
+
+__all__ = [
+    "activities",
+    "auth",
+    "brief",
+    "inbox",
+    "ontology",
+    "play_dashboard",
+    "scorecard",
+    "search",
+    "stream",
+    "webhooks",
+    "workflows",
+    "xai",
+]

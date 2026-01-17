@@ -35,6 +35,7 @@ dependencies = [
     "openai>=1.40.0",  # 임베딩 생성용
     "python-jose[cryptography]>=3.3.0",  # JWT 생성/검증
     "passlib[bcrypt]>=1.7.4",  # 비밀번호 해싱
+    "feedparser>=6.0.0",  # RSS 피드 파싱 (외부 세미나 수집용)
 ]
 
 [project.optional-dependencies]
