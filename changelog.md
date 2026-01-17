@@ -42,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AI/AX 키워드 기본 필터링 (상위 10개 키워드)
   - `wf_external_scout.py` 소스별 파라미터 처리 확장
 
+- **Dev-Event 수집기 개선** 🔧
+  - 마크다운 파싱 패턴 수정: `- __[제목](URL)__` 형식 지원
+  - 분류 정보 추출 개선 (다음 줄 + 두 번째 다음 줄 검색)
+  - 이미지 링크, GitHub 내부 링크 필터링
+  - AI 관련 태그 확장: `data`, `데이터` 추가
+  - 테스트 스크립트 Windows UTF-8 인코딩 수정
+
 - **Markdown to Confluence 완전 변환 구현** 📄
   - `markdown2` 라이브러리 도입
   - Confluence Storage Format 완전 변환 지원:

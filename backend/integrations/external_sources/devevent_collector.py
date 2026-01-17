@@ -245,8 +245,8 @@ class DevEventCollector(BaseSeminarCollector):
         마크다운 내용에서 이벤트 파싱
 
         Dev-Event 마크다운 형식:
-        - [이벤트명](URL)
-        - 분류: `온라인`, `무료`, `AI` | 주최: 주최자 | 접수: MM.DD ~ MM.DD
+        - __[이벤트명](URL)__
+          - 분류: `온라인`, `무료`, `AI`
 
         Args:
             content: 마크다운 내용
@@ -257,16 +257,16 @@ class DevEventCollector(BaseSeminarCollector):
         Returns:
             list[SeminarInfo]: 파싱된 세미나 목록
         """
+        import hashlib
+
         seminars = []
         keywords_lower = [k.lower() for k in keywords]
 
-        # 이벤트 링크 패턴: - [제목](URL)
-        event_pattern = r"[-*]\s*\[([^\]]+)\]\(([^)]+)\)"
+        # 이벤트 링크 패턴: - __[제목](URL)__ 또는 - [제목](URL)
+        event_pattern = r"[-*]\s*(?:__)?(?:\*\*)?\[([^\]]+)\]\(([^)]+)\)(?:__)?(?:\*\*)?"
 
         # 분류 정보 패턴
-        info_pattern = r"분류:\s*([^|]+)"
-        organizer_pattern = r"주최:\s*([^|]+)"
-        date_pattern = r"접수:\s*(\d+\.\d+)\s*~\s*(\d+\.\d+)"
+        info_pattern = r"분류:\s*([^\n]+)"
 
         lines = content.split("\n")
         i = 0
@@ -280,16 +280,32 @@ class DevEventCollector(BaseSeminarCollector):
                 title = match.group(1).strip()
                 url = match.group(2).strip()
 
-                # AI/AX 키워드 필터 (제목 + 다음 줄 정보 확인)
-                next_line = lines[i + 1] if i + 1 < len(lines) else ""
-                combined_text = f"{title} {next_line}".lower()
+                # 이미지 링크, GitHub 내부 링크 등 제외
+                if url.startswith("#") or "github.com/brave-people" in url:
+                    i += 1
+                    continue
+                if title.startswith("!") or title == "img":
+                    i += 1
+                    continue
+
+                # 다음 줄에서 분류 정보 찾기
+                next_line = ""
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                # 두 번째 다음 줄도 확인 (간격이 있을 수 있음)
+                second_next = ""
+                if i + 2 < len(lines):
+                    second_next = lines[i + 2]
+
+                combined_info = f"{next_line} {second_next}"
+                combined_text = f"{title} {combined_info}".lower()
 
                 # 키워드 매칭 여부 확인
                 has_keyword = any(kw in combined_text for kw in keywords_lower)
 
                 # 태그에서 AI 관련 태그 확인
-                tags = re.findall(r"`([^`]+)`", next_line)
-                ai_tags = ["ai", "ml", "딥러닝", "머신러닝", "인공지능", "gpt", "llm", "생성형"]
+                tags = re.findall(r"`([^`]+)`", combined_info)
+                ai_tags = ["ai", "ml", "딥러닝", "머신러닝", "인공지능", "gpt", "llm", "생성형", "data", "데이터"]
                 has_ai_tag = any(
                     any(ai in tag.lower() for ai in ai_tags) for tag in tags
                 )
@@ -297,42 +313,20 @@ class DevEventCollector(BaseSeminarCollector):
                 if has_keyword or has_ai_tag:
                     # 분류 정보 추출
                     categories = []
-                    info_match = re.search(info_pattern, next_line)
+                    info_match = re.search(info_pattern, combined_info)
                     if info_match:
                         info_text = info_match.group(1)
-                        categories = [
-                            tag.strip().strip("`")
-                            for tag in info_text.split(",")
-                        ]
-
-                    # 주최자 추출
-                    organizer = None
-                    org_match = re.search(organizer_pattern, next_line)
-                    if org_match:
-                        organizer = org_match.group(1).strip()
-
-                    # 날짜 추출
-                    date = None
-                    date_match = re.search(date_pattern, next_line)
-                    if date_match:
-                        start_date = date_match.group(1)
-                        # MM.DD를 YYYY-MM-DD로 변환
-                        try:
-                            m, d = start_date.split(".")
-                            date = f"{year}-{int(m):02d}-{int(d):02d}"
-                        except ValueError:
-                            pass
+                        # 백틱으로 구분된 태그 추출
+                        categories = re.findall(r"`([^`]+)`", info_text)
 
                     # 온라인/오프라인 확인
                     location = None
-                    if "온라인" in next_line or "`온라인`" in next_line:
+                    if "온라인" in combined_info:
                         location = "온라인"
-                    elif "오프라인" in next_line or "`오프라인`" in next_line:
+                    elif "오프라인" in combined_info:
                         location = "오프라인"
 
                     # external_id 생성 (URL 해시)
-                    import hashlib
-
                     url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
                     external_id = f"devevent_{url_hash}"
 
@@ -340,16 +334,16 @@ class DevEventCollector(BaseSeminarCollector):
                         title=title,
                         url=url,
                         source_type="devevent",
-                        date=date,
-                        organizer=organizer,
+                        date=None,  # Dev-Event는 접수 기간만 표시
+                        organizer=None,
                         location=location,
-                        categories=categories,
-                        tags=[tag.strip().strip("`") for tag in tags],
+                        categories=categories if categories else ["개발자 이벤트"],
+                        tags=[tag.strip() for tag in tags],
                         external_id=external_id,
                         raw_data={
                             "year": year,
                             "month": month,
-                            "info_line": next_line.strip(),
+                            "info_line": combined_info.strip()[:200],
                         },
                         fetched_at=datetime.now(UTC),
                     )

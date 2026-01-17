@@ -20,9 +20,15 @@
 
 import argparse
 import asyncio
+import io
 import sys
 from datetime import datetime
 from pathlib import Path
+
+# Windows 콘솔 UTF-8 출력 설정
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # 프로젝트 루트를 path에 추가
 project_root = Path(__file__).parent.parent
@@ -144,13 +150,13 @@ async def test_workflow(keywords: list[str], limit: int):
     elapsed = (datetime.now() - start_time).total_seconds()
 
     print(f"\n✅ 파이프라인 완료 ({elapsed:.2f}초)")
-    print(f"\n📊 결과 요약:")
+    print("\n📊 결과 요약:")
     print(f"    총 수집: {result.total_collected}개")
     print(f"    중복 제거: {result.duplicates_skipped}개")
     print(f"    최종 Activity: {len(result.activities)}개")
 
     if result.by_source:
-        print(f"\n📈 소스별 통계:")
+        print("\n📈 소스별 통계:")
         for source, stats in result.by_source.items():
             print(f"    {source}: 수집 {stats.get('collected', 0)}개")
 
@@ -211,7 +217,7 @@ async def main():
     args = parser.parse_args()
     keywords = [k.strip() for k in args.keywords.split(",")]
 
-    print(f"\n🎯 외부 세미나 수집기 테스트")
+    print("\n🎯 외부 세미나 수집기 테스트")
     print(f"{'─'*60}")
     print(f"대상: {args.source}")
     print(f"키워드: {keywords}")
