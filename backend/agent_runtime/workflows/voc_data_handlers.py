@@ -307,4 +307,5 @@ def get_handler(source_type: str) -> BaseVoCHandler:
     if handler_class is None:
         raise ValueError(f"지원하지 않는 소스 타입: {source_type}. 지원: {list(handlers.keys())}")
 
-    return handler_class()
+    # NOTE: handlers의 값은 구체적인 서브클래스이므로 인스턴스화 가능
+    return handler_class()  # type: ignore[abstract]

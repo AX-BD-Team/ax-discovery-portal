@@ -104,7 +104,7 @@ class VoCOutput:
 
 
 # 테마 키워드 맵핑 (휴리스틱 기반)
-THEME_KEYWORDS = {
+THEME_KEYWORDS: dict[str, dict[str, Any]] = {
     "응답 시간 지연": {
         "keywords": ["느림", "대기", "시간", "지연", "오래", "늦", "기다"],
         "severity": Severity.HIGH,
@@ -145,7 +145,7 @@ def extract_themes_from_records(
                 theme_counts[theme_name].append(record)
 
     # 빈도 기준 필터링 및 정렬
-    themes = []
+    themes: list[VoCTheme] = []
     sorted_themes = sorted(theme_counts.items(), key=lambda x: len(x[1]), reverse=True)
 
     for i, (theme_name, matched_records) in enumerate(sorted_themes):
@@ -613,7 +613,7 @@ class VoCMiningPipelineWithDB(VoCMiningPipelineWithEvents):
         from backend.database.repositories.scorecard import scorecard_repo
         from backend.database.repositories.signal import signal_repo
 
-        saved = {"signals": [], "scorecards": []}
+        saved: dict[str, list[Any]] = {"signals": [], "scorecards": []}
 
         for signal_data in signals:
             try:

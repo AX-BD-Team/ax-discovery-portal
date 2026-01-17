@@ -4,8 +4,14 @@ Signal 모델
 사업기회 신호(Signal) 테이블 정의
 """
 
+from __future__ import annotations
+
 import enum
-from typing import Optional
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.database.models.brief import OpportunityBrief
+    from backend.database.models.scorecard import Scorecard
 
 from sqlalchemy import JSON, Enum, Float, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -79,11 +85,11 @@ class Signal(Base, TimestampMixin):
     confidence: Mapped[float | None] = mapped_column(Float)
 
     # Relationships
-    scorecard: Mapped[Optional["Scorecard"]] = relationship(
+    scorecard: Mapped[Scorecard | None] = relationship(
         "Scorecard", back_populates="signal", uselist=False, cascade="all, delete-orphan"
     )
 
-    brief: Mapped[Optional["OpportunityBrief"]] = relationship(
+    brief: Mapped[OpportunityBrief | None] = relationship(
         "OpportunityBrief", back_populates="signal", uselist=False, cascade="all, delete-orphan"
     )
 

@@ -4,7 +4,13 @@ OpportunityBrief 모델
 1-Page Opportunity Brief 테이블 정의
 """
 
+from __future__ import annotations
+
 import enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.database.models.signal import Signal
 
 from sqlalchemy import JSON, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -86,7 +92,7 @@ class OpportunityBrief(Base, TimestampMixin):
     confluence_url: Mapped[str | None] = mapped_column(String(500))
 
     # Relationships
-    signal: Mapped["Signal"] = relationship("Signal", back_populates="brief")
+    signal: Mapped[Signal] = relationship("Signal", back_populates="brief")
 
     # Indexes
     __table_args__ = (

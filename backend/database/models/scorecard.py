@@ -4,8 +4,14 @@ Scorecard 모델
 Signal 평가 스코어카드 테이블 정의
 """
 
+from __future__ import annotations
+
 import enum
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.database.models.signal import Signal
 
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -67,7 +73,7 @@ class Scorecard(Base):
     )
 
     # Relationships
-    signal: Mapped["Signal"] = relationship("Signal", back_populates="scorecard")
+    signal: Mapped[Signal] = relationship("Signal", back_populates="scorecard")
 
     # Indexes
     __table_args__ = (

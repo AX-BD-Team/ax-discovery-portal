@@ -11,8 +11,14 @@ Triple Lifecycle:
 - rejected: 검증 실패로 거부됨
 """
 
+from __future__ import annotations
+
 import enum
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.database.models.entity import Entity
 
 from sqlalchemy import (
     JSON,
@@ -171,9 +177,9 @@ class Triple(Base):
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Relationships
-    subject: Mapped["Entity"] = relationship("Entity", foreign_keys=[subject_id], lazy="joined")
+    subject: Mapped[Entity] = relationship("Entity", foreign_keys=[subject_id], lazy="joined")
 
-    object: Mapped["Entity"] = relationship("Entity", foreign_keys=[object_id], lazy="joined")
+    object: Mapped[Entity] = relationship("Entity", foreign_keys=[object_id], lazy="joined")
 
     # Indexes and Constraints
     __table_args__ = (

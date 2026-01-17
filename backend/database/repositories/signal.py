@@ -68,7 +68,7 @@ class SignalRepository(CRUDBase[Signal]):
         query = query.order_by(Signal.created_at.desc()).offset(skip).limit(limit)
 
         result = await db.execute(query)
-        items = result.scalars().all()
+        items = list(result.scalars().all())
 
         # 총 개수 조회
         count_query = select(func.count()).select_from(Signal)
@@ -76,7 +76,7 @@ class SignalRepository(CRUDBase[Signal]):
             count_query = count_query.where(and_(*filters))
 
         count_result = await db.execute(count_query)
-        total = count_result.scalar()
+        total = count_result.scalar() or 0
 
         return items, total
 

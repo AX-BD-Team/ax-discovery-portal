@@ -132,37 +132,37 @@ class Settings(BaseSettings):
     # =========================================================================
     # Computed Properties
     # =========================================================================
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_development(self) -> bool:
         """개발 환경 여부"""
         return self.app_env == "development"
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_staging(self) -> bool:
         """스테이징 환경 여부"""
         return self.app_env == "staging"
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_production(self) -> bool:
         """프로덕션 환경 여부"""
         return self.app_env == "production"
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins_list(self) -> list[str]:
         """CORS 오리진 리스트"""
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def confluence_configured(self) -> bool:
         """Confluence 설정 완료 여부"""
         return bool(self.confluence_base_url and self.confluence_api_token)
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def database_configured(self) -> bool:
         """데이터베이스 설정 완료 여부"""

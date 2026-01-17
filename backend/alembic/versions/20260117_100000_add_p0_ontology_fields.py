@@ -81,8 +81,12 @@ def upgrade() -> None:
         sa.Column(
             "status",
             sa.Enum(
-                "proposed", "verified", "deprecated", "rejected",
-                name="triplestatus", create_type=False
+                "proposed",
+                "verified",
+                "deprecated",
+                "rejected",
+                name="triplestatus",
+                create_type=False,
             ),
             nullable=False,
             server_default="proposed",
@@ -129,9 +133,7 @@ def upgrade() -> None:
     # 복합 인덱스: BFS 안전모드용 (status + predicate)
     op.create_index("idx_triple_status_predicate", "triples", ["status", "predicate"])
     # 복합 인덱스: 쿼리 최적화 (status + assertion_type)
-    op.create_index(
-        "idx_triple_status_assertion", "triples", ["status", "assertion_type"]
-    )
+    op.create_index("idx_triple_status_assertion", "triples", ["status", "assertion_type"])
 
 
 def downgrade() -> None:

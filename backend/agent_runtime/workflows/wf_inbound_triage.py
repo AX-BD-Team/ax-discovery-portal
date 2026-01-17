@@ -62,7 +62,7 @@ SLA_HOURS = {
 }
 
 # Play 라우팅 규칙 (키워드 → Play ID)
-PLAY_ROUTING_RULES = [
+PLAY_ROUTING_RULES: list[dict[str, Any]] = [
     # KT 관련
     {"keywords": ["kt", "케이티", "콜센터", "고객센터", "상담"], "play_id": "KT_Sales_S01"},
     {"keywords": ["데이터", "분석", "ai", "ml", "머신러닝"], "play_id": "KT_Desk_D01_AI"},
@@ -792,7 +792,7 @@ class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
         from backend.database.repositories.scorecard import scorecard_repo
         from backend.database.repositories.signal import signal_repo
 
-        saved = {
+        saved: dict[str, str | None] = {
             "signal_id": None,
             "scorecard_id": None,
         }

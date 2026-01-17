@@ -276,8 +276,8 @@ class GraphQuery:
             if not options.include_inferred:
                 stmt = stmt.where(Triple.assertion_type == AssertionType.OBSERVED)
 
-            result = await session.execute(stmt)
-            edges = result.all()
+            edge_result = await session.execute(stmt)
+            edges = edge_result.all()
 
             for triple, next_entity in edges:
                 if next_entity.entity_id in visited:

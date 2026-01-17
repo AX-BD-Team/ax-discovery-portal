@@ -42,7 +42,11 @@ class CRUDBase(Generic[ModelType]):
         Returns:
             ModelType | None
         """
-        result = await db.execute(select(self.model).where(self.model.id == id))
+        # NOTE: 모델별 PK 컬럼명이 다를 수 있음 (signal_id, brief_id 등)
+        # 실제 사용 시 하위 클래스에서 get_by_id 메서드를 오버라이드
+        result = await db.execute(
+            select(self.model).where(self.model.id == id)  # type: ignore[attr-defined]
+        )
         return result.scalar_one_or_none()
 
     async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> list[ModelType]:
@@ -58,7 +62,7 @@ class CRUDBase(Generic[ModelType]):
             list[ModelType]
         """
         result = await db.execute(select(self.model).offset(skip).limit(limit))
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def count(self, db: AsyncSession) -> int:
         """
@@ -71,7 +75,7 @@ class CRUDBase(Generic[ModelType]):
             int: 레코드 수
         """
         result = await db.execute(select(func.count()).select_from(self.model))
-        return result.scalar()
+        return result.scalar() or 0
 
     async def create(self, db: AsyncSession, obj_in: dict) -> ModelType:
         """

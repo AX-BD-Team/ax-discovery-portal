@@ -894,11 +894,11 @@ class KPIDigestPipelineWithDB(KPIDigestPipelineWithEvents):
 
         # Signal → Brief 리드타임 (Brief가 있는 Signal 기준)
         # TODO: 실제 구현은 Signal.created_at과 Brief.created_at 차이 계산
-        signal_to_brief_days = []
+        signal_to_brief_days: list[float] = []
 
         # Brief → S2 리드타임 (VALIDATED 상태인 Brief 기준)
         # TODO: Brief.created_at과 validation 완료 시점 차이 계산
-        brief_to_s2_days = []
+        brief_to_s2_days: list[float] = []
 
         # Mock 데이터 (실제 구현 시 DB 쿼리로 대체)
         signal_to_brief_avg = (

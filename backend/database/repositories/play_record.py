@@ -42,7 +42,7 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
             list[PlayRecord]
         """
         result = await db.execute(select(PlayRecord))
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def increment_activity(self, db: AsyncSession, play_id: str) -> PlayRecord | None:
         """

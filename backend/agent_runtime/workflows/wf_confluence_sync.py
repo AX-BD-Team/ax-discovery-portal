@@ -1263,7 +1263,7 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
             label=label,
         )
 
-        results = {
+        results: dict[str, Any] = {
             "total": 0,
             "imported": 0,
             "updated": 0,
@@ -1558,7 +1558,7 @@ class ConfluenceSyncPipelineWithDB(ConfluenceSyncPipelineWithEvents):
         """
         self.logger.info("Starting bidirectional sync", target_type=target_type.value)
 
-        results = {
+        results: dict[str, Any] = {
             "import_results": {},
             "export_results": {},
         }

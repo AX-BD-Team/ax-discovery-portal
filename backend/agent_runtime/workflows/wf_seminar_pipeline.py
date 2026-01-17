@@ -86,7 +86,7 @@ class SeminarPipeline:
         confluence_updated = await self._update_confluence(activity)
 
         # 5. Signal 초기 후보 (세미나 참석 후 AAR 작성 시 추출)
-        signals = []  # 초기에는 빈 목록
+        signals: list[dict[str, Any]] = []  # 초기에는 빈 목록
 
         result = SeminarPipelineResult(
             activity=activity,

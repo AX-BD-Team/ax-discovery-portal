@@ -21,6 +21,8 @@ from typing import Any
 
 import structlog
 
+from backend.agent_runtime.event_types import ImpactLevel
+
 logger = structlog.get_logger()
 
 
@@ -698,7 +700,7 @@ class InterviewToBriefPipelineWithEvents(InterviewToBriefPipeline):
                         approval_id=f"approval-{brief_draft['brief_id']}",
                         title="Brief 생성 승인 요청",
                         description=f"Signal '{item['signal']['title']}'에 대한 Brief를 Confluence에 게시합니다.",
-                        impact="MEDIUM",
+                        impact=ImpactLevel.MEDIUM,
                         changes=[
                             {
                                 "type": "create",
@@ -796,7 +798,7 @@ class InterviewToBriefPipelineWithDB(InterviewToBriefPipelineWithEvents):
         from backend.database.repositories.scorecard import scorecard_repo
         from backend.database.repositories.signal import signal_repo
 
-        saved = {"signals": [], "scorecards": [], "briefs": []}
+        saved: dict[str, list[Any]] = {"signals": [], "scorecards": [], "briefs": []}
 
         # Signal 저장
         for signal_data in signals:
