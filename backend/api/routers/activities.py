@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_db
-from backend.database.repositories.activity import activity_repo
 
 logger = structlog.get_logger()
 
@@ -115,48 +114,41 @@ async def list_activities(
     Returns:
         ActivityListResponse: Activity 목록 + 페이지네이션 정보
     """
-    skip = (page - 1) * page_size
+    from sqlalchemy import func, select
 
-    # 필터링 조건에 따라 조회
+    from backend.database.models.entity import Entity, EntityType
+
+    # 전체 Activity 조회
+    query = (
+        select(Entity)
+        .where(Entity.entity_type == EntityType.ACTIVITY)
+        .order_by(Entity.created_at.desc())
+    )
+    result = await db.execute(query)
+    all_items = list(result.scalars().all())
+
+    # Python에서 필터링 (JSON 쿼리 호환성 문제 우회)
+    filtered_items = all_items
     if play_id:
-        items, total = await activity_repo.list_by_play(
-            db, play_id=play_id, limit=page_size, skip=skip
-        )
-    elif source_type:
-        items, total = await activity_repo.list_by_source_type(
-            db, source_type=source_type, limit=page_size, skip=skip
-        )
-    else:
-        # 전체 조회 (Entity 타입이 ACTIVITY인 것만)
-        from sqlalchemy import func, select
-
-        from backend.database.models.entity import Entity, EntityType
-
-        # 쿼리 실행
-        query = (
-            select(Entity)
-            .where(Entity.entity_type == EntityType.ACTIVITY)
-            .order_by(Entity.created_at.desc())
-            .offset(skip)
-            .limit(page_size)
-        )
-        result = await db.execute(query)
-        items = list(result.scalars().all())
-
-        # 총 개수
-        count_query = (
-            select(func.count())
-            .select_from(Entity)
-            .where(Entity.entity_type == EntityType.ACTIVITY)
-        )
-        count_result = await db.execute(count_query)
-        total = count_result.scalar() or 0
-
-    # 상태 필터 (post-filtering)
-    if status and items:
-        items = [
-            item for item in items if (item.properties or {}).get("status") == status
+        filtered_items = [
+            item for item in filtered_items
+            if (item.properties or {}).get("play_id") == play_id
         ]
+    if source_type:
+        filtered_items = [
+            item for item in filtered_items
+            if (item.properties or {}).get("source_type") == source_type
+        ]
+    if status:
+        filtered_items = [
+            item for item in filtered_items
+            if (item.properties or {}).get("status") == status
+        ]
+
+    # 페이지네이션
+    total = len(filtered_items)
+    skip = (page - 1) * page_size
+    items = filtered_items[skip : skip + page_size]
 
     return ActivityListResponse(
         items=[ActivityResponse.from_entity(item) for item in items],
@@ -176,12 +168,51 @@ async def get_activity_stats(
     Returns:
         ActivityStatsResponse: 전체 개수, 소스별 개수, 오늘 수집 개수
     """
-    stats = await activity_repo.get_stats(db)
+    from datetime import UTC, datetime
+
+    from sqlalchemy import func, select
+
+    from backend.database.models.entity import Entity, EntityType
+
+    # 총 Activity 수
+    total_result = await db.execute(
+        select(func.count())
+        .select_from(Entity)
+        .where(Entity.entity_type == EntityType.ACTIVITY)
+    )
+    total = total_result.scalar() or 0
+
+    # 모든 Activity 조회 후 Python에서 집계
+    all_result = await db.execute(
+        select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
+    )
+    all_activities = list(all_result.scalars().all())
+
+    # 소스 타입별 개수
+    source_types = ["rss", "festa", "eventbrite", "manual"]
+    by_source_type = {st: 0 for st in source_types}
+    for activity in all_activities:
+        props = activity.properties or {}
+        st = props.get("source_type", "manual")
+        if st in by_source_type:
+            by_source_type[st] += 1
+
+    # 오늘 수집된 Activity 수
+    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_result = await db.execute(
+        select(func.count())
+        .select_from(Entity)
+        .where(
+            Entity.entity_type == EntityType.ACTIVITY,
+            Entity.created_at >= today_start,
+        )
+    )
+    today_count = today_result.scalar() or 0
 
     return ActivityStatsResponse(
-        total=stats["total"],
-        by_source_type=stats["by_source_type"],
-        today_count=stats["today_count"],
+        total=total,
+        by_source_type=by_source_type,
+        today_count=today_count,
     )
 
 
