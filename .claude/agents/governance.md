@@ -1,5 +1,6 @@
 ---
 name: "governance"
+description: "위험 작업 차단, 승인, 감사 로그 담당"
 ---
 
 # Governance Agent

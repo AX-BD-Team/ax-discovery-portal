@@ -1,5 +1,6 @@
 ---
 name: "external_scout"
+description: "외부 세미나/리포트/뉴스 수집하여 Activity와 Signal 생성"
 ---
 
 # External Scout Agent

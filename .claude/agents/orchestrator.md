@@ -1,5 +1,6 @@
 ---
 name: "orchestrator"
+description: "메인 워크플로 실행 및 서브에이전트 조율"
 ---
 
 # Orchestrator Agent

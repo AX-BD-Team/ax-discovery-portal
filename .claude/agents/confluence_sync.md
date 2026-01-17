@@ -1,5 +1,6 @@
 ---
 name: "confluence_sync"
+description: "Confluence DB/Live doc 자동 업데이트 담당"
 ---
 
 # Confluence Sync Agent

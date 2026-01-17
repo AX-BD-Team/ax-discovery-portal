@@ -1,5 +1,6 @@
 ---
 name: "voc_analyst"
+description: "VoC/티켓 데이터 분석하여 테마화하고 Signal 생성"
 ---
 
 # VoC Analyst Agent

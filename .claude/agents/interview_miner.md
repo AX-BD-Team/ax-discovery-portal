@@ -1,5 +1,6 @@
 ---
 name: "interview_miner"
+description: "인터뷰 노트에서 Pain Point/니즈/기회 추출하여 Signal 생성"
 ---
 
 # Interview Miner Agent

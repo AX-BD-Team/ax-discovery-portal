@@ -90,6 +90,23 @@ class ActivityStatsResponse(BaseModel):
 # ============================================================
 
 
+@router.get("/test")
+async def test_activity_db(db: AsyncSession = Depends(get_db)):
+    """DB 연결 테스트"""
+    try:
+        from sqlalchemy import select
+
+        from backend.database.models.entity import Entity, EntityType
+
+        result = await db.execute(
+            select(Entity).where(Entity.entity_type == EntityType.ACTIVITY).limit(1)
+        )
+        items = list(result.scalars().all())
+        return {"status": "ok", "count": len(items)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "type": type(e).__name__}
+
+
 @router.get("", response_model=ActivityListResponse)
 async def list_activities(
     play_id: str | None = Query(None, description="Play ID 필터"),
@@ -114,7 +131,7 @@ async def list_activities(
     Returns:
         ActivityListResponse: Activity 목록 + 페이지네이션 정보
     """
-    from sqlalchemy import func, select
+    from sqlalchemy import select
 
     from backend.database.models.entity import Entity, EntityType
 
@@ -190,7 +207,7 @@ async def get_activity_stats(
 
     # 소스 타입별 개수
     source_types = ["rss", "festa", "eventbrite", "manual"]
-    by_source_type = {st: 0 for st in source_types}
+    by_source_type = dict.fromkeys(source_types, 0)
     for activity in all_activities:
         props = activity.properties or {}
         st = props.get("source_type", "manual")
@@ -230,7 +247,19 @@ async def get_activity(
     Returns:
         ActivityResponse: Activity 상세 정보
     """
-    entity = await activity_repo.get_by_id(db, activity_id)
+    from sqlalchemy import and_, select
+
+    from backend.database.models.entity import Entity, EntityType
+
+    result = await db.execute(
+        select(Entity).where(
+            and_(
+                Entity.entity_id == activity_id,
+                Entity.entity_type == EntityType.ACTIVITY,
+            )
+        )
+    )
+    entity = result.scalar_one_or_none()
 
     if not entity:
         raise HTTPException(status_code=404, detail="Activity not found")
@@ -254,7 +283,22 @@ async def get_activity_by_url(
     Returns:
         Activity 정보 (없으면 404)
     """
-    entity = await activity_repo.get_by_url(db, url)
+    from sqlalchemy import select
+
+    from backend.database.models.entity import Entity, EntityType
+
+    # 모든 Activity 조회 후 URL로 필터링
+    result = await db.execute(
+        select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
+    )
+    all_activities = list(result.scalars().all())
+
+    entity = None
+    for activity in all_activities:
+        props = activity.properties or {}
+        if props.get("url") == url:
+            entity = activity
+            break
 
     if not entity:
         raise HTTPException(status_code=404, detail="Activity not found for this URL")
@@ -282,19 +326,46 @@ async def check_duplicate(
     Returns:
         중복 여부 및 기존 Activity 정보
     """
+    from sqlalchemy import select
+
+    from backend.database.models.entity import Entity, EntityType
+
     if not any([url, title, external_id]):
         raise HTTPException(
             status_code=400,
             detail="url, title, 또는 external_id 중 하나는 필수입니다",
         )
 
-    existing = await activity_repo.check_duplicate(
-        db,
-        url=url,
-        title=title,
-        date=date,
-        external_id=external_id,
+    # 모든 Activity 조회 후 Python에서 중복 체크
+    result = await db.execute(
+        select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
     )
+    all_activities = list(result.scalars().all())
+
+    existing = None
+
+    # 1. external_id로 체크
+    if external_id:
+        for activity in all_activities:
+            if activity.external_ref_id == external_id:
+                existing = activity
+                break
+
+    # 2. URL로 체크
+    if not existing and url:
+        for activity in all_activities:
+            props = activity.properties or {}
+            if props.get("url") == url:
+                existing = activity
+                break
+
+    # 3. 제목 + 날짜로 체크
+    if not existing and title and date:
+        for activity in all_activities:
+            props = activity.properties or {}
+            if activity.name == title and props.get("date") == date:
+                existing = activity
+                break
 
     if existing:
         return {

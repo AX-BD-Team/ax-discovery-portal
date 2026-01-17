@@ -1,5 +1,6 @@
 ---
 name: "scorecard_evaluator"
+description: "Signal 정량 평가하여 GO/PIVOT/HOLD/NO_GO 판정"
 ---
 
 # Scorecard Evaluator Agent

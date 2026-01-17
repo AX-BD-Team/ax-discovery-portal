@@ -89,7 +89,10 @@ class Entity(Base):
     entity_id: Mapped[str] = mapped_column(String(50), primary_key=True)
 
     # 엔티티 유형
-    entity_type: Mapped[EntityType] = mapped_column(Enum(EntityType), nullable=False)
+    entity_type: Mapped[EntityType] = mapped_column(
+        Enum(EntityType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+    )
 
     # 기본 정보
     name: Mapped[str] = mapped_column(String(500), nullable=False)

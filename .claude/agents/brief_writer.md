@@ -1,5 +1,6 @@
 ---
 name: "brief_writer"
+description: "Scorecard 통과 Signal을 1-Page Opportunity Brief로 변환"
 ---
 
 # Brief Writer Agent

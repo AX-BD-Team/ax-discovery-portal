@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Confluence 페이지 자동 생성 및 연동** 📄
+  - Confluence API를 통한 페이지 자동 생성
+    - 프로젝트 현황 페이지 (Page ID: 753665)
+    - Play 진행현황 DB (Page ID: 720899)
+    - Action Log (Page ID: 786433)
+  - 환경변수 설정:
+    - `CONFLUENCE_SPACE_KEY=AB` (올바른 Space Key로 수정)
+    - `CONFLUENCE_ACTION_LOG_PAGE_ID`, `CONFLUENCE_PLAY_DB_PAGE_ID`, `CONFLUENCE_PROJECT_STATUS_PAGE_ID`
+  - Slack 웹훅 연동: Confluence 업데이트 알림 전송 (#ax-bd-alerts)
+
 - **세미나-BD 온톨로지 통합 (WF-01 확장)** 🧠
   - `LLMExtractionService`: Claude API 기반 엔티티/관계 추출 (`llm_extraction_service.py`)
   - `EntityResolutionService`: 동일 엔티티 식별 및 병합 (`entity_resolution_service.py`)
