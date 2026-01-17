@@ -787,14 +787,17 @@ class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
         signal: dict[str, Any],
         scorecard: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        """결과를 DB에 저장"""
+        """결과를 DB에 저장 (Signal + Scorecard + Opportunity)"""
+        from backend.database.models.opportunity import OpportunityStage
         from backend.database.models.signal import SignalStatus
+        from backend.database.repositories.opportunity import opportunity_repo
         from backend.database.repositories.scorecard import scorecard_repo
         from backend.database.repositories.signal import signal_repo
 
         saved: dict[str, str | None] = {
             "signal_id": None,
             "scorecard_id": None,
+            "opportunity_id": None,
         }
 
         # Signal 저장
@@ -823,6 +826,47 @@ class InboundTriagePipelineWithDB(InboundTriagePipelineWithEvents):
                 self.logger.info("Scorecard draft saved", scorecard_id=scorecard_id)
             except Exception as e:
                 self.logger.error("Failed to save scorecard", error=str(e))
+
+        # Opportunity 생성 (Signal과 연결)
+        if saved["signal_id"]:
+            try:
+                opportunity_id = await opportunity_repo.generate_opportunity_id(self.db)
+
+                # Scorecard 점수에 따라 초기 단계 결정
+                initial_stage = OpportunityStage.DISCOVERY
+                if scorecard:
+                    total_score = scorecard.get("total_score", 0)
+                    decision = scorecard.get("recommendation", {}).get("decision", "")
+                    # GO 판정이고 점수가 70 이상이면 IDEA_CARD 단계로 시작
+                    if decision == "GO" and total_score >= 70:
+                        initial_stage = OpportunityStage.IDEA_CARD
+
+                opp_data = {
+                    "opportunity_id": opportunity_id,
+                    "title": signal.get("title", "Untitled Opportunity"),
+                    "description": signal.get("pain", ""),
+                    "current_stage": initial_stage,
+                    "signal_id": saved["signal_id"],
+                    "bd_owner": signal.get("owner"),
+                    "play_id": signal.get("play_id"),
+                    "tags": signal.get("tags", []),
+                    "stage_artifacts": {
+                        "signal_id": saved["signal_id"],
+                        "scorecard_id": saved["scorecard_id"],
+                    },
+                    "gate_decisions": {},
+                }
+
+                db_opp = await opportunity_repo.create(self.db, opp_data)
+                saved["opportunity_id"] = db_opp.opportunity_id
+
+                self.logger.info(
+                    "Opportunity created",
+                    opportunity_id=opportunity_id,
+                    initial_stage=initial_stage.value,
+                )
+            except Exception as e:
+                self.logger.error("Failed to create opportunity", error=str(e))
 
         await self.db.commit()
         return saved
