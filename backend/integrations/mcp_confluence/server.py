@@ -5,8 +5,10 @@ Confluence API 연동을 위한 MCP 서버
 """
 
 import os
+import re
 from typing import Any
 
+import markdown2
 import structlog
 from atlassian import Confluence
 
@@ -178,30 +180,105 @@ class ConfluenceMCP:
             self.logger.error("add_labels_failed", error=str(e))
             raise
 
-    # ========== DB Tools (Confluence Database) ==========
+    # ========== DB Tools (PostgreSQL 위임) ==========
+    #
+    # Confluence Cloud API는 Database 기능을 지원하지 않습니다.
+    # 대신 PostgreSQL 기반의 PlayRecordRepository를 사용합니다.
+    #
+    # 권장 사용법:
+    #   from backend.database.repositories.play_record import play_record_repo
+    #   from backend.services.play_sync_service import play_sync_service
+    #
+    # 예시:
+    #   play = await play_record_repo.get_by_id(db, play_id)
+    #   await play_sync_service.sync_play_to_confluence(db, play_id)
 
     async def db_query(
         self, database_id: str, filters: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """DB 조회"""
-        # TODO: Confluence Database API 구현
-        # 현재 Confluence Cloud API는 DB 기능이 제한적
-        self.logger.info("db_query", database_id=database_id)
-        return {"rows": [], "total": 0}
+        """
+        [DEPRECATED] DB 조회 - PostgreSQL PlayRecordRepository 사용 권장
+
+        Confluence Cloud API는 Database 기능을 지원하지 않습니다.
+        대신 play_record_repo.get_multi_filtered() 또는
+        play_record_repo.get_all()을 사용하세요.
+
+        Args:
+            database_id: 무시됨 (하위 호환성용)
+            filters: 무시됨 (하위 호환성용)
+
+        Returns:
+            dict: 빈 결과와 함께 PostgreSQL 사용 안내
+        """
+        self.logger.warning(
+            "db_query is deprecated. Use PlayRecordRepository instead.",
+            database_id=database_id,
+        )
+        return {
+            "rows": [],
+            "total": 0,
+            "deprecated": True,
+            "message": "Confluence Database API는 지원되지 않습니다. "
+            "PostgreSQL 기반의 play_record_repo를 사용하세요.",
+            "alternative": "play_record_repo.get_multi_filtered(db, status, owner, skip, limit)",
+        }
 
     async def db_upsert_row(
         self, database_id: str, row_id: str, data: dict[str, Any]
     ) -> dict[str, Any]:
-        """DB 행 업데이트/삽입"""
-        # TODO: Confluence Database API 구현
-        self.logger.info("db_upsert_row", database_id=database_id, row_id=row_id)
-        return {"row_id": row_id, "status": "upserted"}
+        """
+        [DEPRECATED] DB 행 업데이트/삽입 - PostgreSQL 사용 권장
+
+        Confluence Cloud API는 Database 기능을 지원하지 않습니다.
+        대신 play_sync_service.sync_play_to_confluence()를 사용하세요.
+
+        Args:
+            database_id: 무시됨 (하위 호환성용)
+            row_id: Play ID (참고용)
+            data: 무시됨 (하위 호환성용)
+
+        Returns:
+            dict: PostgreSQL 사용 안내
+        """
+        self.logger.warning(
+            "db_upsert_row is deprecated. Use PlaySyncService instead.",
+            database_id=database_id,
+            row_id=row_id,
+        )
+        return {
+            "row_id": row_id,
+            "status": "deprecated",
+            "deprecated": True,
+            "message": "Confluence Database API는 지원되지 않습니다. "
+            "PostgreSQL 기반의 play_sync_service를 사용하세요.",
+            "alternative": "play_sync_service.sync_play_to_confluence(db, play_id)",
+        }
 
     async def db_insert_row(self, database_id: str, data: dict[str, Any]) -> dict[str, Any]:
-        """DB 행 삽입"""
-        # TODO: Confluence Database API 구현
-        self.logger.info("db_insert_row", database_id=database_id)
-        return {"status": "inserted"}
+        """
+        [DEPRECATED] DB 행 삽입 - PostgreSQL 사용 권장
+
+        Confluence Cloud API는 Database 기능을 지원하지 않습니다.
+        대신 play_record_repo.create()를 사용하세요.
+
+        Args:
+            database_id: 무시됨 (하위 호환성용)
+            data: 무시됨 (하위 호환성용)
+
+        Returns:
+            dict: PostgreSQL 사용 안내
+        """
+        self.logger.warning(
+            "db_insert_row is deprecated. Use PlayRecordRepository instead.",
+            database_id=database_id,
+        )
+        return {
+            "status": "deprecated",
+            "deprecated": True,
+            "message": "Confluence Database API는 지원되지 않습니다. "
+            "PostgreSQL 기반의 play_record_repo를 사용하세요.",
+            "alternative": "play_record_repo.create(db, PlayRecord(...))",
+        }
 
     async def increment_play_activity_count(self, page_id: str, play_id: str) -> dict[str, Any]:
         """Play DB 테이블에서 activity_qtd 증가"""
@@ -239,10 +316,93 @@ class ConfluenceMCP:
     # ========== 유틸리티 ==========
 
     def _markdown_to_confluence(self, md: str) -> str:
-        """Markdown to Confluence Wiki 변환 (간단 버전)"""
-        # TODO: 더 완전한 변환 구현
-        # 현재는 기본 HTML 래핑만
-        return f"<p>{md}</p>".replace("\n", "<br/>")
+        """
+        Markdown to Confluence Storage Format 변환
+
+        지원 요소:
+        - 헤더 (h1~h6)
+        - 표 (테이블)
+        - 링크
+        - 목록 (순서/비순서)
+        - 강조 (bold, italic)
+        - 코드 블록
+        - 취소선
+        """
+        if not md or not md.strip():
+            return ""
+
+        # 1. markdown2로 HTML 변환 (테이블, 코드 하이라이팅 지원)
+        html = markdown2.markdown(
+            md,
+            extras=[
+                "tables",
+                "fenced-code-blocks",
+                "strike",
+                "task_list",
+                "header-ids",
+            ],
+        )
+
+        # 2. Confluence Storage Format 호환 처리
+
+        # 2-1. 코드 블록 (codehilite div) → Confluence 코드 매크로
+        # markdown2 codehilite 패턴: <div class="codehilite"><pre>...</pre></div>
+        def replace_codehilite(match):
+            code_content = match.group(1)
+            # HTML 태그 제거하고 순수 코드만 추출
+            code_content = re.sub(r"<[^>]+>", "", code_content)
+            # HTML 엔티티 디코딩
+            code_content = code_content.replace("&quot;", '"')
+            code_content = code_content.replace("&lt;", "<")
+            code_content = code_content.replace("&gt;", ">")
+            code_content = code_content.replace("&amp;", "&")
+            return f'<ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[{code_content}]]></ac:plain-text-body></ac:structured-macro>'
+
+        html = re.sub(
+            r'<div class="codehilite">\s*<pre[^>]*><span></span><code>(.*?)</code></pre>\s*</div>',
+            replace_codehilite,
+            html,
+            flags=re.DOTALL,
+        )
+
+        # 2-2. 일반 코드 블록: <pre><code> → <ac:structured-macro>
+        html = re.sub(
+            r'<pre><code class="([^"]+)">(.*?)</code></pre>',
+            r'<ac:structured-macro ac:name="code"><ac:parameter ac:name="language">\1</ac:parameter><ac:plain-text-body><![CDATA[\2]]></ac:plain-text-body></ac:structured-macro>',
+            html,
+            flags=re.DOTALL,
+        )
+        html = re.sub(
+            r"<pre><code>(.*?)</code></pre>",
+            r'<ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[\1]]></ac:plain-text-body></ac:structured-macro>',
+            html,
+            flags=re.DOTALL,
+        )
+
+        # 2-3. 테이블 스타일 추가 (Confluence 기본 테이블 스타일)
+        html = html.replace("<table>", '<table class="wrapped">')
+        html = html.replace("<th>", '<th class="confluenceTh">')
+        html = html.replace("<td>", '<td class="confluenceTd">')
+
+        # 2-4. 체크박스 (Task list)
+        html = html.replace(
+            '<input type="checkbox" disabled>',
+            '<ac:task-status>incomplete</ac:task-status>',
+        )
+        html = html.replace(
+            '<input type="checkbox" checked disabled>',
+            '<ac:task-status>complete</ac:task-status>',
+        )
+
+        # 2-5. 취소선: <s> → <span style>
+        html = html.replace("<s>", "<span style='text-decoration: line-through;'>")
+        html = html.replace("</s>", "</span>")
+
+        # 2-6. <del> 태그도 처리 (일부 Markdown 파서 호환)
+        html = html.replace("<del>", "<span style='text-decoration: line-through;'>")
+        html = html.replace("</del>", "</span>")
+
+        return html
 
 
 # MCP Tool 정의

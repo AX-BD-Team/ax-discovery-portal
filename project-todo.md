@@ -200,8 +200,8 @@
 ## 🐛 알려진 이슈
 
 1. ~~**Stream Router**: event_types.py dataclass 오류로 임시 제거~~ ✅ 해결됨 (datetime deprecation 수정)
-2. **Confluence Database API**: Confluence Cloud API의 Database 기능 제약 → 대안 필요 (페이지 테이블 우회 또는 Postgres 사용)
-3. **Markdown to Confluence 변환**: 현재 간단한 HTML 래핑만 구현 → 완전한 변환 라이브러리 필요
+2. ~~**Confluence Database API**: Confluence Cloud API의 Database 기능 제약~~ ✅ 해결됨 (PostgreSQL 기반 PlayRecordRepository 사용, DB 스텁 메소드 Deprecated 처리)
+3. ~~**Markdown to Confluence 변환**: 현재 간단한 HTML 래핑만 구현~~ ✅ 해결됨 (markdown2 라이브러리 도입, Confluence Storage Format 완전 변환 구현)
 4. ~~**인증/권한**: 현재 mock 구현, 프로덕션용 JWT 인증 필요~~ ✅ 해결됨 (JWT 인증 시스템 구현)
 5. ~~**Alembic 마이그레이션**: 초기 스키마 생성 필요~~ ✅ 해결됨 (3개 마이그레이션 체인 완성)
 6. ~~**Render 배포 오류**: email-validator 의존성 누락~~ ✅ 해결됨 (명시적 의존성 추가)

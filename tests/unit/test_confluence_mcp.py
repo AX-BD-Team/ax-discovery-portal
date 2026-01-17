@@ -378,33 +378,37 @@ class TestAddLabels:
             await confluence_mcp.add_labels(page_id="12345", labels=["invalid@label"])
 
 
-# ========== DB Tools 테스트 ==========
+# ========== DB Tools 테스트 (PostgreSQL 위임, Deprecated) ==========
 
 
 class TestDBTools:
-    """DB Tools 테스트 (현재 TODO 구현)"""
+    """DB Tools 테스트 - PostgreSQL 위임 및 Deprecated 안내"""
 
     @pytest.mark.asyncio
-    async def test_db_query(self, confluence_mcp):
-        """DB 조회 (TODO)"""
+    async def test_db_query_deprecated(self, confluence_mcp):
+        """DB 조회 - Deprecated 응답 확인"""
         result = await confluence_mcp.db_query(database_id="db-001")
 
         assert result["rows"] == []
         assert result["total"] == 0
+        assert result["deprecated"] is True
+        assert "PostgreSQL" in result["message"]
+        assert "play_record_repo" in result["alternative"]
 
     @pytest.mark.asyncio
     async def test_db_query_with_filters(self, confluence_mcp):
-        """필터 포함 DB 조회"""
+        """필터 포함 DB 조회 - Deprecated 응답"""
         result = await confluence_mcp.db_query(
             database_id="db-001",
             filters={"status": "active"},
         )
 
         assert result["rows"] == []
+        assert result["deprecated"] is True
 
     @pytest.mark.asyncio
-    async def test_db_upsert_row(self, confluence_mcp):
-        """DB 행 업데이트/삽입 (TODO)"""
+    async def test_db_upsert_row_deprecated(self, confluence_mcp):
+        """DB 행 업데이트/삽입 - Deprecated 응답 확인"""
         result = await confluence_mcp.db_upsert_row(
             database_id="db-001",
             row_id="row-123",
@@ -412,17 +416,21 @@ class TestDBTools:
         )
 
         assert result["row_id"] == "row-123"
-        assert result["status"] == "upserted"
+        assert result["status"] == "deprecated"
+        assert result["deprecated"] is True
+        assert "play_sync_service" in result["alternative"]
 
     @pytest.mark.asyncio
-    async def test_db_insert_row(self, confluence_mcp):
-        """DB 행 삽입 (TODO)"""
+    async def test_db_insert_row_deprecated(self, confluence_mcp):
+        """DB 행 삽입 - Deprecated 응답 확인"""
         result = await confluence_mcp.db_insert_row(
             database_id="db-001",
             data={"name": "새 행"},
         )
 
-        assert result["status"] == "inserted"
+        assert result["status"] == "deprecated"
+        assert result["deprecated"] is True
+        assert "play_record_repo" in result["alternative"]
 
 
 # ========== increment_play_activity_count 테스트 ==========
@@ -478,28 +486,168 @@ class TestIncrementPlayActivityCount:
         assert result["status"] == "not_found"
 
 
-# ========== 유틸리티 테스트 ==========
+# ========== 유틸리티 테스트 (Markdown 변환) ==========
 
 
-class TestUtilities:
-    """유틸리티 메서드 테스트"""
+class TestMarkdownToConfluence:
+    """Markdown to Confluence 변환 테스트"""
 
-    def test_markdown_to_confluence_simple(self, confluence_mcp):
-        """간단한 Markdown 변환"""
+    def test_simple_text(self, confluence_mcp):
+        """간단한 텍스트 변환"""
         result = confluence_mcp._markdown_to_confluence("Hello World")
         assert "<p>Hello World</p>" in result
 
-    def test_markdown_to_confluence_newlines(self, confluence_mcp):
-        """줄바꿈 포함 Markdown 변환"""
-        result = confluence_mcp._markdown_to_confluence("Line 1\nLine 2\nLine 3")
-        assert "<br/>" in result
-        assert "Line 1" in result
-        assert "Line 3" in result
+    def test_headers(self, confluence_mcp):
+        """헤더 변환 (h1~h6)"""
+        md = "# 제목 1\n## 제목 2\n### 제목 3"
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert "<h1" in result
+        assert "<h2" in result
+        assert "<h3" in result
+        assert "제목 1" in result
+        assert "제목 2" in result
+        assert "제목 3" in result
 
-    def test_markdown_to_confluence_empty(self, confluence_mcp):
+    def test_bold_and_italic(self, confluence_mcp):
+        """강조 (bold, italic) 변환"""
+        md = "이것은 **굵은 글씨**와 *기울인 글씨*입니다."
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert "<strong>굵은 글씨</strong>" in result
+        assert "<em>기울인 글씨</em>" in result
+
+    def test_links(self, confluence_mcp):
+        """링크 변환"""
+        md = "[구글](https://google.com)로 이동"
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert '<a href="https://google.com">구글</a>' in result
+
+    def test_unordered_list(self, confluence_mcp):
+        """비순서 목록 변환"""
+        md = "- 항목 1\n- 항목 2\n- 항목 3"
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert "<ul>" in result
+        assert "<li>" in result
+        assert "항목 1" in result
+        assert "항목 3" in result
+
+    def test_ordered_list(self, confluence_mcp):
+        """순서 목록 변환"""
+        md = "1. 첫 번째\n2. 두 번째\n3. 세 번째"
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert "<ol>" in result
+        assert "<li>" in result
+        assert "첫 번째" in result
+
+    def test_table(self, confluence_mcp):
+        """테이블 변환"""
+        md = """| 이름 | 나이 |
+| --- | --- |
+| 홍길동 | 30 |
+| 김철수 | 25 |"""
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert '<table class="wrapped">' in result
+        assert '<th class="confluenceTh">' in result
+        assert '<td class="confluenceTd">' in result
+        assert "홍길동" in result
+        assert "30" in result
+
+    def test_code_block_with_language(self, confluence_mcp):
+        """언어 지정 코드 블록 변환"""
+        md = """```python
+def hello():
+    print("Hello")
+```"""
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert "ac:structured-macro" in result
+        assert 'ac:name="code"' in result
+        assert "def hello():" in result
+        assert 'print("Hello")' in result
+
+    def test_code_block_without_language(self, confluence_mcp):
+        """언어 미지정 코드 블록 변환"""
+        md = """```
+plain code
+```"""
+        result = confluence_mcp._markdown_to_confluence(md)
+        # markdown2는 언어 없는 코드 블록도 처리함
+        assert "plain code" in result
+
+    def test_inline_code(self, confluence_mcp):
+        """인라인 코드 변환"""
+        md = "변수 `foo`를 사용합니다."
+        result = confluence_mcp._markdown_to_confluence(md)
+        assert "<code>foo</code>" in result
+
+    def test_strikethrough(self, confluence_mcp):
+        """취소선 변환"""
+        md = "~~삭제된 텍스트~~"
+        result = confluence_mcp._markdown_to_confluence(md)
+        # markdown2는 ~~text~~를 <s>text</s>로 변환, 이후 <span style>로 변환됨
+        assert "line-through" in result
+        assert "삭제된 텍스트" in result
+
+    def test_empty_string(self, confluence_mcp):
         """빈 문자열 변환"""
         result = confluence_mcp._markdown_to_confluence("")
-        assert result == "<p></p>"
+        assert result == ""
+
+    def test_whitespace_only(self, confluence_mcp):
+        """공백만 있는 문자열 변환"""
+        result = confluence_mcp._markdown_to_confluence("   \n\t  ")
+        assert result == ""
+
+    def test_complex_document(self, confluence_mcp):
+        """복합 문서 변환 (라운드트립 테스트)"""
+        md = """# Signal 요약
+
+## 기본 정보
+
+| 항목 | 값 |
+| --- | --- |
+| Signal ID | SIG-001 |
+| Play ID | PLAY-001 |
+
+## Pain Point
+
+고객사가 **레거시 시스템**을 클라우드로 이전하고 싶어합니다.
+
+### 근거
+
+1. 운영 비용 절감
+2. 확장성 확보
+3. 보안 강화
+
+자세한 내용은 [여기](https://example.com)를 참조하세요.
+
+```python
+# 예시 코드
+print("Hello, World!")
+```
+"""
+        result = confluence_mcp._markdown_to_confluence(md)
+
+        # 헤더 확인
+        assert "<h1" in result
+        assert "<h2" in result
+        assert "<h3" in result
+
+        # 테이블 확인
+        assert '<table class="wrapped">' in result
+        assert "SIG-001" in result
+
+        # 강조 확인
+        assert "<strong>레거시 시스템</strong>" in result
+
+        # 목록 확인
+        assert "<ol>" in result
+        assert "운영 비용 절감" in result
+
+        # 링크 확인
+        assert '<a href="https://example.com">' in result
+
+        # 코드 블록 확인 - Confluence 매크로로 변환됨
+        assert "ac:structured-macro" in result
+        assert 'print("Hello, World!")' in result
 
 
 # ========== MCP_TOOLS 스키마 테스트 ==========

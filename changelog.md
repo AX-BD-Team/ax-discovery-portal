@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Markdown to Confluence 완전 변환 구현** 📄
+  - `markdown2` 라이브러리 도입
+  - Confluence Storage Format 완전 변환 지원:
+    - 헤더 (h1~h6), 표 (`<table class="wrapped">`), 링크, 목록
+    - 강조 (bold, italic), 취소선
+    - 코드 블록 → Confluence `<ac:structured-macro>` 매크로
+  - 테스트 15개 추가 (`tests/unit/test_confluence_mcp.py`)
+
+### Fixed
+
+- **Confluence Database API 제약 해결** 🔧
+  - Confluence Cloud API는 Database 기능을 지원하지 않음
+  - 해결: PostgreSQL 기반 `PlayRecordRepository` 활용
+  - `db_query`, `db_upsert_row`, `db_insert_row` 메소드 Deprecated 처리
+  - 대안 코드 안내 추가 (`play_record_repo`, `play_sync_service`)
+
 - **외부 세미나 프론트엔드 페이지 구현** 📅
   - `apps/web/src/app/activities/page.tsx`: 세미나 목록 페이지
     - 소스 타입별 필터링 (RSS, Festa, Eventbrite, 수동)
