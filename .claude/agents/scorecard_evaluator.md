@@ -17,7 +17,7 @@ Signal을 정량 평가하여 GO/PIVOT/HOLD/NO_GO를 판정합니다.
   "title": "콜센터 AHT 최적화",
   "customer_segment": "금융 콜센터",
   "pain": "평균 통화 시간 8분으로 비용 증가",
-  "evidence": [...]
+  "evidence": []
 }
 ```
 
@@ -112,6 +112,7 @@ def get_recommendation(total_score, red_flags):
 ```json
 {
   "agent_id": "scorecard_evaluator",
+  "model": "sonnet",
   "skill": "ax-scorecard",
   "output_schema": "scorecard.schema.json",
   "requires_approval": false

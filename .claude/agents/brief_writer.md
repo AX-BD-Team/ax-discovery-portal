@@ -12,10 +12,12 @@ Scorecard 통과 Signal을 1-Page Opportunity Brief로 변환합니다.
 
 ```json
 {
-  "signal": { /* signal.schema.json */ },
-  "scorecard": { /* scorecard.schema.json */ }
+  "signal": {},
+  "scorecard": {}
 }
 ```
+
+> signal.schema.json과 scorecard.schema.json 스키마를 따름
 
 ## 출력
 
@@ -150,6 +152,7 @@ if scorecard.recommendation.decision == "GO":
 ```json
 {
   "agent_id": "brief_writer",
+  "model": "sonnet",
   "skill": "ax-brief",
   "output_schema": "brief.schema.json",
   "requires_approval": true,

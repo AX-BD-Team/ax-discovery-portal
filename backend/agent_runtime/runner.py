@@ -342,6 +342,8 @@ class AgentRuntime:
         agent_files = {
             "orchestrator": "orchestrator.md",
             "external_scout": "external_scout.md",
+            "interview_miner": "interview_miner.md",
+            "voc_analyst": "voc_analyst.md",
             "scorecard_evaluator": "scorecard_evaluator.md",
             "brief_writer": "brief_writer.md",
             "confluence_sync": "confluence_sync.md",

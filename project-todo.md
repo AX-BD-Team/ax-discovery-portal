@@ -11,7 +11,7 @@
 
 ### 완료 항목
 - [x] 프로젝트 구조 생성
-- [x] 6개 에이전트 정의 (orchestrator, external_scout, scorecard_evaluator, brief_writer, confluence_sync, governance)
+- [x] 8개 에이전트 정의 (orchestrator, external_scout, interview_miner, voc_analyst, scorecard_evaluator, brief_writer, confluence_sync, governance)
 - [x] 6개 Skills 정의 (ax-scorecard, ax-brief, ax-sprint, ax-seminar, ax-confluence, ax-wrap-up)
 - [x] 5개 Commands 정의 (/ax:seminar-add, /ax:triage, /ax:brief, /ax:kpi-digest, /ax:wrap-up)
 - [x] 7개 JSON Schema 모델 (signal, scorecard, brief, validation, pilot_ready, play_record, action_log)

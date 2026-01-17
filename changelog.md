@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **신규 Agent 추가 (interview_miner, voc_analyst)** 🤖
+  - `interview_miner`: 인터뷰 노트 → Pain Point/니즈 추출 → Signal 생성
+  - `voc_analyst`: VoC 데이터 클러스터링 → 테마화 → Signal/Brief 후보
+  - WF-02 (Interview to Brief), WF-03 (VoC Mining) 파이프라인 완전 자동화
+
 - **Ontology P0 필드 마이그레이션** 🗃️
   - Entity 테이블: Recency 필드 (`published_at`, `observed_at`, `ingested_at`)
   - Entity 테이블: Source Sync 필드 (`last_synced_at`, `sync_status`)
@@ -19,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ORGANIZATION 엔티티 ID 접두사 `ORG-` 매핑 추가
 
 ### Fixed
+
+- **Agent 설정 JSON 파싱 오류 수정** 🔧
+  - `scorecard_evaluator.md`: 입력 예시 JSON 수정, model 필드 추가
+  - `brief_writer.md`: 입력 예시 JSON 주석 제거, model 필드 추가
+  - 에이전트 로드 시 경고 메시지 제거됨
 
 - **mypy 타입 오류 85개 수정** 🔧
   - Claude Agent SDK `@tool` 데코레이터 타입 호환성 처리
