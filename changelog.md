@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Opportunity Stage 파이프라인 시스템** 🚀
+  - **11단계 Stage 파이프라인**: DISCOVERY → IDEA_CARD → GATE1 → MOCKUP → GATE2 → BIZ_PLANNING → PILOT → PRE_PROPOSAL → HANDOFF + HOLD/DROP
+  - **신규 모델 4개**:
+    - `Opportunity`: 사업기회 엔티티 (current_stage, health_score, owner, dates)
+    - `StageTransition`: 단계 전환 이력 추적 (trigger, decision, reason)
+    - `ApprovalRequest`: HITL 승인 워크플로 (GATE 심사, 위험 도구)
+    - `Task`: Play별 ToDoList 관리 (template_key, priority, due_date)
+  - **PlayRecord 확장**: 목표/실적 필드 추가 (goal_*, actual_*), RAG 자동 계산
+  - **API 라우터 2개**:
+    - `stages.py` (821줄): Opportunity CRUD, Stage 전환, HITL 승인, Funnel 분석
+    - `tasks.py` (370줄): Task CRUD, 템플릿 기반 생성, 일괄 완료
+  - **서비스 4개**:
+    - `TaskConverter`: 템플릿 기반 Task 자동 생성
+    - `ApprovalService`: 승인 워크플로 관리
+    - `NotificationService`: Teams/Slack 알림 (stub)
+    - `PlaySyncTriggers`: Confluence 동기화 이벤트 발행
+  - **DB 마이그레이션**: opportunities, stage_transitions, approval_requests 테이블
+  - **API 클라이언트**: `packages/shared/api-client/src/endpoints/tasks.ts`
+
 - **외부 세미나 수집 API 리팩토링** 🎯
   - Festa.io 서비스 종료(2025.01.31) 대응
     - `FestaCollector` DEPRECATED 처리 (빈 결과 반환 + 경고)

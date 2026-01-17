@@ -707,8 +707,6 @@ async def _perform_transition(
     approver: str | None = None,
 ):
     """단계 전환 수행 및 이력 저장"""
-    from backend.database.models.opportunity import Opportunity
-
     # 전환 이력 저장
     transition_id = await stage_transition_repo.generate_transition_id(db)
     transition_data = {

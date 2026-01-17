@@ -101,6 +101,17 @@
 
 ### 우선순위 3: 고급 기능
 
+- [x] **Opportunity Stage 파이프라인 시스템** ✅ v0.5.0
+  - [x] Opportunity 모델 (11단계 Stage, health_score, owner)
+  - [x] StageTransition 이력 추적 (trigger, decision, reason)
+  - [x] ApprovalRequest HITL 승인 워크플로
+  - [x] Task 모델 (Play별 ToDoList, template_key)
+  - [x] PlayRecord 확장 (goal_*, actual_*, RAG 자동계산)
+  - [x] stages.py API 라우터 (Opportunity CRUD, Stage 전환, Funnel)
+  - [x] tasks.py API 라우터 (Task CRUD, 템플릿 생성)
+  - [x] TaskConverter, ApprovalService, NotificationService, PlaySyncTriggers
+  - [x] Alembic 마이그레이션 (opportunities, stage_transitions, approval_requests)
+
 - [x] **Ontology 기반 Knowledge Graph** ✅ v0.4.0 → v0.5.1 강화
   - [x] Entity 모델 (13종 EntityType)
   - [x] Triple 모델 (17종 PredicateType, SPO 구조)
