@@ -89,14 +89,14 @@ export default function Home() {
               <>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   {[
-                    { label: 'Activity', actual: kpiDigest.activity_actual, target: kpiDigest.activity_target, icon: '📋' },
-                    { label: 'Signal', actual: kpiDigest.signal_actual, target: kpiDigest.signal_target, icon: '📡' },
-                    { label: 'Brief', actual: kpiDigest.brief_actual, target: kpiDigest.brief_target, icon: '📝' },
-                    { label: 'S2', actual: kpiDigest.s2_actual, target: kpiDigest.s2_target, icon: '✅', isRange: true },
+                    { label: 'Activity', actual: kpiDigest.activity_actual ?? kpiDigest.metrics?.total_activities ?? 0, target: kpiDigest.activity_target ?? 20, icon: '📋' },
+                    { label: 'Signal', actual: kpiDigest.signal_actual ?? kpiDigest.metrics?.new_signals ?? 0, target: kpiDigest.signal_target ?? 30, icon: '📡' },
+                    { label: 'Brief', actual: kpiDigest.brief_actual ?? 0, target: kpiDigest.brief_target ?? 6, icon: '📝' },
+                    { label: 'S2', actual: kpiDigest.s2_actual ?? 0, target: kpiDigest.s2_target ?? '2~4', icon: '✅', isRange: true },
                   ].map((metric, idx) => {
                     const isRange = metric.isRange
                     const targetNum = isRange ? 3 : (metric.target as number)
-                    const percentage = Math.round((metric.actual / targetNum) * 100)
+                    const percentage = Math.round(((metric.actual || 0) / targetNum) * 100)
 
                     return (
                       <div key={idx} className="rounded-lg border border-blue-200 bg-white p-3 shadow-sm">
@@ -133,13 +133,13 @@ export default function Home() {
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 md:gap-3 md:px-4">
                     <Clock className="h-4 w-4 text-purple-600" />
                     <span className="text-xs text-purple-900 md:text-sm">Signal → Brief:</span>
-                    <span className="font-bold text-purple-900">{kpiDigest.avg_signal_to_brief_days.toFixed(1)}일</span>
+                    <span className="font-bold text-purple-900">{(kpiDigest.avg_signal_to_brief_days ?? 0).toFixed(1)}일</span>
                     <span className="text-xs text-purple-600">(≤7일)</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 md:gap-3 md:px-4">
                     <Clock className="h-4 w-4 text-indigo-600" />
                     <span className="text-xs text-indigo-900 md:text-sm">Brief → S2:</span>
-                    <span className="font-bold text-indigo-900">{kpiDigest.avg_brief_to_s2_days.toFixed(1)}일</span>
+                    <span className="font-bold text-indigo-900">{(kpiDigest.avg_brief_to_s2_days ?? 0).toFixed(1)}일</span>
                     <span className="text-xs text-indigo-600">(≤14일)</span>
                   </div>
                 </div>
@@ -203,19 +203,21 @@ export default function Home() {
                 <div className="mb-4 space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">평균 점수</span>
-                    <span className="font-semibold">{scorecardDist.avg_score.toFixed(1)}점</span>
+                    <span className="font-semibold">{(scorecardDist.avg_score ?? 0).toFixed(1)}점</span>
                   </div>
-                  <div className="flex gap-1">
-                    {scorecardDist.ranges.map((r) => (
-                      <div
-                        key={r.range}
-                        className="flex-1 rounded bg-blue-100 px-1 py-0.5 text-center text-xs"
-                        title={r.range}
-                      >
-                        {r.count}
-                      </div>
-                    ))}
-                  </div>
+                  {scorecardDist.ranges && scorecardDist.ranges.length > 0 && (
+                    <div className="flex gap-1">
+                      {scorecardDist.ranges.map((r) => (
+                        <div
+                          key={r.range}
+                          className="flex-1 rounded bg-blue-100 px-1 py-0.5 text-center text-xs"
+                          title={r.range}
+                        >
+                          {r.count}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="mb-4 text-sm text-gray-600">
