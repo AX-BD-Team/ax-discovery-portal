@@ -273,18 +273,26 @@ class KPIDigestPipeline:
             top_plays_count=len(top_plays),
         )
 
+        # alerts/top_plays 타입 변환 (Alert/TopPlay → dict)
+        alerts_dict: list[dict[str, Any]] = (
+            [self._alert_to_dict(a) for a in alerts]
+            if alerts and isinstance(alerts[0], Alert)
+            else alerts  # type: ignore[assignment]
+        )
+        top_plays_dict: list[dict[str, Any]] = (
+            [self._top_play_to_dict(p) for p in top_plays]
+            if top_plays and isinstance(top_plays[0], TopPlay)
+            else top_plays  # type: ignore[assignment]
+        )
+
         return KPIDigestOutput(
             period=input_data.period,
             period_start=period_start.isoformat(),
             period_end=period_end.isoformat(),
             metrics=metrics,
             lead_times=lead_times,
-            alerts=[self._alert_to_dict(a) for a in alerts]
-            if alerts and isinstance(alerts[0], Alert)
-            else alerts,
-            top_plays=[self._top_play_to_dict(p) for p in top_plays]
-            if top_plays and isinstance(top_plays[0], TopPlay)
-            else top_plays,
+            alerts=alerts_dict,
+            top_plays=top_plays_dict,
             recommendations=recommendations,
             status_summary=status_summary,
             confluence_url=confluence_url,

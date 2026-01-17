@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **mypy 타입 오류 85개 수정** 🔧
+  - Claude Agent SDK `@tool` 데코레이터 타입 호환성 처리
+  - SQLAlchemy 모델 forward reference 수정 (`from __future__ import annotations`)
+  - Repository 반환 타입 수정 (`Sequence` → `list` 변환)
+  - 워크플로 파일 변수 타입 어노테이션 추가
+  - Pydantic v2 `@computed_field` + `@property` 데코레이터 스택 처리
+
 ---
 
 ## [0.5.0] - 2026-01-16

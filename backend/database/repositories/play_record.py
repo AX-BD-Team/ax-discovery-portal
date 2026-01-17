@@ -311,11 +311,11 @@ class PlayRecordRepository(CRUDBase[PlayRecord]):
         if not play_record:
             return None
 
-        play_record.status = status
+        play_record.status = status  # type: ignore[assignment]
         if next_action is not None:
             play_record.next_action = next_action
         if due_date is not None:
-            play_record.due_date = due_date
+            play_record.due_date = due_date  # type: ignore[assignment]
 
         await db.flush()
         return play_record

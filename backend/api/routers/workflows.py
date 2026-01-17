@@ -189,11 +189,11 @@ async def run_interview_to_brief(request: InterviewRequest, db: AsyncSession = D
         event_manager = SessionEventManager.get_or_create(session_id)
         emitter = WorkflowEventEmitter(event_manager, run_id)
 
-        pipeline = InterviewToBriefPipelineWithDB(emitter, db)
-        result = await pipeline.run(input_data)
+        pipeline_db = InterviewToBriefPipelineWithDB(emitter, db)
+        result = await pipeline_db.run(input_data)
 
         # DB 저장
-        saved = await pipeline.save_to_db(result.signals, result.scorecards, result.briefs)
+        saved = await pipeline_db.save_to_db(result.signals, result.scorecards, result.briefs)
 
         # 세션 정리
         SessionEventManager.remove(session_id)
@@ -206,8 +206,8 @@ async def run_interview_to_brief(request: InterviewRequest, db: AsyncSession = D
         )
     else:
         # DB 저장 없이 실행
-        pipeline = InterviewToBriefPipeline()
-        result = await pipeline.run(input_data)
+        pipeline_basic = InterviewToBriefPipeline()
+        result = await pipeline_basic.run(input_data)
 
     return InterviewResponse(
         status="completed",
@@ -308,17 +308,17 @@ async def run_inbound_triage(request: InboundTriageRequest, db: AsyncSession = D
         event_manager = SessionEventManager.get_or_create(session_id)
         emitter = WorkflowEventEmitter(event_manager, run_id)
 
-        pipeline = InboundTriagePipelineWithDB(emitter, db)
-        result = await pipeline.run(input_data)
+        pipeline_db = InboundTriagePipelineWithDB(emitter, db)
+        result = await pipeline_db.run(input_data)
 
         # DB 저장 (중복이 아닐 경우)
         if not result.is_duplicate and result.signal_id:
             # Signal dict 구성
-            signal_dict = {
+            signal_dict_to_save = {
                 "signal_id": result.signal_id,
                 "play_id": result.play_id,
             }
-            saved = await pipeline.save_to_db(signal_dict, result.scorecard)
+            saved = await pipeline_db.save_to_db(signal_dict_to_save, result.scorecard)
             logger.info(
                 "Pipeline completed with DB save",
                 signal_id=saved.get("signal_id"),
@@ -335,8 +335,8 @@ async def run_inbound_triage(request: InboundTriageRequest, db: AsyncSession = D
         SessionEventManager.remove(session_id)
     else:
         # DB 저장 없이 실행
-        pipeline = InboundTriagePipeline()
-        result = await pipeline.run(input_data)
+        pipeline_basic = InboundTriagePipeline()
+        result = await pipeline_basic.run(input_data)
 
     # InboundOutput → InboundTriageResponse 필드 매핑
     # signal dict 구성 (InboundOutput에는 signal_id만 있음)
@@ -390,7 +390,7 @@ async def preview_inbound_triage(
     )
 
     # Play 라우팅
-    play_id = route_to_play(title, description)
+    play_id = route_to_play(title, description, None)
 
     # SLA 계산
     try:
@@ -636,8 +636,8 @@ async def run_voc_mining(request: VoCMiningRequest, db: AsyncSession = Depends(g
         event_manager = SessionEventManager.get_or_create(session_id)
         emitter = WorkflowEventEmitter(event_manager, run_id)
 
-        pipeline = VoCMiningPipelineWithDB(emitter, db)
-        result = await pipeline.run(input_data)  # run() 내부에서 DB 저장 자동 수행
+        pipeline_db = VoCMiningPipelineWithDB(emitter, db)
+        result = await pipeline_db.run(input_data)  # run() 내부에서 DB 저장 자동 수행
 
         # 세션 정리
         SessionEventManager.remove(session_id)
@@ -649,8 +649,8 @@ async def run_voc_mining(request: VoCMiningRequest, db: AsyncSession = Depends(g
         )
     else:
         # DB 저장 없이 실행
-        pipeline = VoCMiningPipeline()
-        result = await pipeline.run(input_data)
+        pipeline_basic = VoCMiningPipeline()
+        result = await pipeline_basic.run(input_data)
 
     return VoCMiningResponse(
         status="completed",

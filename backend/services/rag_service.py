@@ -4,6 +4,8 @@ RAG (Retrieval-Augmented Generation) Service
 벡터 기반 검색 및 컨텍스트 생성 서비스
 """
 
+from typing import Any
+
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -220,7 +222,7 @@ class RAGService:
         query_embedding = await self.embedding.generate_embedding(query)
 
         # 2. 필터 구성
-        filter_dict = None
+        filter_dict: dict[str, Any] | None = None
         if entity_types:
             type_values = [t.value for t in entity_types]
             if len(type_values) == 1:
@@ -286,19 +288,19 @@ class RAGService:
             raise RuntimeError("Vectorize가 설정되지 않았습니다")
 
         # 필터 구성
-        filter_dict = None
+        filter_dict2: dict[str, Any] | None = None
         if entity_types:
             type_values = [t.value for t in entity_types]
             if len(type_values) == 1:
-                filter_dict = {"entity_type": {"$eq": type_values[0]}}
+                filter_dict2 = {"entity_type": {"$eq": type_values[0]}}
             else:
-                filter_dict = {"entity_type": {"$in": type_values}}
+                filter_dict2 = {"entity_type": {"$in": type_values}}
 
         # 벡터 검색
         matches = await self.vectorize.query(
             vector=embedding,
             top_k=top_k,
-            filter=filter_dict,
+            filter=filter_dict2,
         )
 
         # 결과 구성

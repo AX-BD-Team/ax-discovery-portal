@@ -104,7 +104,7 @@ class BaseAgentEvent:
 
     def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
-        result = {
+        result: dict[str, Any] = {
             "type": self.type.value,
             "runId": self.run_id,
             "sessionId": self.session_id,
