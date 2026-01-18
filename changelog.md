@@ -53,6 +53,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AI/AX 키워드 기본 필터링 (상위 10개 키워드)
   - `wf_external_scout.py` 소스별 파라미터 처리 확장
 
+- **외부 세미나 기능 확장** ✨
+  - **수집기 헬스체크**: `/api/activities/health-check` 엔드포인트 추가
+    - `CollectorHealthBar` UI 컴포넌트 (상태별 색상 표시, 5분 자동 새로고침)
+    - OnOffMix/EventUs 수집기 상태 모니터링
+  - **AI 채팅 세미나 추가**: ChatGPT 스타일 인터페이스
+    - `/api/activities/chat` SSE 스트리밍 엔드포인트
+    - `/api/activities/chat/confirm` 등록 확인 엔드포인트
+    - `SeminarChatPanel` 채팅 UI 컴포넌트
+    - 실시간 세미나 정보 추출 및 미리보기
+  - **파일 업로드**: 드래그앤드롭 일괄 등록
+    - `/api/activities/upload` 일괄 추출 엔드포인트
+    - `FileUploadZone` UI 컴포넌트
+    - `FileProcessor` 유틸리티 (이미지 OCR, PDF, DOCX, XLSX, CSV, JSON, 텍스트)
+    - Claude Vision API 연동 이미지 처리
+  - 새 UI 컴포넌트 3개 (activities.ts API 클라이언트 확장)
+
 - **Dev-Event 수집기 개선** 🔧
   - 마크다운 파싱 패턴 수정: `- __[제목](URL)__` 형식 지원
   - 분류 정보 추출 개선 (다음 줄 + 두 번째 다음 줄 검색)
