@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sentry 프로덕션 모니터링** 📊
+  - FastAPI/Starlette 통합으로 자동 에러 캡처 및 성능 모니터링
+  - 환경별 설정: 개발(100% 트레이싱), 프로덕션(설정값 기반 샘플링)
+  - 설정 필드: `sentry_dsn`, `sentry_traces_sample_rate`, `sentry_profiles_sample_rate`
+  - `/health`, `/ready` 엔드포인트에 Sentry 상태 표시
+  - `.env.example`에 Sentry 환경변수 예시 추가
+
 - **외부 세미나 기능 확장** ✨
   - **수집기 헬스체크**: `/api/activities/health-check` 엔드포인트 추가
     - `CollectorHealthBar` UI 컴포넌트 (상태별 색상 표시, 5분 자동 새로고침)

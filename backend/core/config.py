@@ -67,7 +67,13 @@ class Settings(BaseSettings):
     # Monitoring - Sentry
     # =========================================================================
     sentry_dsn: str = Field(default="", description="Sentry DSN. 비어있으면 비활성화")
-    app_version: str = Field(default="0.5.0", description="앱 버전 (Sentry 릴리스용)")
+    app_version: str = Field(default="0.6.0", description="앱 버전 (Sentry 릴리스용)")
+    sentry_traces_sample_rate: float = Field(
+        default=0.2, description="Sentry 성능 모니터링 샘플링 비율 (0.0~1.0)"
+    )
+    sentry_profiles_sample_rate: float = Field(
+        default=0.1, description="Sentry 프로파일링 샘플링 비율 (0.0~1.0)"
+    )
 
     # =========================================================================
     # Anthropic API
@@ -167,6 +173,12 @@ class Settings(BaseSettings):
     def database_configured(self) -> bool:
         """데이터베이스 설정 완료 여부"""
         return bool(self.database_url) or bool(self.d1_database_id)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def sentry_configured(self) -> bool:
+        """Sentry 설정 완료 여부"""
+        return bool(self.sentry_dsn)
 
 
 @lru_cache

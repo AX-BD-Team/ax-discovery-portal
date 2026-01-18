@@ -11,6 +11,37 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Sentry 초기화 (가능한 빨리 로드)
+from backend.core.config import settings
+
+if settings.sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        release=f"ax-discovery-portal@{settings.app_version}",
+        environment=settings.app_env,
+        # 성능 모니터링 (개발 환경에서는 100% 수집, 프로덕션에서는 설정값 사용)
+        traces_sample_rate=1.0 if settings.is_development else settings.sentry_traces_sample_rate,
+        # 프로파일링 (개발 환경에서는 비활성화, 프로덕션에서는 설정값 사용)
+        profiles_sample_rate=0.0 if settings.is_development else settings.sentry_profiles_sample_rate,
+        # 통합
+        integrations=[
+            StarletteIntegration(transaction_style="endpoint"),
+            FastApiIntegration(transaction_style="endpoint"),
+        ],
+        # 개발 환경에서는 디버그 모드
+        debug=settings.is_development,
+        # 민감 정보 필터링
+        send_default_pii=False,
+        # 추가 컨텍스트
+        _experiments={
+            "continuous_profiling_auto_start": True,
+        },
+    )
+
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -141,6 +172,23 @@ async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 처리"""
     logger.info("Starting AX Discovery Portal API...")
 
+    # Sentry 상태 로깅
+    if settings.sentry_dsn:
+        import sentry_sdk
+
+        logger.info(
+            "Sentry initialized",
+            release=f"ax-discovery-portal@{settings.app_version}",
+            environment=settings.app_env,
+        )
+        # 시작 이벤트 전송
+        sentry_sdk.capture_message(
+            f"AX Discovery Portal API started (v{settings.app_version})",
+            level="info",
+        )
+    else:
+        logger.info("Sentry disabled (SENTRY_DSN not configured)")
+
     # Agent Runtime 초기화
     from backend.agent_runtime.runner import runtime
 
@@ -150,6 +198,11 @@ async def lifespan(app: FastAPI):
 
     # 종료 시 정리
     logger.info("Shutting down AX Discovery Portal API...")
+    if settings.sentry_dsn:
+        import sentry_sdk
+
+        # Sentry 버퍼 플러시
+        sentry_sdk.flush(timeout=2.0)
 
 
 app = FastAPI(
@@ -241,15 +294,19 @@ async def health():
     Kubernetes liveness probe용 엔드포인트.
     애플리케이션이 살아있는지 확인합니다.
     """
-    from backend.core.config import settings
+    components: dict[str, str] = {"api": "ok"}
+
+    # Sentry 상태 체크
+    if settings.sentry_configured:
+        components["sentry"] = "enabled"
+    else:
+        components["sentry"] = "disabled"
 
     return {
         "status": "healthy",
         "version": API_VERSION,
         "environment": settings.app_env,
-        "components": {
-            "api": "ok",
-        },
+        "components": components,
     }
 
 
@@ -302,7 +359,13 @@ async def ready():
     else:
         components["confluence"] = "not_configured"
 
-    # 4. 전체 상태 결정
+    # 4. Sentry 상태 체크
+    if settings.sentry_configured:
+        components["sentry"] = "enabled"
+    else:
+        components["sentry"] = "disabled"
+
+    # 5. 전체 상태 결정
     status = "ready" if all_ready else "degraded"
 
     return {
