@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **AI 에이전트 평가(Evals) 플랫폼 설계안 v1.0** 📊
+  - 근거: RosettaLens 번역본 'AI 에이전트를 위한 평가(evals) 쉽게 이해하기' 및 Anthropic Engineering
+  - 핵심 개념 모델: Task, Trial, Transcript, Outcome, Grader, Eval Suite
+  - 기능 요구사항 8개 (FR1-FR8): 스위트 관리, 멀티 트라이얼, 평가 하네스, 채점기 프레임워크, 트랜스크립트 뷰어, 운영/유지보수, CI/CD 연계, 에이전트 유형 지원
+  - 비기능 요구사항 6개: 재현성, 격리/보안, 확장성, 비용 통제, 관측가능성, 거버넌스
+  - 채점 원칙: 경로가 아닌 결과(outcome) 중심, 부분 점수(partial credit) 지원
+  - 비결정성 처리: pass@k (1회 성공), pass^k (매번 성공)
+  - Task DSL YAML 스펙 초안
+  - 3단계 구현 로드맵: Phase 5.0 MVP → Phase 5.1 신뢰성 강화 → Phase 5.2 확장
+  - 문서: `docs/AI 에이전트 평가(Evals) 플랫폼 시스템 설계안 v1.0.pdf`
+
 - **Opportunity Stage 파이프라인 시스템** 🚀
   - **11단계 Stage 파이프라인**: DISCOVERY → IDEA_CARD → GATE1 → MOCKUP → GATE2 → BIZ_PLANNING → PILOT → PRE_PROPOSAL → HANDOFF + HOLD/DROP
   - **신규 모델 4개**:
@@ -449,6 +460,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TestKPIDigestPipelineIntegration (2개)
 
 ### In Planning
+
+#### Phase 5: AI 에이전트 평가(Evals) 플랫폼
+- Phase 5.0 MVP: Task/Suite YAML 스키마, Eval Harness, Deterministic Graders, CI 게이팅
+- Phase 5.1 신뢰성 강화: LLM-as-Judge, 인간 보정 워크플로, pass@k/pass^k 리포트
+- Phase 5.2 확장: 사용자 시뮬레이터, saturation 모니터링, 도메인팀 기여 모델
+
+#### 기타
 - Confluence Database API 구현 (db_query, db_upsert_row)
 - AI Agent 기반 Scorecard 평가 (LLM 활용)
 - AI Agent 기반 Brief 생성 (LLM 활용)

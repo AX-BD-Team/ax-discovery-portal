@@ -60,6 +60,68 @@
 
 ## 🚧 진행 중인 Phase
 
+### Phase 5: AI 에이전트 평가(Evals) 플랫폼 (0% 완료) - 신규
+
+> **근거**: RosettaLens 번역본 'AI 에이전트를 위한 평가(evals) 쉽게 이해하기' 및 Anthropic Engineering
+> **목적**: 에이전트 품질을 개발 단계에서 자동 검증, 프로덕션 반응적 루프 감소
+
+#### Phase 5.0: MVP (4-6주 목표)
+
+| # | 항목 | 상태 | 예상 일정 |
+|---|------|------|----------|
+| 1 | Task/Suite YAML 스키마 정의 (`evals/` 디렉토리) | 🔲 | Week 7 |
+| 2 | 핵심 엔터티 모델 구현 (Task, Trial, Transcript, GraderResult) | 🔲 | Week 7 |
+| 3 | DB 마이그레이션 (eval_suites, eval_tasks, eval_runs, eval_trials) | 🔲 | Week 7 |
+| 4 | Eval Harness 기본 구현 (단일 프로세스 실행기) | 🔲 | Week 8 |
+| 5 | Deterministic Graders (pytest, ruff, mypy 기반) | 🔲 | Week 8 |
+| 6 | Transcript/Outcome 저장 + 간단 뷰어 API | 🔲 | Week 9 |
+| 7 | CI 게이팅 (regression suite 자동 실행) | 🔲 | Week 9 |
+| 8 | 기존 6개 에이전트 기본 Task 작성 (각 3-5개) | 🔲 | Week 10 |
+
+#### Phase 5.1: 신뢰성 강화 (Phase 5.0 완료 후)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | LLM-as-Judge grader 구현 (Claude 루브릭 기반) | 🔲 |
+| 2 | 인간 보정 워크플로 (SME 스팟체크, IAA 관리) | 🔲 |
+| 3 | pass@k / pass^k 공식 리포트 | 🔲 |
+| 4 | 비용/지연/토큰 대시보드 | 🔲 |
+| 5 | Trial 격리 환경 (컨테이너 기반 샌드박스) | 🔲 |
+
+#### Phase 5.2: 에이전트 유형 확장 + 거버넌스 (Phase 5.1 완료 후)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | 대화형 에이전트 평가 (사용자 시뮬레이터 LLM) | 🔲 |
+| 2 | 리서치 에이전트 평가 (groundedness/coverage/source quality) | 🔲 |
+| 3 | Eval saturation 모니터링 + capability→regression 자동 전환 | 🔲 |
+| 4 | 도메인팀 Task PR 기여 모델 + 오너십 정책 | 🔲 |
+| 5 | Anti-cheat grader 설계 가이드 | 🔲 |
+
+#### 핵심 개념 모델
+
+| 개념 | 설명 |
+|------|------|
+| **Task** | 입력 + 성공 기준이 정의된 단일 테스트 케이스 |
+| **Trial** | 한 Task에 대한 1회 실행 시도 (비결정성 → 복수 트라이얼) |
+| **Transcript** | Trial의 전체 기록 (출력, 도구 호출, 중간 상태) |
+| **Outcome** | Trial 종료 시 환경의 최종 상태 ("말"이 아닌 "상태" 검증) |
+| **Grader** | 성능 특정 측면을 점수화하는 로직 |
+| **Eval Suite** | 특정 역량/행동을 측정하는 Task 묶음 |
+
+#### 채점 전략 (에이전트별)
+
+| 에이전트 | Eval 유형 | 채점 전략 |
+|---------|----------|----------|
+| orchestrator | capability | outcome + 워크플로 완료율 |
+| external_scout | regression | 수집 데이터 품질 + 소스 다양성 |
+| scorecard_evaluator | capability | Scorecard 정확도 + 인간 보정 |
+| brief_writer | capability | Brief 품질 루브릭 (LLM judge) |
+| confluence_sync | regression | 동기화 성공률 + 데이터 무결성 |
+| voc_analyst | capability | 테마 추출 정확도 + coverage |
+
+---
+
 ### Phase 3: Advanced Features (97% 완료)
 
 **미완료 항목**:
@@ -187,5 +249,31 @@
 | Phase 2.5 | 11 | 0 | 100% |
 | Phase 3 | 36 | 1 | 97% |
 | Phase 4 | 17 | 1 | 94% |
+| **Phase 5 (Evals)** | **0** | **18** | **0%** |
 | Week 6 | 9 | 10 | 47% |
-| **전체** | **101** | **12** | **89%** |
+| **전체 (PoC)** | **101** | **12** | **89%** |
+| **전체 (Evals 포함)** | **101** | **30** | **77%** |
+
+---
+
+## 📅 Evals 플랫폼 로드맵
+
+```
+Week 7-8: Phase 5.0 MVP 시작
+├── Task/Suite YAML 스키마 정의
+├── 핵심 엔터티 모델 (Pydantic + SQLAlchemy)
+├── DB 마이그레이션
+└── Eval Harness 기본 구현
+
+Week 9-10: Phase 5.0 MVP 완료
+├── Deterministic Graders (pytest/ruff/mypy)
+├── Transcript 저장 + 뷰어 API
+├── CI 게이팅 (regression suite)
+└── 에이전트별 기본 Task 작성
+
+Week 11+: Phase 5.1 신뢰성 강화
+├── LLM-as-Judge grader
+├── 인간 보정 워크플로
+├── pass@k / pass^k 리포트
+└── 비용/지연 대시보드
+```

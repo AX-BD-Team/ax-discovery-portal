@@ -37,6 +37,10 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",  # 비밀번호 해싱
     "feedparser>=6.0.0",  # RSS 피드 파싱 (외부 세미나 수집용)
     "markdown2>=2.5.0",  # Markdown → Confluence 변환
+    "python-multipart>=0.0.9",  # 파일 업로드
+    "pypdf>=4.0.0",  # PDF 텍스트 추출
+    "python-docx>=1.1.0",  # DOCX 문서 추출
+    "openpyxl>=3.1.0",  # XLSX 스프레드시트 추출
 ]
 
 [project.optional-dependencies]

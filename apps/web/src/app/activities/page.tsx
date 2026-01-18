@@ -1,8 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { activitiesApi, type Activity } from '@ax/api-client'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  activitiesApi,
+  type Activity,
+  type SeminarExtractResult,
+  type HealthCheckResponse,
+} from '@ax/api-client'
 import {
   Button,
   Card,
@@ -17,8 +22,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  CollectorHealthBar,
+  SeminarChatPanel,
 } from '@ax/ui'
-import { Search, Calendar, ExternalLink, Building2, Tag, Loader2, ArrowLeft } from 'lucide-react'
+import { Search, Calendar, ExternalLink, Building2, Tag, Loader2, ArrowLeft, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
@@ -103,7 +110,9 @@ export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterSourceType, setFilterSourceType] = useState<string>('ALL')
   const [page, setPage] = useState(1)
+  const [isChatOpen, setIsChatOpen] = useState(false)
   const pageSize = 12
+  const queryClient = useQueryClient()
 
   // Fetch activities
   const { data: activitiesData, isLoading } = useQuery({
@@ -121,6 +130,44 @@ export default function ActivitiesPage() {
     queryKey: ['activities-stats'],
     queryFn: activitiesApi.getStats,
   })
+
+  // Fetch health check
+  const {
+    data: healthData,
+    isLoading: isHealthLoading,
+    refetch: refetchHealth,
+  } = useQuery({
+    queryKey: ['collector-health'],
+    queryFn: activitiesApi.getHealthCheck,
+    refetchInterval: 300000, // 5분마다 자동 새로고침
+    staleTime: 60000, // 1분간 캐시
+  })
+
+  // 세미나 추가 완료 핸들러
+  const handleSeminarAdded = () => {
+    // 활동 목록 새로고침
+    queryClient.invalidateQueries({ queryKey: ['activities'] })
+    queryClient.invalidateQueries({ queryKey: ['activities-stats'] })
+  }
+
+  // 채팅 제출 핸들러
+  const handleChatSubmit = async (message: string, files?: File[]) => {
+    return activitiesApi.chatAddSeminar(message, files)
+  }
+
+  // 세미나 확인 핸들러
+  const handleConfirmSeminars = async (
+    seminars: SeminarExtractResult[],
+    playId?: string
+  ) => {
+    await activitiesApi.confirmSeminars(seminars, playId)
+    handleSeminarAdded()
+  }
+
+  // 파일 업로드 핸들러
+  const handleUploadFiles = async (files: File[], playId?: string) => {
+    return activitiesApi.uploadSeminars(files, playId, false)
+  }
 
   const activities = activitiesData?.items || []
   const total = activitiesData?.total || 0
@@ -152,8 +199,20 @@ export default function ActivitiesPage() {
               <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">외부 세미나</h1>
               <p className="mt-1 text-gray-600">수집된 외부 세미나 및 이벤트 목록</p>
             </div>
+            <Button onClick={() => setIsChatOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              세미나 추가
+            </Button>
           </div>
         </div>
+
+        {/* 수집기 헬스체크 */}
+        <CollectorHealthBar
+          data={healthData || null}
+          isLoading={isHealthLoading}
+          onRefresh={() => refetchHealth()}
+          className="mb-6"
+        />
 
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
@@ -252,6 +311,16 @@ export default function ActivitiesPage() {
           <p>총 {total}개의 세미나가 등록되어 있습니다.</p>
         </div>
       </div>
+
+      {/* 세미나 추가 채팅 패널 */}
+      <SeminarChatPanel
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onSeminarAdded={handleSeminarAdded}
+        onChatSubmit={handleChatSubmit}
+        onConfirmSeminars={handleConfirmSeminars}
+        onUploadFiles={handleUploadFiles}
+      />
     </div>
   )
 }

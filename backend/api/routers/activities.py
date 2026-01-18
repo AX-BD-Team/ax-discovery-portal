@@ -3,10 +3,14 @@ Activities Router
 
 Activity 조회 및 관리 API
 외부 세미나 수집 결과 조회
+수집기 헬스체크
+채팅 기반 세미나 추가
+파일 업로드 일괄 등록
 """
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -216,6 +220,47 @@ async def get_activity_stats(
     )
 
 
+# ============================================================
+# 수집기 헬스체크 API (/{activity_id} 보다 먼저 정의해야 함)
+# ============================================================
+
+
+class CollectorHealthResponse(BaseModel):
+    """수집기 헬스체크 응답"""
+
+    collector_name: str
+    status: str  # healthy, degraded, unhealthy
+    checked_at: str
+    sample_count: int
+    error_message: str | None = None
+    response_time_ms: float | None = None
+
+
+class HealthCheckResponse(BaseModel):
+    """헬스체크 전체 응답"""
+
+    checked_at: str
+    results: list[CollectorHealthResponse]
+    summary: dict
+
+
+@router.get("/health-check", response_model=HealthCheckResponse)
+async def get_collector_health():
+    """
+    수집기 헬스체크 결과 반환
+
+    OnOffMix, EventUs 등 웹 스크래핑 기반 수집기의 상태를 확인합니다.
+    HTML 구조 변경 시 조기 감지를 위한 진단 엔드포인트입니다.
+
+    Returns:
+        HealthCheckResponse: 수집기별 헬스체크 결과
+    """
+    from backend.integrations.external_sources import run_health_check
+
+    result = await run_health_check()
+    return result
+
+
 @router.get("/{activity_id}", response_model=ActivityResponse)
 async def get_activity(
     activity_id: str,
@@ -360,3 +405,330 @@ async def check_duplicate(
             "is_duplicate": False,
             "existing_activity": None,
         }
+
+
+# ============================================================
+# 채팅 기반 세미나 추가 API
+# ============================================================
+
+
+class ChatMessage(BaseModel):
+    """채팅 메시지"""
+
+    role: str  # user, assistant
+    content: str
+    timestamp: str | None = None
+
+
+class SeminarExtractResult(BaseModel):
+    """세미나 정보 추출 결과"""
+
+    title: str
+    description: str | None = None
+    date: str | None = None
+    organizer: str | None = None
+    url: str | None = None
+    categories: list[str] = []
+    confidence: float = 0.0
+
+
+class ChatResponse(BaseModel):
+    """채팅 응답"""
+
+    message: str
+    extracted_seminars: list[SeminarExtractResult] = []
+    requires_confirmation: bool = False
+
+
+@router.post("/chat")
+async def chat_add_seminar(
+    message: str = Form(...),
+    files: list[UploadFile] = File(default=[]),
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """
+    채팅으로 세미나 추가 (SSE 스트리밍)
+
+    텍스트 메시지 또는 파일에서 세미나 정보를 추출하고
+    사용자 확인 후 Activity로 등록합니다.
+
+    Args:
+        message: 사용자 메시지 (URL, 세미나 정보 등)
+        files: 첨부 파일 (이미지, PDF, 텍스트 등)
+
+    Returns:
+        SSE 스트리밍 응답
+    """
+    import asyncio
+    import json
+    from datetime import UTC, datetime
+
+    async def generate_response():
+        """SSE 이벤트 생성"""
+        try:
+            # 1. 시작 이벤트
+            yield f"data: {json.dumps({'type': 'start', 'message': '메시지 분석 중...'})}\n\n"
+            await asyncio.sleep(0.1)
+
+            # 2. 파일 처리 (있는 경우)
+            extracted_from_files: list[dict] = []
+            if files:
+                from backend.integrations.file_processor import FileProcessor
+
+                processor = FileProcessor()
+                for file in files:
+                    yield f"data: {json.dumps({'type': 'progress', 'message': f'파일 처리 중: {file.filename}'})}\n\n"
+
+                    content = await file.read()
+                    filename = file.filename or "unknown"
+                    content_type = file.content_type or ""
+
+                    try:
+                        seminars = await processor.process_file(content, filename, content_type)
+                        for s in seminars:
+                            extracted_from_files.append(s.to_dict())
+                    except Exception as e:
+                        logger.warning(f"파일 처리 실패: {filename}", error=str(e))
+
+            # 3. 텍스트 메시지 처리
+            yield f"data: {json.dumps({'type': 'progress', 'message': '메시지 분석 중...'})}\n\n"
+
+            from backend.integrations.file_processor import FileProcessor
+
+            processor = FileProcessor()
+            extracted_from_text = await processor.process_text(message)
+            extracted_text_dicts = [s.to_dict() for s in extracted_from_text]
+
+            # 4. 결과 병합
+            all_extracted = extracted_from_files + extracted_text_dicts
+
+            if not all_extracted:
+                # URL이 감지되었지만 추출 실패 시
+                import re
+
+                urls = re.findall(r"https?://[^\s]+", message)
+                if urls:
+                    yield f"data: {json.dumps({'type': 'info', 'message': f'{len(urls)}개의 URL을 감지했지만 세미나 정보를 추출하지 못했습니다. URL을 직접 확인해주세요.'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'info', 'message': '세미나 정보를 찾지 못했습니다. 세미나 제목, 날짜, 주최자 정보를 포함해주세요.'})}\n\n"
+
+            # 5. 추출 결과 반환
+            yield f"data: {json.dumps({'type': 'extracted', 'seminars': all_extracted, 'count': len(all_extracted)})}\n\n"
+
+            # 6. 완료
+            yield f"data: {json.dumps({'type': 'complete', 'message': f'{len(all_extracted)}개의 세미나 정보를 추출했습니다.', 'timestamp': datetime.now(UTC).isoformat()})}\n\n"
+
+        except Exception as e:
+            logger.error("채팅 처리 오류", error=str(e))
+            yield f"data: {json.dumps({'type': 'error', 'message': f'처리 중 오류가 발생했습니다: {str(e)}'})}\n\n"
+
+    return StreamingResponse(
+        generate_response(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+class ConfirmSeminarRequest(BaseModel):
+    """세미나 확인 요청"""
+
+    seminars: list[dict]
+    play_id: str = "EXT_Desk_D01_Seminar"
+
+
+@router.post("/chat/confirm")
+async def confirm_seminar(
+    request: ConfirmSeminarRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    추출된 세미나 정보 확인 후 Activity로 등록
+
+    Args:
+        request: 등록할 세미나 정보 목록과 Play ID
+
+    Returns:
+        등록된 Activity 목록
+    """
+    seminars = request.seminars
+    play_id = request.play_id
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from backend.database.models.entity import Entity, EntityType
+
+    registered = []
+
+    for seminar_data in seminars:
+        try:
+            # Entity 생성
+            entity = Entity(
+                entity_id=f"ACT-{uuid4().hex[:12]}",
+                entity_type=EntityType.ACTIVITY,
+                name=seminar_data.get("title", "제목 없음"),
+                description=seminar_data.get("description"),
+                properties={
+                    "url": seminar_data.get("url"),
+                    "date": seminar_data.get("date"),
+                    "organizer": seminar_data.get("organizer"),
+                    "play_id": play_id,
+                    "source": "chat",
+                    "channel": "manual",
+                    "source_type": "chat",
+                    "categories": seminar_data.get("categories", []),
+                    "status": "pending",
+                },
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+
+            db.add(entity)
+            await db.flush()
+
+            registered.append(ActivityResponse.from_entity(entity))
+
+        except Exception as e:
+            logger.error("세미나 등록 실패", seminar=seminar_data, error=str(e))
+
+    await db.commit()
+
+    return {
+        "registered": registered,
+        "count": len(registered),
+        "play_id": play_id,
+    }
+
+
+# ============================================================
+# 파일 업로드 일괄 등록 API
+# ============================================================
+
+
+class UploadResult(BaseModel):
+    """업로드 결과"""
+
+    filename: str
+    extracted_count: int
+    seminars: list[SeminarExtractResult]
+    error: str | None = None
+
+
+class UploadResponse(BaseModel):
+    """업로드 응답"""
+
+    total_files: int
+    total_extracted: int
+    results: list[UploadResult]
+
+
+@router.post("/upload", response_model=UploadResponse)
+async def upload_seminars(
+    files: list[UploadFile] = File(...),
+    play_id: str = Form(default="EXT_Desk_D01_Seminar"),
+    auto_register: bool = Form(default=False),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    파일에서 세미나 일괄 추출 및 등록
+
+    지원 파일 형식:
+    - 이미지: jpg, png, webp (OCR)
+    - PDF: pdf
+    - 문서: docx, xlsx
+    - 텍스트: txt, csv, json, md
+
+    Args:
+        files: 업로드할 파일 목록
+        play_id: 연결할 Play ID
+        auto_register: True이면 자동 등록, False이면 추출만
+
+    Returns:
+        UploadResponse: 파일별 추출 결과
+    """
+    from backend.integrations.file_processor import FileProcessor
+
+    processor = FileProcessor()
+    results: list[UploadResult] = []
+    total_extracted = 0
+
+    for file in files:
+        try:
+            content = await file.read()
+            filename = file.filename or "unknown"
+            content_type = file.content_type or ""
+
+            # 세미나 정보 추출
+            seminars = await processor.process_file(content, filename, content_type)
+            extracted_count = len(seminars)
+            total_extracted += extracted_count
+
+            results.append(
+                UploadResult(
+                    filename=filename,
+                    extracted_count=extracted_count,
+                    seminars=[
+                        SeminarExtractResult(
+                            title=s.title,
+                            description=s.description,
+                            date=s.date,
+                            organizer=s.organizer,
+                            url=s.url,
+                            categories=s.categories or [],
+                            confidence=s.confidence if hasattr(s, "confidence") else 0.8,
+                        )
+                        for s in seminars
+                    ],
+                )
+            )
+
+            # 자동 등록 옵션이 켜진 경우
+            if auto_register and seminars:
+                from datetime import UTC, datetime
+                from uuid import uuid4
+
+                from backend.database.models.entity import Entity, EntityType
+
+                for seminar in seminars:
+                    entity = Entity(
+                        entity_id=f"ACT-{uuid4().hex[:12]}",
+                        entity_type=EntityType.ACTIVITY,
+                        name=seminar.title,
+                        description=seminar.description,
+                        properties={
+                            "url": seminar.url,
+                            "date": seminar.date,
+                            "organizer": seminar.organizer,
+                            "play_id": play_id,
+                            "source": "upload",
+                            "channel": "manual",
+                            "source_type": "upload",
+                            "categories": seminar.categories or [],
+                            "status": "pending",
+                        },
+                        created_at=datetime.now(UTC),
+                        updated_at=datetime.now(UTC),
+                    )
+                    db.add(entity)
+
+                await db.commit()
+
+        except Exception as e:
+            logger.error("파일 처리 실패", filename=file.filename, error=str(e))
+            results.append(
+                UploadResult(
+                    filename=file.filename or "unknown",
+                    extracted_count=0,
+                    seminars=[],
+                    error=str(e),
+                )
+            )
+
+    return UploadResponse(
+        total_files=len(files),
+        total_extracted=total_extracted,
+        results=results,
+    )

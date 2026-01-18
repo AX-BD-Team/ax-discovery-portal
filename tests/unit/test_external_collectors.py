@@ -20,6 +20,12 @@ from backend.integrations.external_sources.devevent_collector import DevEventCol
 from backend.integrations.external_sources.eventbrite_collector import EventbriteCollector
 from backend.integrations.external_sources.eventus_collector import EventUsCollector
 from backend.integrations.external_sources.festa_collector import FestaCollector
+from backend.integrations.external_sources.health_check import (
+    CollectorHealthChecker,
+    HealthCheckResult,
+    HealthStatus,
+    run_health_check,
+)
 from backend.integrations.external_sources.onoffmix_collector import OnOffMixCollector
 from backend.integrations.external_sources.rss_collector import RSSCollector
 
@@ -784,3 +790,170 @@ class TestCollectorFiltering:
 
         assert len(filtered) == 1
         assert filtered[0].title == "날짜 있음"
+
+
+# ============================================================
+# Collector Health Check 테스트
+# ============================================================
+
+
+class TestCollectorHealthCheck:
+    """수집기 헬스체크 테스트"""
+
+    def test_health_status_enum(self):
+        """HealthStatus Enum 확인"""
+        assert HealthStatus.HEALTHY.value == "healthy"
+        assert HealthStatus.DEGRADED.value == "degraded"
+        assert HealthStatus.UNHEALTHY.value == "unhealthy"
+
+    def test_health_check_result_creation(self):
+        """HealthCheckResult 생성"""
+        result = HealthCheckResult(
+            collector_name="onoffmix",
+            status=HealthStatus.HEALTHY,
+            sample_count=5,
+        )
+
+        assert result.collector_name == "onoffmix"
+        assert result.status == HealthStatus.HEALTHY
+        assert result.sample_count == 5
+        assert result.error_message is None
+        assert result.checked_at is not None
+
+    def test_health_check_result_to_dict(self):
+        """HealthCheckResult 딕셔너리 변환"""
+        result = HealthCheckResult(
+            collector_name="eventus",
+            status=HealthStatus.DEGRADED,
+            sample_count=0,
+            error_message="수집 결과 없음",
+            response_time_ms=1234.56,
+        )
+
+        data = result.to_dict()
+
+        assert data["collector_name"] == "eventus"
+        assert data["status"] == "degraded"
+        assert data["sample_count"] == 0
+        assert data["error_message"] == "수집 결과 없음"
+        assert data["response_time_ms"] == 1234.56
+        assert "checked_at" in data
+
+    def test_collector_health_checker_initialization(self):
+        """CollectorHealthChecker 초기화"""
+        checker = CollectorHealthChecker()
+
+        assert checker.onoffmix is not None
+        assert checker.eventus is not None
+        assert checker.onoffmix.name == "onoffmix"
+        assert checker.eventus.name == "eventus"
+
+    @pytest.mark.asyncio
+    async def test_check_onoffmix_healthy(self):
+        """OnOffMix 헬스체크 - 정상"""
+        checker = CollectorHealthChecker()
+
+        mock_seminars = [
+            SeminarInfo(title="AI 세미나", url="https://test.com", source_type="onoffmix"),
+        ]
+
+        with patch.object(checker.onoffmix, "fetch_seminars", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = mock_seminars
+
+            result = await checker.check_onoffmix()
+
+            assert result.status == HealthStatus.HEALTHY
+            assert result.sample_count == 1
+            assert result.error_message is None
+
+    @pytest.mark.asyncio
+    async def test_check_onoffmix_degraded(self):
+        """OnOffMix 헬스체크 - 저하 (0건 수집)"""
+        checker = CollectorHealthChecker()
+
+        with patch.object(checker.onoffmix, "fetch_seminars", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = []  # 빈 결과
+
+            result = await checker.check_onoffmix()
+
+            assert result.status == HealthStatus.DEGRADED
+            assert result.sample_count == 0
+            assert "HTML 구조 변경" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_check_onoffmix_unhealthy(self):
+        """OnOffMix 헬스체크 - 비정상 (예외 발생)"""
+        checker = CollectorHealthChecker()
+
+        with patch.object(checker.onoffmix, "fetch_seminars", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.side_effect = Exception("연결 오류")
+
+            result = await checker.check_onoffmix()
+
+            assert result.status == HealthStatus.UNHEALTHY
+            assert "연결 오류" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_check_eventus_healthy(self):
+        """EventUs 헬스체크 - 정상"""
+        checker = CollectorHealthChecker()
+
+        mock_seminars = [
+            SeminarInfo(title="LLM 워크샵", url="https://test.com", source_type="eventus"),
+            SeminarInfo(title="AI 컨퍼런스", url="https://test2.com", source_type="eventus"),
+        ]
+
+        with patch.object(checker.eventus, "fetch_seminars", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = mock_seminars
+
+            result = await checker.check_eventus()
+
+            assert result.status == HealthStatus.HEALTHY
+            assert result.sample_count == 2
+
+    @pytest.mark.asyncio
+    async def test_check_all(self):
+        """전체 헬스체크"""
+        checker = CollectorHealthChecker()
+
+        with patch.object(checker.onoffmix, "fetch_seminars", new_callable=AsyncMock) as mock_onoffmix:
+            with patch.object(checker.eventus, "fetch_seminars", new_callable=AsyncMock) as mock_eventus:
+                mock_onoffmix.return_value = [
+                    SeminarInfo(title="세미나1", url="https://a.com", source_type="onoffmix"),
+                ]
+                mock_eventus.return_value = []  # EventUs는 저하 상태
+
+                results = await checker.check_all()
+
+                assert len(results) == 2
+                assert results[0].collector_name == "onoffmix"
+                assert results[0].status == HealthStatus.HEALTHY
+                assert results[1].collector_name == "eventus"
+                assert results[1].status == HealthStatus.DEGRADED
+
+    @pytest.mark.asyncio
+    async def test_run_health_check_helper(self):
+        """run_health_check 헬퍼 함수"""
+        with patch.object(CollectorHealthChecker, "check_all", new_callable=AsyncMock) as mock_check:
+            mock_check.return_value = [
+                HealthCheckResult(
+                    collector_name="onoffmix",
+                    status=HealthStatus.HEALTHY,
+                    sample_count=3,
+                ),
+                HealthCheckResult(
+                    collector_name="eventus",
+                    status=HealthStatus.HEALTHY,
+                    sample_count=2,
+                ),
+            ]
+
+            result = await run_health_check()
+
+            assert "checked_at" in result
+            assert "results" in result
+            assert "summary" in result
+            assert result["summary"]["total"] == 2
+            assert result["summary"]["healthy"] == 2
+            assert result["summary"]["degraded"] == 0
+            assert result["summary"]["unhealthy"] == 0

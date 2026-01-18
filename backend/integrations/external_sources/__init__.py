@@ -17,6 +17,12 @@ from .devevent_collector import DevEventCollector
 from .eventbrite_collector import EventbriteCollector
 from .eventus_collector import EventUsCollector
 from .festa_collector import FestaCollector  # DEPRECATED
+from .health_check import (
+    CollectorHealthChecker,
+    HealthCheckResult,
+    HealthStatus,
+    run_health_check,
+)
 from .keywords import (
     AI_AX_KEYWORDS,
     CATEGORY_KEYWORDS,
@@ -39,6 +45,11 @@ __all__ = [
     "DevEventCollector",
     "EventbriteCollector",
     "FestaCollector",  # DEPRECATED
+    # 헬스체크
+    "CollectorHealthChecker",
+    "HealthCheckResult",
+    "HealthStatus",
+    "run_health_check",
     # 키워드 유틸리티
     "AI_AX_KEYWORDS",
     "CATEGORY_KEYWORDS",

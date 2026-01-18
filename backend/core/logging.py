@@ -12,6 +12,68 @@ import structlog
 
 from .config import settings
 
+# Windows cp949 호환을 위한 이모지 대체 맵
+EMOJI_REPLACEMENTS: dict[str, str] = {
+    "✅": "[OK]",
+    "❌": "[FAIL]",
+    "⚠️": "[WARN]",
+    "⚠": "[WARN]",
+    "🔍": "[SEARCH]",
+    "📊": "[DATA]",
+    "📝": "[NOTE]",
+    "🚀": "[START]",
+    "💡": "[TIP]",
+    "🔧": "[FIX]",
+    "📋": "[LIST]",
+    "🎯": "[TARGET]",
+    "📅": "[DATE]",
+    "🏢": "[ORG]",
+    "💰": "[MONEY]",
+    "📍": "[LOC]",
+    "🔗": "[LINK]",
+    "⏰": "[TIME]",
+    "🎉": "[DONE]",
+    "❓": "[?]",
+    "🤖": "[AI]",
+}
+
+
+def _ensure_utf8_stdout() -> None:
+    """Windows에서 stdout을 UTF-8로 설정"""
+    if sys.platform != "win32":
+        return
+
+    # stdout이 reconfigure 메서드를 가지고 있으면 UTF-8로 재설정
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            # reconfigure 실패 시 무시 (이미 UTF-8이거나 터미널 제한)
+            pass
+
+
+def _sanitize_emoji_for_console(
+    logger: structlog.types.WrappedLogger,
+    method_name: str,
+    event_dict: dict[str, Any],
+) -> dict[str, Any]:
+    """Windows cp949 호환을 위한 이모지 대체 프로세서"""
+
+    def replace_emojis(value: Any) -> Any:
+        """문자열 값에서 이모지를 대체"""
+        if not isinstance(value, str):
+            return value
+        result = value
+        for emoji, replacement in EMOJI_REPLACEMENTS.items():
+            result = result.replace(emoji, replacement)
+        return result
+
+    # 모든 문자열 값에서 이모지 대체
+    for key, value in event_dict.items():
+        event_dict[key] = replace_emojis(value)
+
+    return event_dict
+
 
 def setup_logging() -> None:
     """
@@ -21,6 +83,9 @@ def setup_logging() -> None:
     - development: 콘솔 출력, 컬러 포맷, DEBUG 레벨
     - staging/production: JSON 포맷, INFO/WARNING 레벨
     """
+    # Windows UTF-8 stdout 설정
+    _ensure_utf8_stdout()
+
     # 로그 레벨 설정
     log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
 
@@ -36,8 +101,9 @@ def setup_logging() -> None:
     ]
 
     if settings.is_development:
-        # 개발 환경: 컬러 콘솔 출력
+        # 개발 환경: 컬러 콘솔 출력 + Windows 이모지 대체
         processors = shared_processors + [
+            _sanitize_emoji_for_console,  # Windows cp949 호환
             structlog.dev.ConsoleRenderer(colors=True),
         ]
     else:

@@ -31,3 +31,18 @@ export type { ApprovalDialogProps, ChangeItem } from './ApprovalDialog'
 
 export { ToolCallCard, ToolCallList } from './ToolCallCard'
 export type { ToolCallCardProps, ToolCallListProps, ToolCallStatus } from './ToolCallCard'
+
+// Collector Health & Seminar Management components
+export { CollectorHealthBar } from './CollectorHealthBar'
+export type {
+  CollectorHealthBarProps,
+  HealthStatus,
+  CollectorHealthResult,
+  HealthCheckData,
+} from './CollectorHealthBar'
+
+export { SeminarChatPanel } from './SeminarChatPanel'
+export type { SeminarChatPanelProps, SeminarExtractResult } from './SeminarChatPanel'
+
+export { FileUploadZone } from './FileUploadZone'
+export type { FileUploadZoneProps } from './FileUploadZone'
