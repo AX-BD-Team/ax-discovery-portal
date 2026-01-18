@@ -20,6 +20,7 @@
 | ax-confluence | Confluence 동기화 규칙 | DB/Live doc 업데이트 |
 | ax-wrap-up | 작업 정리 + 테스트 + 커밋 | 문서 업데이트 + Git commit |
 | ax-todo | ToDo 관리 + Confluence 동기화 | 진행현황 리포트 + 차이점 분석 |
+| ax-health-check | 프로젝트 점검 | 의존성/타입/린트/빌드/버전 체크 리포트 |
 
 **상세 문서**: [docs/guides/methodology.md](docs/guides/methodology.md)
 
@@ -118,6 +119,7 @@
 | ax-confluence | Confluence 동기화 규칙 | DB/Live doc 업데이트 |
 | ax-wrap-up | 작업 정리 + 테스트 + 커밋 | 문서 업데이트 + Git commit |
 | ax-todo | ToDo 관리 + Confluence 동기화 | 진행현황 리포트 + 차이점 분석 |
+| ax-health-check | 프로젝트 점검 | 의존성/타입/린트/빌드/버전 체크 |
 
 ### 관리 및 사용법
 
@@ -222,8 +224,8 @@ npm run release:patch && git push --follow-tags && gh release create v$(node -p 
 ax-discovery-portal/
 ├── .claude/              # Claude Code 설정
 │   ├── agents/          # 6개 에이전트 정의
-│   ├── skills/          # 6개 Skills
-│   ├── commands/        # 5개 Commands
+│   ├── skills/          # 8개 Skills
+│   ├── commands/        # 7개 Commands
 │   └── hooks/           # Tool use 훅
 ├── backend/              # FastAPI 백엔드
 │   ├── api/             # REST API 라우터 (4개)

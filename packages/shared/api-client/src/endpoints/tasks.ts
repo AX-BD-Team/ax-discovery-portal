@@ -91,10 +91,7 @@ export const tasksApi = {
   /**
    * Task 목록 조회
    */
-  async getTasks(params?: {
-    play_id?: string
-    status?: TaskStatus
-  }): Promise<TaskListResponse> {
+  async getTasks(params?: { play_id?: string; status?: TaskStatus }): Promise<TaskListResponse> {
     const searchParams = new URLSearchParams()
     if (params?.play_id) searchParams.append('play_id', params.play_id)
     if (params?.status) searchParams.append('status', params.status)
@@ -106,10 +103,7 @@ export const tasksApi = {
   /**
    * 미완료 Task 목록 조회
    */
-  async getPendingTasks(params?: {
-    play_id?: string
-    limit?: number
-  }): Promise<TaskListResponse> {
+  async getPendingTasks(params?: { play_id?: string; limit?: number }): Promise<TaskListResponse> {
     const searchParams = new URLSearchParams()
     if (params?.play_id) searchParams.append('play_id', params.play_id)
     if (params?.limit) searchParams.append('limit', params.limit.toString())
