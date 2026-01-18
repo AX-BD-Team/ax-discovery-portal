@@ -185,11 +185,13 @@ CORS_ORIGINS = [
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:3100",  # Next.js web (alternate port)
+    "http://localhost:4000",  # Next.js web (alternate port)
     "http://localhost:5173",  # Vite dev server (legacy)
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
     "http://127.0.0.1:3100",
+    "http://127.0.0.1:4000",
     "http://127.0.0.1:5173",
     # Production - Cloudflare Pages
     "https://ax-discovery-portal.pages.dev",
