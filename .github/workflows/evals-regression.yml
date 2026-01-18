@@ -139,7 +139,7 @@ jobs:
     name: Regression Suite 실행
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ fromJSON(env.TIMEOUT_MINUTES) }}
+    timeout-minutes: 30
 
     # 조건: dry_run이 아닌 경우에만 실행 (push/PR 이벤트에서는 항상 실행)
     if: ${{ github.event.inputs.dry_run != 'true' }}
