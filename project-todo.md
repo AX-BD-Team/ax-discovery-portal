@@ -60,7 +60,7 @@
 
 ## 🚧 진행 중인 Phase
 
-### Phase 5: AI 에이전트 평가(Evals) 플랫폼 (0% 완료) - 신규
+### Phase 5: AI 에이전트 평가(Evals) 플랫폼 (25% 완료) - 진행 중
 
 > **근거**: RosettaLens 번역본 'AI 에이전트를 위한 평가(evals) 쉽게 이해하기' 및 Anthropic Engineering
 > **목적**: 에이전트 품질을 개발 단계에서 자동 검증, 프로덕션 반응적 루프 감소
@@ -69,8 +69,8 @@
 
 | # | 항목 | 상태 | 예상 일정 |
 |---|------|------|----------|
-| 1 | Task/Suite YAML 스키마 정의 (`evals/` 디렉토리) | 🔲 | Week 7 |
-| 2 | 핵심 엔터티 모델 구현 (Task, Trial, Transcript, GraderResult) | 🔲 | Week 7 |
+| 1 | Task/Suite YAML 스키마 정의 (`evals/` 디렉토리) | ✅ | Week 7 |
+| 2 | 핵심 엔터티 모델 구현 (Task, Trial, Transcript, GraderResult) | ✅ | Week 7 |
 | 3 | DB 마이그레이션 (eval_suites, eval_tasks, eval_runs, eval_trials) | 🔲 | Week 7 |
 | 4 | Eval Harness 기본 구현 (단일 프로세스 실행기) | 🔲 | Week 8 |
 | 5 | Deterministic Graders (pytest, ruff, mypy 기반) | 🔲 | Week 8 |

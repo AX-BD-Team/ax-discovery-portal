@@ -1,0 +1,175 @@
+# Scorecard 평가 정확도 테스트
+# 목적: Scorecard 5차원 평가의 정확도 및 일관성 검증
+
+task:
+  id: scorecard-accuracy
+  type: workflow
+  desc: "Scorecard 5차원 평가 정확도 검증 (GO/PIVOT/HOLD/NO_GO 판정)"
+  suite: scorecard_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: hard
+    risk: high
+    purpose: capability
+    expected_pass_rate: 0.80
+    owner: ax-bd-team
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal을 Scorecard로 평가하세요.
+      5가지 차원(Problem Fit, Solution Fit, Market Size, Urgency, Access)에서
+      각각 1-5점으로 평가하고 총점(100점 만점)과 최종 판정(GO/PIVOT/HOLD/NO_GO)을 내리세요.
+
+      ## Signal 정보
+      - 제목: AI 기반 고객센터 자동화
+      - Pain Point: 상담원 이직률 30%, 평균 대기시간 15분
+      - 고객: 대형 통신사 고객서비스본부
+      - 예산: 연간 50억원 확보
+      - 의사결정권자: 고객서비스본부장 (직접 미팅 가능)
+      - 경쟁 상황: 내부 RFP 진행 예정 (3개월 내)
+      - Red Flag: 기존 시스템 벤더 락인 가능성
+    context:
+      workflow_id: "WF-04"
+      signal_id: "SIG-2026-TEST-001"
+
+  success_criteria:
+    description: "Scorecard가 정확하게 평가되고 합리적인 판정이 내려져야 함"
+    outcome_checks:
+      - type: db_row_exists
+        target: "scorecards"
+        value:
+          signal_id: "SIG-2026-TEST-001"
+        description: "Scorecard가 DB에 저장됨"
+      - type: state_equals
+        target: "scorecard.total_score"
+        value:
+          min: 60
+          max: 85
+        description: "총점이 합리적 범위 내 (60-85점 예상)"
+
+  reference_solution:
+    description: "전문가 평가 기준값"
+    expected_outcome:
+      dimension_scores:
+        problem_fit:
+          score: 4
+          reasoning: "명확한 Pain Point (이직률 30%, 대기시간 15분)"
+        solution_fit:
+          score: 4
+          reasoning: "AI 기반 자동화는 해당 문제에 적합"
+        market_size:
+          score: 4
+          reasoning: "대형 통신사, 연 50억 예산"
+        urgency:
+          score: 4
+          reasoning: "3개월 내 RFP, 의사결정권자 접근 가능"
+        access:
+          score: 3
+          reasoning: "직접 미팅 가능하나 벤더 락인 리스크"
+      total_score_range: [70, 85]
+      expected_decision: "GO"
+      red_flags: ["벤더 락인 가능성"]
+
+  trials:
+    k: 5
+    parallel: true
+
+  environment:
+    sandbox: process
+    reset: clean
+
+  agent:
+    adapter: ax_agent_sdk
+    agent_id: scorecard_evaluator
+    model: claude-sonnet-4-20250514
+    max_turns: 10
+    max_tool_calls: 15
+
+  graders:
+    - type: state_check
+      id: scorecard_created
+      weight: 0.2
+      required: true
+      config:
+        checks:
+          - type: db_row_exists
+            target: "scorecards"
+            expected:
+              signal_id: "SIG-2026-TEST-001"
+
+    - type: llm_reference
+      id: score_accuracy
+      weight: 0.4
+      config:
+        model: claude-sonnet-4-20250514
+        reference:
+          inline: |
+            예상 평가 결과:
+            - Problem Fit: 4점 (명확한 정량 데이터)
+            - Solution Fit: 4점 (적합한 솔루션)
+            - Market Size: 4점 (대형 고객, 큰 예산)
+            - Urgency: 4점 (빠른 타임라인)
+            - Access: 3점 (벤더 락인 리스크)
+            - 총점: 76점 (±10점 허용)
+            - 판정: GO
+        comparison_mode: semantic
+        tolerance: 0.7
+
+    - type: llm_rubric
+      id: reasoning_quality
+      weight: 0.3
+      config:
+        model: claude-sonnet-4-20250514
+        dimensions:
+          - name: evidence_based
+            description: "각 점수가 Signal 정보에 기반한 근거로 뒷받침되는가"
+            weight: 0.4
+            scale_min: 1
+            scale_max: 5
+          - name: red_flag_detection
+            description: "Red Flag(벤더 락인)를 정확히 식별하고 점수에 반영했는가"
+            weight: 0.3
+            scale_min: 1
+            scale_max: 5
+          - name: decision_consistency
+            description: "총점과 최종 판정이 일관성 있는가"
+            weight: 0.3
+            scale_min: 1
+            scale_max: 5
+
+    - type: llm_assertion
+      id: critical_checks
+      weight: 0.1
+      config:
+        assertions:
+          - statement: "Red Flag로 '벤더 락인' 또는 유사한 위험요소가 언급되었다"
+            required: true
+          - statement: "GO 판정이 내려졌거나, 점수가 70점 미만이면 PIVOT/HOLD가 내려졌다"
+            required: true
+
+  tracked_metrics:
+    - type: transcript
+      metrics: [n_turns, n_tool_calls]
+    - type: cost
+      metrics: [total_cost_usd]
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.75
+
+  timeout:
+    total_seconds: 120
+    per_turn_seconds: 30
+
+  cost_budget:
+    max_tokens: 30000
+    max_usd: 0.3
+
+  tags:
+    - scorecard
+    - capability
+    - accuracy
+    - llm-judge

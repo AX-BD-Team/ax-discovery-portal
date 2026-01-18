@@ -1,0 +1,209 @@
+# WF-02 Brief 생성 테스트
+# 목적: Signal → Scorecard → Brief 파이프라인 검증
+
+task:
+  id: wf02-brief-generation
+  type: workflow
+  desc: "Signal에서 Scorecard 평가 후 1-Page Brief 자동 생성 검증"
+  suite: workflow_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: medium
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.85
+    owner: ax-bd-team
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 인터뷰 노트를 분석하여 Signal을 추출하고,
+      Scorecard로 평가한 후 1-Page Brief를 생성하세요.
+
+      ## 인터뷰 노트
+      - 고객: ABC 제조사 IT팀장
+      - Pain Point: 현재 수동 품질검사로 불량률 5% 발생, 연간 손실 10억원
+      - 니즈: AI 기반 실시간 불량 탐지 시스템
+      - 예산: 3억원 (1년 PoC)
+      - 의사결정권자: CTO (2월 내 결정 예정)
+      - 경쟁사: 삼성SDS 제안 검토 중
+    context:
+      workflow_id: "WF-02"
+      play_id: "PLAY-MANUFACTURING"
+
+  success_criteria:
+    description: "Signal → Scorecard(GO 판정) → Brief 생성 완료"
+    outcome_checks:
+      - type: db_row_exists
+        target: "signals"
+        value:
+          status: "BRIEF_CREATED"
+        description: "Signal 상태가 BRIEF_CREATED로 변경됨"
+      - type: db_row_exists
+        target: "scorecards"
+        value:
+          decision: "GO"
+        description: "Scorecard가 GO 판정"
+      - type: db_row_exists
+        target: "opportunity_briefs"
+        description: "Brief가 DB에 생성됨"
+      - type: file_contains
+        target: "brief_output.md"
+        value: "## Problem Statement"
+        description: "Brief에 Problem Statement 섹션 포함"
+
+  reference_solution:
+    description: "예상 Brief 구조"
+    expected_outcome:
+      signal_count: 1
+      scorecard_decision: "GO"
+      scorecard_total_score_min: 70
+      brief_sections:
+        - "Problem Statement"
+        - "Proposed Solution"
+        - "Business Impact"
+        - "Next Steps"
+
+  trials:
+    k: 5
+    parallel: true
+    stop_on_first_pass: false
+
+  environment:
+    sandbox: container
+    image: "ax-evals-base:1.0"
+    reset: clean
+    network: internal
+
+  agent:
+    adapter: ax_agent_sdk
+    agent_id: brief_writer
+    model: claude-sonnet-4-20250514
+    tools_allowed:
+      - confluence.create_page
+      - confluence.update_page
+      - db.signal_create
+      - db.scorecard_create
+      - db.brief_create
+    max_turns: 25
+    max_tool_calls: 50
+
+  graders:
+    - type: state_check
+      id: pipeline_state
+      weight: 0.3
+      required: true
+      config:
+        checks:
+          - type: db_row_exists
+            target: "signals"
+            expected:
+              status: "BRIEF_CREATED"
+          - type: db_row_exists
+            target: "scorecards"
+          - type: db_row_exists
+            target: "opportunity_briefs"
+
+    - type: llm_rubric
+      id: brief_quality
+      weight: 0.4
+      config:
+        model: claude-sonnet-4-20250514
+        rubric_path: "evals/rubrics/brief_quality.md"
+        dimensions:
+          - name: problem_clarity
+            description: "Pain Point가 명확하고 정량적으로 기술되었는가"
+            weight: 0.25
+            scale_min: 1
+            scale_max: 5
+            examples:
+              - score: 5
+                description: "불량률 5%, 연간 손실 10억원 등 정량 데이터 명시"
+              - score: 3
+                description: "Pain Point 언급했으나 정량 데이터 부족"
+              - score: 1
+                description: "Pain Point 불명확"
+          - name: solution_fit
+            description: "제안 솔루션이 Pain Point를 적절히 해결하는가"
+            weight: 0.25
+            scale_min: 1
+            scale_max: 5
+          - name: business_impact
+            description: "예상 ROI/효과가 설득력 있게 제시되었는가"
+            weight: 0.25
+            scale_min: 1
+            scale_max: 5
+          - name: actionability
+            description: "Next Steps가 구체적이고 실행 가능한가"
+            weight: 0.25
+            scale_min: 1
+            scale_max: 5
+        allow_unknown: true
+        explanation_required: true
+
+    - type: llm_assertion
+      id: content_assertions
+      weight: 0.2
+      config:
+        model: claude-sonnet-4-20250514
+        assertions:
+          - statement: "Brief에 고객사명(ABC 제조사)이 정확히 언급되어 있다"
+            required: true
+          - statement: "Brief에 예산 정보(3억원)가 포함되어 있다"
+            weight: 0.8
+          - statement: "Brief에 의사결정 타임라인(2월)이 명시되어 있다"
+            weight: 0.8
+          - statement: "Brief에 경쟁사 정보(삼성SDS)가 분석되어 있다"
+            weight: 0.6
+
+    - type: transcript_metrics
+      id: efficiency
+      weight: 0.1
+      config:
+        thresholds:
+          max_turns: 20
+          max_tool_calls: 40
+          max_errors: 1
+
+  tracked_metrics:
+    - type: transcript
+      metrics: [n_turns, n_tool_calls, n_total_tokens, n_errors]
+    - type: latency
+      metrics: [total_duration]
+    - type: cost
+      metrics: [total_cost_usd]
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.75
+    partial_credit_rules:
+      - condition: "signal_created"
+        credit: 0.2
+        description: "Signal 생성 완료"
+      - condition: "scorecard_created"
+        credit: 0.3
+        description: "Scorecard 평가 완료"
+      - condition: "brief_created"
+        credit: 0.3
+        description: "Brief 생성 완료"
+      - condition: "all_sections_present"
+        credit: 0.2
+        description: "모든 섹션 포함"
+
+  timeout:
+    total_seconds: 300
+    per_turn_seconds: 45
+    grading_seconds: 120
+
+  cost_budget:
+    max_tokens: 100000
+    max_usd: 1.0
+    warn_threshold: 0.7
+
+  tags:
+    - wf-02
+    - brief
+    - capability
+    - llm-judge

@@ -1,0 +1,788 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvalGrader",
+  "description": "AI 에이전트 평가 Grader 상세 설정 스키마 - AX Discovery Portal Evals",
+  "type": "object",
+  "oneOf": [
+    {"$ref": "#/$defs/DeterministicTestsGrader"},
+    {"$ref": "#/$defs/StaticAnalysisGrader"},
+    {"$ref": "#/$defs/StringMatchGrader"},
+    {"$ref": "#/$defs/RegexMatchGrader"},
+    {"$ref": "#/$defs/ToolCallCheckGrader"},
+    {"$ref": "#/$defs/StateCheckGrader"},
+    {"$ref": "#/$defs/TranscriptMetricsGrader"},
+    {"$ref": "#/$defs/LatencyCheckGrader"},
+    {"$ref": "#/$defs/LLMRubricGrader"},
+    {"$ref": "#/$defs/LLMAssertionGrader"},
+    {"$ref": "#/$defs/LLMPairwiseGrader"},
+    {"$ref": "#/$defs/LLMReferenceGrader"},
+    {"$ref": "#/$defs/HumanReviewGrader"}
+  ],
+  "$defs": {
+    "BaseGrader": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string"},
+        "id": {
+          "type": "string",
+          "description": "채점기 고유 ID"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1.0,
+          "description": "가중치"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "필수 통과 여부"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "활성화 여부"
+        },
+        "description": {
+          "type": "string",
+          "description": "채점기 설명"
+        }
+      }
+    },
+    "DeterministicTestsGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "deterministic_tests"},
+            "config": {
+              "type": "object",
+              "properties": {
+                "framework": {
+                  "type": "string",
+                  "enum": ["pytest", "jest", "mocha", "go_test", "cargo_test", "junit"],
+                  "default": "pytest",
+                  "description": "테스트 프레임워크"
+                },
+                "test_files": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "테스트 파일 경로 목록"
+                },
+                "test_pattern": {
+                  "type": "string",
+                  "description": "테스트 파일 glob 패턴"
+                },
+                "test_command": {
+                  "type": "string",
+                  "description": "커스텀 테스트 명령어"
+                },
+                "working_dir": {
+                  "type": "string",
+                  "description": "작업 디렉토리"
+                },
+                "timeout_seconds": {
+                  "type": "integer",
+                  "default": 120,
+                  "description": "테스트 타임아웃"
+                },
+                "coverage_threshold": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "커버리지 임계값 (%)"
+                },
+                "fail_fast": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "첫 실패 시 중단"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StaticAnalysisGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "static_analysis"},
+            "config": {
+              "type": "object",
+              "properties": {
+                "tools": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "enum": ["ruff", "mypy", "eslint", "pylint", "bandit", "semgrep", "clippy"],
+                        "description": "분석 도구"
+                      },
+                      "command": {
+                        "type": "string",
+                        "description": "커스텀 명령어"
+                      },
+                      "config_file": {
+                        "type": "string",
+                        "description": "설정 파일 경로"
+                      },
+                      "severity_threshold": {
+                        "type": "string",
+                        "enum": ["error", "warning", "info"],
+                        "default": "error",
+                        "description": "허용 심각도"
+                      }
+                    }
+                  },
+                  "description": "분석 도구 목록"
+                },
+                "commands": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "직접 실행할 명령어 목록 (deprecated, tools 사용 권장)"
+                },
+                "allow_warnings": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "경고 허용"
+                },
+                "max_errors": {
+                  "type": "integer",
+                  "default": 0,
+                  "description": "허용 에러 개수"
+                },
+                "target_paths": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "분석 대상 경로"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StringMatchGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "string_match"},
+            "config": {
+              "type": "object",
+              "required": ["checks"],
+              "properties": {
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["target", "expected"],
+                    "properties": {
+                      "target": {
+                        "type": "string",
+                        "enum": ["output", "file", "transcript", "tool_result"],
+                        "description": "검사 대상"
+                      },
+                      "path": {
+                        "type": "string",
+                        "description": "파일 경로 (target=file일 때)"
+                      },
+                      "expected": {
+                        "type": "string",
+                        "description": "기대 문자열"
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": ["exact", "contains", "starts_with", "ends_with"],
+                        "default": "contains",
+                        "description": "매칭 모드"
+                      },
+                      "case_sensitive": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "대소문자 구분"
+                      },
+                      "negate": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "NOT 조건 (포함하지 않아야 함)"
+                      }
+                    }
+                  }
+                },
+                "all_required": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "모든 체크 통과 필요"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "RegexMatchGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "regex_match"},
+            "config": {
+              "type": "object",
+              "required": ["patterns"],
+              "properties": {
+                "patterns": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["pattern"],
+                    "properties": {
+                      "pattern": {
+                        "type": "string",
+                        "description": "정규식 패턴"
+                      },
+                      "target": {
+                        "type": "string",
+                        "enum": ["output", "file", "transcript"],
+                        "default": "output"
+                      },
+                      "path": {"type": "string"},
+                      "flags": {
+                        "type": "string",
+                        "description": "정규식 플래그 (예: 'im')"
+                      },
+                      "negate": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "extract_groups": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "그룹 추출 여부"
+                      }
+                    }
+                  }
+                },
+                "all_required": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ToolCallCheckGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "tool_call_check"},
+            "config": {
+              "type": "object",
+              "properties": {
+                "required_calls": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["tool"],
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "description": "도구 이름"
+                      },
+                      "min_count": {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "최소 호출 횟수"
+                      },
+                      "max_count": {
+                        "type": "integer",
+                        "description": "최대 호출 횟수"
+                      },
+                      "args_match": {
+                        "type": "object",
+                        "description": "인자 매칭 조건"
+                      }
+                    }
+                  },
+                  "description": "필수 호출 도구 목록"
+                },
+                "forbidden_calls": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["tool"],
+                    "properties": {
+                      "tool": {"type": "string"},
+                      "reason": {"type": "string"}
+                    }
+                  },
+                  "description": "금지 도구 목록"
+                },
+                "call_order": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "호출 순서 (선택적, outcome 중심 권장)"
+                },
+                "check_order": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "순서 검사 여부 (false 권장)"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StateCheckGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "state_check"},
+            "config": {
+              "type": "object",
+              "required": ["checks"],
+              "properties": {
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["type"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "file_exists",
+                          "file_not_exists",
+                          "file_content",
+                          "dir_exists",
+                          "db_row_exists",
+                          "db_row_value",
+                          "api_response",
+                          "env_var",
+                          "process_running",
+                          "port_listening"
+                        ]
+                      },
+                      "target": {"type": "string"},
+                      "expected": {},
+                      "operator": {
+                        "type": "string",
+                        "enum": ["eq", "ne", "gt", "gte", "lt", "lte", "contains", "matches"],
+                        "default": "eq"
+                      },
+                      "description": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "TranscriptMetricsGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "transcript_metrics"},
+            "config": {
+              "type": "object",
+              "properties": {
+                "thresholds": {
+                  "type": "object",
+                  "properties": {
+                    "max_turns": {
+                      "type": "integer",
+                      "description": "최대 턴 수"
+                    },
+                    "max_tool_calls": {
+                      "type": "integer",
+                      "description": "최대 도구 호출 수"
+                    },
+                    "max_tokens": {
+                      "type": "integer",
+                      "description": "최대 토큰 수"
+                    },
+                    "max_errors": {
+                      "type": "integer",
+                      "default": 0,
+                      "description": "최대 에러 수"
+                    },
+                    "max_retries": {
+                      "type": "integer",
+                      "default": 3,
+                      "description": "최대 재시도 수"
+                    }
+                  }
+                },
+                "efficiency_score": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "효율성 점수 계산"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LatencyCheckGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "latency_check"},
+            "config": {
+              "type": "object",
+              "properties": {
+                "thresholds": {
+                  "type": "object",
+                  "properties": {
+                    "max_total_seconds": {
+                      "type": "number",
+                      "description": "최대 총 실행 시간"
+                    },
+                    "max_time_to_first_token_ms": {
+                      "type": "number",
+                      "description": "최대 첫 토큰 시간 (ms)"
+                    },
+                    "min_tokens_per_second": {
+                      "type": "number",
+                      "description": "최소 토큰/초"
+                    }
+                  }
+                },
+                "percentile": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "default": 95,
+                  "description": "백분위수 기준 (예: p95)"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LLMRubricGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "llm_rubric"},
+            "config": {
+              "type": "object",
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "default": "claude-sonnet-4-20250514",
+                  "description": "Judge 모델"
+                },
+                "rubric_path": {
+                  "type": "string",
+                  "description": "루브릭 파일 경로"
+                },
+                "rubric_inline": {
+                  "type": "string",
+                  "description": "인라인 루브릭 (rubric_path와 상호 배타적)"
+                },
+                "dimensions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["name", "description", "weight"],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "차원 이름"
+                      },
+                      "description": {
+                        "type": "string",
+                        "description": "평가 기준 설명"
+                      },
+                      "weight": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "가중치"
+                      },
+                      "scale_min": {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "최소 점수"
+                      },
+                      "scale_max": {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "최대 점수"
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "score": {"type": "integer"},
+                            "description": {"type": "string"}
+                          }
+                        },
+                        "description": "점수별 예시"
+                      }
+                    }
+                  },
+                  "description": "평가 차원 목록"
+                },
+                "allow_unknown": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "'Unknown' 응답 허용 (환각 방지)"
+                },
+                "explanation_required": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "설명 필수 여부"
+                },
+                "temperature": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "default": 0,
+                  "description": "모델 temperature"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LLMAssertionGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "llm_assertion"},
+            "config": {
+              "type": "object",
+              "required": ["assertions"],
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "default": "claude-sonnet-4-20250514"
+                },
+                "assertions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["statement"],
+                    "properties": {
+                      "statement": {
+                        "type": "string",
+                        "description": "자연어 assertion (예: '코드에 보안 취약점이 없어야 한다')"
+                      },
+                      "weight": {
+                        "type": "number",
+                        "default": 1.0
+                      },
+                      "required": {
+                        "type": "boolean",
+                        "default": false
+                      }
+                    }
+                  }
+                },
+                "context_fields": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "default": ["output", "transcript"],
+                  "description": "평가에 포함할 컨텍스트"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LLMPairwiseGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "llm_pairwise"},
+            "config": {
+              "type": "object",
+              "required": ["baseline"],
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "default": "claude-sonnet-4-20250514"
+                },
+                "baseline": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["previous_run", "reference", "alternative_agent"]
+                    },
+                    "run_id": {"type": "string"},
+                    "reference_path": {"type": "string"}
+                  },
+                  "description": "비교 기준"
+                },
+                "criteria": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "비교 기준 목록"
+                },
+                "tie_allowed": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "동점 허용"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LLMReferenceGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "llm_reference"},
+            "config": {
+              "type": "object",
+              "required": ["reference"],
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "default": "claude-sonnet-4-20250514"
+                },
+                "reference": {
+                  "type": "object",
+                  "properties": {
+                    "path": {"type": "string"},
+                    "inline": {"type": "string"}
+                  },
+                  "description": "레퍼런스 솔루션"
+                },
+                "comparison_mode": {
+                  "type": "string",
+                  "enum": ["semantic", "structural", "functional"],
+                  "default": "semantic",
+                  "description": "비교 모드"
+                },
+                "tolerance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "default": 0.8,
+                  "description": "허용 유사도"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "HumanReviewGrader": {
+      "allOf": [
+        {"$ref": "#/$defs/BaseGrader"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "human_review"},
+            "config": {
+              "type": "object",
+              "properties": {
+                "reviewer_pool": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "리뷰어 풀 (이메일/ID)"
+                },
+                "min_reviewers": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 1,
+                  "description": "최소 리뷰어 수"
+                },
+                "consensus_threshold": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "default": 0.8,
+                  "description": "합의 임계값 (IAA)"
+                },
+                "rubric_path": {
+                  "type": "string",
+                  "description": "리뷰 루브릭 경로"
+                },
+                "timeout_hours": {
+                  "type": "integer",
+                  "default": 48,
+                  "description": "리뷰 타임아웃 (시간)"
+                },
+                "escalation": {
+                  "type": "object",
+                  "properties": {
+                    "on_disagreement": {
+                      "type": "string",
+                      "enum": ["majority_vote", "escalate", "fail"],
+                      "default": "majority_vote"
+                    },
+                    "escalation_pool": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                    }
+                  }
+                },
+                "spot_check": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "스팟체크 모드 (샘플링)"
+                    },
+                    "sample_rate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "default": 0.1,
+                      "description": "샘플링 비율"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

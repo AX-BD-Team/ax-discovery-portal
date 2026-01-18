@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvalSuite",
+  "description": "AI 에이전트 평가 Suite 정의 스키마 - AX Discovery Portal Evals",
+  "type": "object",
+  "required": ["suite"],
+  "properties": {
+    "suite": {
+      "type": "object",
+      "required": ["id", "name", "purpose", "tasks"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$",
+          "minLength": 3,
+          "maxLength": 50,
+          "description": "Suite 고유 ID"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Suite 이름 (한글 가능)"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Suite 설명"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "default": "1.0.0",
+          "description": "Suite 버전"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["capability", "regression", "benchmark", "safety"],
+          "description": "Suite 목적"
+        },
+        "domain": {
+          "type": "string",
+          "description": "도메인 분류 (예: seminar_pipeline, brief_generation)"
+        },
+        "owner_team": {
+          "type": "string",
+          "description": "담당 팀"
+        },
+        "tasks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Task ID 참조"
+              },
+              {
+                "type": "object",
+                "required": ["path"],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Task YAML 파일 경로"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "활성화 여부"
+                  },
+                  "override": {
+                    "type": "object",
+                    "description": "Task 설정 오버라이드"
+                  }
+                }
+              }
+            ]
+          },
+          "description": "포함된 Task 목록"
+        },
+        "defaults": {
+          "$ref": "#/$defs/SuiteDefaults"
+        },
+        "schedule": {
+          "$ref": "#/$defs/ScheduleConfig"
+        },
+        "gates": {
+          "$ref": "#/$defs/GateConfig"
+        },
+        "notifications": {
+          "$ref": "#/$defs/NotificationConfig"
+        },
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "분류 태그"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "SuiteDefaults": {
+      "type": "object",
+      "description": "Suite 레벨 기본값 (Task에서 오버라이드 가능)",
+      "properties": {
+        "trials": {
+          "type": "object",
+          "properties": {
+            "k": {"type": "integer", "default": 5},
+            "parallel": {"type": "boolean", "default": true}
+          }
+        },
+        "environment": {
+          "type": "object",
+          "properties": {
+            "sandbox": {"type": "string"},
+            "image": {"type": "string"},
+            "reset": {"type": "string"}
+          }
+        },
+        "agent": {
+          "type": "object",
+          "properties": {
+            "adapter": {"type": "string"},
+            "model": {"type": "string"},
+            "max_turns": {"type": "integer"}
+          }
+        },
+        "timeout": {
+          "type": "object",
+          "properties": {
+            "total_seconds": {"type": "integer"},
+            "per_turn_seconds": {"type": "integer"}
+          }
+        },
+        "cost_budget": {
+          "type": "object",
+          "properties": {
+            "max_tokens": {"type": "integer"},
+            "max_usd": {"type": "number"}
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScheduleConfig": {
+      "type": "object",
+      "description": "실행 스케줄 설정",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "스케줄 활성화"
+        },
+        "cron": {
+          "type": "string",
+          "description": "Cron 표현식 (예: '0 0 * * *' = 매일 자정)"
+        },
+        "on_commit": {
+          "type": "boolean",
+          "default": false,
+          "description": "커밋마다 실행"
+        },
+        "on_pr": {
+          "type": "boolean",
+          "default": true,
+          "description": "PR마다 실행"
+        },
+        "branches": {
+          "type": "array",
+          "items": {"type": "string"},
+          "default": ["main", "develop"],
+          "description": "대상 브랜치"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GateConfig": {
+      "type": "object",
+      "description": "배포 게이트 설정",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "게이트 활성화"
+        },
+        "blocking": {
+          "type": "boolean",
+          "default": true,
+          "description": "실패 시 배포 차단"
+        },
+        "pass_criteria": {
+          "type": "object",
+          "properties": {
+            "min_pass_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.95,
+              "description": "최소 통과율"
+            },
+            "required_tasks": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "필수 통과 Task ID 목록"
+            },
+            "max_regression_count": {
+              "type": "integer",
+              "default": 0,
+              "description": "허용 회귀 개수"
+            }
+          }
+        },
+        "exceptions": {
+          "type": "object",
+          "properties": {
+            "allow_skip_with_approval": {
+              "type": "boolean",
+              "default": false,
+              "description": "승인 시 스킵 허용"
+            },
+            "approvers": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "승인자 목록"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "NotificationConfig": {
+      "type": "object",
+      "description": "알림 설정",
+      "properties": {
+        "on_failure": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "channels": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": {"type": "string", "enum": ["slack", "teams", "email"]},
+                  "target": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "on_regression": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "channels": {"type": "array", "items": {"type": "object"}}
+          }
+        },
+        "on_saturation": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "threshold": {"type": "number", "default": 0.98},
+            "channels": {"type": "array", "items": {"type": "object"}}
+          }
+        },
+        "daily_digest": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean", "default": false},
+            "time": {"type": "string", "default": "09:00"},
+            "timezone": {"type": "string", "default": "Asia/Seoul"},
+            "channels": {"type": "array", "items": {"type": "object"}}
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

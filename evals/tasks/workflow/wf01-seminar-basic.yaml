@@ -1,0 +1,148 @@
+# WF-01 세미나 파이프라인 기본 테스트
+# 목적: 세미나 URL 입력 → Activity 생성 → Signal 추출 검증
+
+task:
+  id: wf01-seminar-basic
+  type: workflow
+  desc: "세미나 URL에서 Activity 생성 및 Signal 추출 기본 동작 검증"
+  suite: workflow_regression
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: easy
+    risk: low
+    purpose: regression
+    expected_pass_rate: 0.95
+    owner: ax-bd-team
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 세미나 URL을 분석하여 Activity를 생성하고 Signal을 추출하세요.
+      URL: https://example.com/ai-seminar-2026
+    context:
+      workflow_id: "WF-01"
+      play_id: "PLAY-AI-AGENT"
+    environment_variables:
+      CONFLUENCE_SPACE_KEY: "AB"
+
+  success_criteria:
+    description: "Activity가 생성되고, 최소 1개의 Signal이 추출되어야 함"
+    outcome_checks:
+      - type: db_row_exists
+        target: "entities"
+        value:
+          entity_type: "ACTIVITY"
+        description: "Activity 엔티티가 DB에 생성됨"
+      - type: api_returns
+        target: "/api/activities"
+        value:
+          status: 200
+          body_contains: "ai-seminar"
+        description: "Activity API에서 조회 가능"
+    negative_checks:
+      - type: state_equals
+        target: "error_count"
+        value: 0
+        description: "에러 없이 완료되어야 함"
+
+  trials:
+    k: 3
+    parallel: true
+
+  environment:
+    sandbox: process
+    reset: clean
+    network: internal
+
+  agent:
+    adapter: ax_agent_sdk
+    agent_id: orchestrator
+    model: claude-sonnet-4-20250514
+    tools_allowed:
+      - confluence.get_page
+      - confluence.create_page
+      - confluence.update_page
+    max_turns: 15
+    max_tool_calls: 30
+
+  graders:
+    - type: deterministic_tests
+      id: unit_tests
+      weight: 0.4
+      config:
+        framework: pytest
+        test_files:
+          - "tests/unit/test_seminar_pipeline.py"
+        timeout_seconds: 60
+
+    - type: state_check
+      id: db_state
+      weight: 0.3
+      required: true
+      config:
+        checks:
+          - type: db_row_exists
+            target: "entities"
+            expected:
+              entity_type: "ACTIVITY"
+          - type: db_row_exists
+            target: "entities"
+            expected:
+              entity_type: "SIGNAL"
+
+    - type: transcript_metrics
+      id: efficiency
+      weight: 0.2
+      config:
+        thresholds:
+          max_turns: 10
+          max_tool_calls: 20
+          max_errors: 0
+
+    - type: llm_rubric
+      id: quality
+      weight: 0.1
+      config:
+        model: claude-sonnet-4-20250514
+        dimensions:
+          - name: completeness
+            description: "Activity 정보가 완전하게 추출되었는가 (제목, 일시, 장소, 주최자)"
+            weight: 0.5
+            scale_min: 1
+            scale_max: 5
+          - name: signal_relevance
+            description: "추출된 Signal이 BD 관점에서 의미있는가"
+            weight: 0.5
+            scale_min: 1
+            scale_max: 5
+        allow_unknown: true
+
+  tracked_metrics:
+    - type: transcript
+      metrics: [n_turns, n_tool_calls, n_total_tokens]
+    - type: latency
+      metrics: [total_duration, time_to_first_token]
+    - type: cost
+      metrics: [total_cost_usd]
+
+  scoring:
+    mode: hybrid
+    pass_threshold: 0.8
+    required_graders:
+      - db_state
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 30
+
+  cost_budget:
+    max_tokens: 50000
+    max_usd: 0.5
+
+  tags:
+    - wf-01
+    - seminar
+    - regression
+    - basic

@@ -33,16 +33,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **AI 에이전트 평가(Evals) 플랫폼 설계안 v1.0** 📊
-  - 근거: RosettaLens 번역본 'AI 에이전트를 위한 평가(evals) 쉽게 이해하기' 및 Anthropic Engineering
-  - 핵심 개념 모델: Task, Trial, Transcript, Outcome, Grader, Eval Suite
-  - 기능 요구사항 8개 (FR1-FR8): 스위트 관리, 멀티 트라이얼, 평가 하네스, 채점기 프레임워크, 트랜스크립트 뷰어, 운영/유지보수, CI/CD 연계, 에이전트 유형 지원
-  - 비기능 요구사항 6개: 재현성, 격리/보안, 확장성, 비용 통제, 관측가능성, 거버넌스
-  - 채점 원칙: 경로가 아닌 결과(outcome) 중심, 부분 점수(partial credit) 지원
-  - 비결정성 처리: pass@k (1회 성공), pass^k (매번 성공)
-  - Task DSL YAML 스펙 초안
-  - 3단계 구현 로드맵: Phase 5.0 MVP → Phase 5.1 신뢰성 강화 → Phase 5.2 확장
-  - 문서: `docs/AI 에이전트 평가(Evals) 플랫폼 시스템 설계안 v1.0.pdf`
+- **AI 에이전트 평가(Evals) 플랫폼 Phase 5.0 MVP** 📊
+  - **설계안 v1.0**: 핵심 개념 모델 정의 (Task, Trial, Transcript, Outcome, Grader, Eval Suite)
+  - **Pydantic 모델 구현** (`backend/evals/`):
+    - `models/enums.py`: 16개 열거형 (TaskType, TrialStatus, GraderType, ScoringMode 등)
+    - `models/entities.py`: 9개 핵심 엔터티 (Suite, Task, Run, Trial, Transcript, Outcome, GraderResult, AggregatedMetrics, EvalSummary)
+    - `models/configs.py`: 20+ 설정 모델 (TaskMetadata, GraderConfig, ScoringConfig 등)
+    - `models/task.py`: TaskDefinition YAML 래퍼 + 헬퍼 메서드
+    - `models/suite.py`: SuiteDefinition YAML 래퍼 + 게이트/알림 설정
+  - **YAML 로더** (`loaders/yaml_loader.py`):
+    - `load_task()`, `load_suite()`: YAML 파일 로드 및 Pydantic 검증
+    - `discover_tasks()`, `discover_suites()`: 디렉토리 검색
+    - `validate_task_yaml()`, `validate_suite_yaml()`: 스키마 검증
+    - `load_tasks_from_suite()`: Suite에서 Task 일괄 로드
+  - **JSON 스키마** (`evals/schemas/`): task.schema.json, suite.schema.json, grader.schema.json
+  - **샘플 YAML** (`evals/tasks/`, `evals/suites/`): WF-01/02 테스트 케이스
+  - **단위 테스트** (65개 통과):
+    - `tests/unit/test_evals_models.py`: 32개 모델 테스트
+    - `tests/unit/test_evals_loaders.py`: 33개 로더 테스트
+  - **의존성**: `pyyaml>=6.0.0`, `types-PyYAML>=6.0.0` (dev)
 
 - **Opportunity Stage 파이프라인 시스템** 🚀
   - **11단계 Stage 파이프라인**: DISCOVERY → IDEA_CARD → GATE1 → MOCKUP → GATE2 → BIZ_PLANNING → PILOT → PRE_PROPOSAL → HANDOFF + HOLD/DROP

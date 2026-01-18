@@ -1,0 +1,624 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvalTask",
+  "description": "AI 에이전트 평가 Task 정의 스키마 - AX Discovery Portal Evals",
+  "type": "object",
+  "required": ["task"],
+  "properties": {
+    "task": {
+      "type": "object",
+      "required": ["id", "type", "desc", "suite", "graders", "scoring"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$",
+          "minLength": 3,
+          "maxLength": 100,
+          "description": "Task 고유 ID (소문자, 숫자, 하이픈, 언더스코어만 허용)"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["coding", "workflow", "conversational", "research", "computer_use"],
+          "description": "Task 유형"
+        },
+        "desc": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Task 설명 (한글 가능)"
+        },
+        "suite": {
+          "type": "string",
+          "description": "소속 Suite ID"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "default": "1.0.0",
+          "description": "Task 버전 (Semantic Versioning)"
+        },
+        "metadata": {
+          "$ref": "#/$defs/TaskMetadata"
+        },
+        "inputs": {
+          "$ref": "#/$defs/TaskInputs"
+        },
+        "success_criteria": {
+          "$ref": "#/$defs/SuccessCriteria"
+        },
+        "reference_solution": {
+          "$ref": "#/$defs/ReferenceSolution"
+        },
+        "trials": {
+          "$ref": "#/$defs/TrialConfig"
+        },
+        "environment": {
+          "$ref": "#/$defs/EnvironmentConfig"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentConfig"
+        },
+        "graders": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/GraderConfig"
+          },
+          "description": "채점기 목록 (1개 이상 필수)"
+        },
+        "tracked_metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MetricConfig"
+          },
+          "description": "추적할 메트릭 목록"
+        },
+        "scoring": {
+          "$ref": "#/$defs/ScoringConfig"
+        },
+        "timeout": {
+          "$ref": "#/$defs/TimeoutConfig"
+        },
+        "cost_budget": {
+          "$ref": "#/$defs/CostBudget"
+        },
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "분류 태그"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "TaskMetadata": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "enum": ["security", "performance", "functionality", "ux", "integration", "data_quality"],
+          "description": "도메인 분류"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["trivial", "easy", "medium", "hard", "expert"],
+          "default": "medium",
+          "description": "난이도"
+        },
+        "risk": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "default": "low",
+          "description": "위험도 (실패 시 영향)"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["capability", "regression"],
+          "description": "평가 목적 (역량 측정 vs 회귀 방지)"
+        },
+        "expected_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "기대 통과율 (0-1)"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Task 담당자/팀"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date",
+          "description": "생성 일자"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date",
+          "description": "수정 일자"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskInputs": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "에이전트에게 전달할 프롬프트"
+        },
+        "prompt_file": {
+          "type": "string",
+          "description": "프롬프트 파일 경로 (prompt와 상호 배타적)"
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "추가 컨텍스트 (JSON 형태)"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path"],
+            "properties": {
+              "path": {"type": "string"},
+              "content": {"type": "string"},
+              "content_file": {"type": "string"}
+            }
+          },
+          "description": "초기 파일 목록"
+        },
+        "environment_variables": {
+          "type": "object",
+          "additionalProperties": {"type": "string"},
+          "description": "환경 변수"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SuccessCriteria": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "성공 기준 설명"
+        },
+        "outcome_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["file_exists", "file_contains", "file_not_contains", "command_succeeds", "command_output_contains", "db_row_exists", "api_returns", "state_equals"]
+              },
+              "target": {"type": "string"},
+              "value": {},
+              "description": {"type": "string"}
+            }
+          },
+          "description": "결과 검증 체크 목록"
+        },
+        "negative_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {"type": "string"},
+              "target": {"type": "string"},
+              "value": {},
+              "description": {"type": "string"}
+            }
+          },
+          "description": "일어나면 안 되는 것들 (균형 잡힌 평가)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReferenceSolution": {
+      "type": "object",
+      "description": "레퍼런스 솔루션 (채점기 검증용)",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "솔루션 설명"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path"],
+            "properties": {
+              "path": {"type": "string"},
+              "content": {"type": "string"},
+              "content_file": {"type": "string"}
+            }
+          },
+          "description": "정답 파일 목록"
+        },
+        "expected_outcome": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "기대 결과 상태"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TrialConfig": {
+      "type": "object",
+      "properties": {
+        "k": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 5,
+          "description": "트라이얼 횟수"
+        },
+        "seeds": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "description": "고정 시드 목록 (재현성)"
+        },
+        "parallel": {
+          "type": "boolean",
+          "default": true,
+          "description": "병렬 실행 여부"
+        },
+        "stop_on_first_pass": {
+          "type": "boolean",
+          "default": false,
+          "description": "첫 성공 시 중단 (pass@k 최적화)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EnvironmentConfig": {
+      "type": "object",
+      "properties": {
+        "sandbox": {
+          "type": "string",
+          "enum": ["none", "process", "container", "vm"],
+          "default": "container",
+          "description": "격리 수준"
+        },
+        "image": {
+          "type": "string",
+          "description": "컨테이너 이미지 (sandbox=container일 때)"
+        },
+        "reset": {
+          "type": "string",
+          "enum": ["clean", "snapshot", "persist"],
+          "default": "clean",
+          "description": "Trial 간 환경 리셋 방식"
+        },
+        "network": {
+          "type": "string",
+          "enum": ["none", "internal", "external"],
+          "default": "internal",
+          "description": "네트워크 접근 수준"
+        },
+        "working_dir": {
+          "type": "string",
+          "description": "작업 디렉토리"
+        },
+        "mounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "target"],
+            "properties": {
+              "source": {"type": "string"},
+              "target": {"type": "string"},
+              "readonly": {"type": "boolean", "default": true}
+            }
+          },
+          "description": "마운트 볼륨"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentConfig": {
+      "type": "object",
+      "properties": {
+        "adapter": {
+          "type": "string",
+          "enum": ["ax_agent_sdk", "claude_code", "langchain", "custom"],
+          "default": "ax_agent_sdk",
+          "description": "에이전트 어댑터 유형"
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "특정 에이전트 ID (예: orchestrator, brief_writer)"
+        },
+        "model": {
+          "type": "string",
+          "description": "사용할 모델 (예: claude-sonnet-4-20250514)"
+        },
+        "tools_allowed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "허용된 도구 목록"
+        },
+        "tools_denied": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "금지된 도구 목록"
+        },
+        "max_turns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "description": "최대 턴 수"
+        },
+        "max_tool_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 50,
+          "description": "최대 도구 호출 수"
+        },
+        "system_prompt_override": {
+          "type": "string",
+          "description": "시스템 프롬프트 오버라이드"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GraderConfig": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "deterministic_tests",
+            "static_analysis",
+            "string_match",
+            "regex_match",
+            "tool_call_check",
+            "state_check",
+            "transcript_metrics",
+            "latency_check",
+            "llm_rubric",
+            "llm_assertion",
+            "llm_pairwise",
+            "llm_reference",
+            "human_review"
+          ],
+          "description": "채점기 유형"
+        },
+        "id": {
+          "type": "string",
+          "description": "채점기 고유 ID"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1.0,
+          "description": "가중치 (weighted scoring일 때)"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "필수 통과 여부 (binary scoring일 때)"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "채점기별 설정"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "deterministic_tests"}}},
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "properties": {
+                  "test_files": {"type": "array", "items": {"type": "string"}},
+                  "test_command": {"type": "string"},
+                  "framework": {"type": "string", "enum": ["pytest", "jest", "go_test", "cargo_test"]}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"type": {"const": "static_analysis"}}},
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "properties": {
+                  "commands": {"type": "array", "items": {"type": "string"}},
+                  "allow_warnings": {"type": "boolean", "default": false},
+                  "max_errors": {"type": "integer", "default": 0}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"type": {"const": "llm_rubric"}}},
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "properties": {
+                  "rubric_path": {"type": "string"},
+                  "rubric_inline": {"type": "string"},
+                  "model": {"type": "string"},
+                  "dimensions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["name", "weight"],
+                      "properties": {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "weight": {"type": "number"},
+                        "scale_min": {"type": "integer", "default": 1},
+                        "scale_max": {"type": "integer", "default": 5}
+                      }
+                    }
+                  },
+                  "allow_unknown": {"type": "boolean", "default": true}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"type": {"const": "human_review"}}},
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "properties": {
+                  "reviewer_pool": {"type": "array", "items": {"type": "string"}},
+                  "min_reviewers": {"type": "integer", "default": 1},
+                  "consensus_threshold": {"type": "number", "default": 0.8},
+                  "rubric_path": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "MetricConfig": {
+      "type": "object",
+      "required": ["type", "metrics"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["transcript", "latency", "cost", "custom"],
+          "description": "메트릭 유형"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "추적할 메트릭 이름"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "transcript"}}},
+          "then": {
+            "properties": {
+              "metrics": {
+                "items": {
+                  "enum": ["n_turns", "n_tool_calls", "n_total_tokens", "n_input_tokens", "n_output_tokens", "n_errors", "n_retries"]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"type": {"const": "latency"}}},
+          "then": {
+            "properties": {
+              "metrics": {
+                "items": {
+                  "enum": ["time_to_first_token", "time_to_last_token", "total_duration", "tokens_per_second"]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "ScoringConfig": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["weighted", "binary", "hybrid", "partial_credit"],
+          "description": "채점 모드"
+        },
+        "pass_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.8,
+          "description": "통과 임계값 (weighted/hybrid/partial_credit)"
+        },
+        "required_graders": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "필수 통과 채점기 ID 목록 (binary/hybrid)"
+        },
+        "partial_credit_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["condition", "credit"],
+            "properties": {
+              "condition": {"type": "string"},
+              "credit": {"type": "number"},
+              "description": {"type": "string"}
+            }
+          },
+          "description": "부분 점수 규칙 (partial_credit)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TimeoutConfig": {
+      "type": "object",
+      "properties": {
+        "total_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "default": 300,
+          "description": "전체 실행 타임아웃 (초)"
+        },
+        "per_turn_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 60,
+          "description": "턴당 타임아웃 (초)"
+        },
+        "grading_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600,
+          "default": 120,
+          "description": "채점 타임아웃 (초)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CostBudget": {
+      "type": "object",
+      "properties": {
+        "max_tokens": {
+          "type": "integer",
+          "description": "최대 토큰 수"
+        },
+        "max_usd": {
+          "type": "number",
+          "description": "최대 비용 (USD)"
+        },
+        "warn_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.8,
+          "description": "경고 임계값 (예산 대비 비율)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

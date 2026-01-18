@@ -1,0 +1,100 @@
+# 워크플로 회귀 테스트 Suite
+# 목적: 모든 커밋에서 실행하여 기존 기능 회귀 방지
+
+suite:
+  id: workflow_regression
+  name: "워크플로 회귀 테스트"
+  description: "WF-01~06 핵심 워크플로의 기본 동작을 검증하는 회귀 테스트 스위트"
+  version: "1.0.0"
+  purpose: regression
+  domain: workflow
+  owner_team: ax-bd-team
+
+  tasks:
+    # WF-01: 세미나 파이프라인
+    - path: "evals/tasks/workflow/wf01-seminar-basic.yaml"
+      enabled: true
+
+    # WF-02: Brief 생성 (회귀용 간소화 버전)
+    - path: "evals/tasks/workflow/wf02-brief-generation.yaml"
+      enabled: true
+      override:
+        trials:
+          k: 2  # 회귀 테스트는 빠르게
+        timeout:
+          total_seconds: 180
+
+    # TODO: WF-03~06 Task 추가 예정
+    # - path: "evals/tasks/workflow/wf03-voc-mining.yaml"
+    # - path: "evals/tasks/workflow/wf04-inbound-triage.yaml"
+    # - path: "evals/tasks/workflow/wf05-kpi-digest.yaml"
+    # - path: "evals/tasks/workflow/wf06-confluence-sync.yaml"
+
+  defaults:
+    trials:
+      k: 3
+      parallel: true
+    environment:
+      sandbox: process
+      reset: clean
+      network: internal
+    agent:
+      adapter: ax_agent_sdk
+      model: claude-sonnet-4-20250514
+      max_turns: 15
+    timeout:
+      total_seconds: 180
+      per_turn_seconds: 30
+    cost_budget:
+      max_tokens: 50000
+      max_usd: 0.5
+
+  schedule:
+    enabled: true
+    on_commit: false  # 매 커밋은 비용 문제로 비활성화
+    on_pr: true       # PR마다 실행
+    branches:
+      - main
+      - develop
+      - "feature/*"
+    cron: "0 9 * * 1-5"  # 평일 오전 9시 (KST)
+
+  gates:
+    enabled: true
+    blocking: true
+    pass_criteria:
+      min_pass_rate: 0.95  # 95% 이상 통과 필수
+      required_tasks:
+        - wf01-seminar-basic  # 핵심 Task는 필수 통과
+      max_regression_count: 0  # 회귀 허용 안함
+    exceptions:
+      allow_skip_with_approval: true
+      approvers:
+        - tech-lead@example.com
+        - qa-lead@example.com
+
+  notifications:
+    on_failure:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+        - type: teams
+          target: "ax-bd-team"
+    on_regression:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+    daily_digest:
+      enabled: true
+      time: "09:00"
+      timezone: "Asia/Seoul"
+      channels:
+        - type: slack
+          target: "#ax-bd-dev"
+
+  tags:
+    - regression
+    - workflow
+    - ci-gate
