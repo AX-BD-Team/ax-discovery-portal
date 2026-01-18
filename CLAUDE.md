@@ -22,7 +22,7 @@
 | ax-todo | ToDo 관리 + Confluence 동기화 | 진행현황 리포트 + 차이점 분석 |
 | ax-health-check | 프로젝트 점검 | 의존성/타입/린트/빌드/버전 체크 리포트 |
 
-**상세 문서**: [docs/guides/methodology.md](docs/guides/methodology.md)
+**문서 인덱스**: [docs/INDEX.md](docs/INDEX.md)
 
 ---
 
@@ -250,7 +250,7 @@ ax-discovery-portal/
 
 - **Import Alias**: `@/` → `src/`
 - **코드 컨벤션**: PascalCase (컴포넌트), camelCase (함수/훅), kebab-case (파일)
-- **문서 관리**: [docs/DOCUMENT_MANAGEMENT.md](docs/DOCUMENT_MANAGEMENT.md)
+- **문서 인덱스**: [docs/INDEX.md](docs/INDEX.md)
 
 ---
 
