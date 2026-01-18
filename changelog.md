@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **테스트 격리 문제 해결 (184개 실패 → 891개 통과)** 🔧
+  - `conftest.py`: structlog 테스트 환경 즉시 설정 (import 시점)
+  - `reset_structlog_for_each_test` autouse fixture 추가
+  - `test_ontology_modules.py`: GROUP BY 쿼리 mock 패턴 개선
+    - `scalars().all()` 체인 지원 mock 헬퍼
+    - `get_entity_graph`, `get_similar_entities`, `get_stats` 테스트 수정
+
 - **외부 세미나 수집기 4개 복구** 🔧
   - OnOffMix: URL 패턴 및 HTML 파싱 로직 업데이트 (`/event/main/?interest=A0103`)
   - EventUs: Vue.js 렌더링 대응, suggest API로 전환
