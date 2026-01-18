@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2026-01-18
 
+### Fixed
+
+- **외부 세미나 수집기 4개 복구** 🔧
+  - OnOffMix: URL 패턴 및 HTML 파싱 로직 업데이트 (`/event/main/?interest=A0103`)
+  - EventUs: Vue.js 렌더링 대응, suggest API로 전환
+  - DevEvent: GitHub 마크다운 파싱 헬스체크 추가
+  - RSS: 11개 기본 피드 URL 설정 (카카오, 네이버 D2, OpenAI 등)
+
+- **KPI Digest API 응답 형식 수정** 🔧
+  - `get_kpi_digest()` 반환값을 프론트엔드 `KPIDigest` 인터페이스와 일치하도록 수정
+  - 필드: `activity_actual`, `signal_actual`, `brief_actual`, `s2_actual` 등
+
 ### Added
 
 - **Sentry 프로덕션 모니터링** 📊
