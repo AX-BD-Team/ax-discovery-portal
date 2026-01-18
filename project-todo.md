@@ -76,7 +76,7 @@
 | 4 | Eval Harness 기본 구현 (단일 프로세스 실행기) | ✅ | Week 8 |
 | 5 | Deterministic Graders (pytest, ruff, mypy 기반) | ✅ | Week 8 |
 | 6 | Transcript/Outcome 저장 + 간단 뷰어 API | ✅ | Week 8 |
-| 7 | CI 게이팅 (regression suite 자동 실행) | ✅ | Week 9 |
+| 7 | CI 게이팅 (regression suite 자동 실행) | ✅ | Week 9 (워크플로 수정 완료) |
 | 8 | 기존 6개 에이전트 기본 Task 작성 (각 3-5개) | ✅ | Week 10 |
 
 #### Phase 5.1: 신뢰성 강화 (Phase 5.0 완료 후)

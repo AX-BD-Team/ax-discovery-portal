@@ -29,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CI 워크플로 수정 (모든 워크플로 통과)** 🔧
+  - **ruff lint 오류 19개 수정**: I001 import sorting, F401 unused import
+  - **evals-regression.yml 워크플로 3가지 문제 해결**:
+    - `timeout-minutes: ${{ fromJSON(env.TIMEOUT_MINUTES) }}` → `30` (env 컨텍스트 미지원)
+    - `((suite_count++))` → `suite_count=$((suite_count + 1))` (bash exit code 문제)
+    - `shopt -s globstar nullglob` 추가 (bash `**` glob 패턴 지원)
+  - 52개 파일 ruff format 적용
+
 - **테스트 격리 문제 해결 (184개 실패 → 891개 통과)** 🔧
   - `conftest.py`: structlog 테스트 환경 즉시 설정 (import 시점)
   - `reset_structlog_for_each_test` autouse fixture 추가
