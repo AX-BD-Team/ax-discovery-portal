@@ -53,6 +53,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `discover_tasks()`, `discover_suites()`: 디렉토리 검색
     - `validate_task_yaml()`, `validate_suite_yaml()`: 스키마 검증
     - `load_tasks_from_suite()`: Suite에서 Task 일괄 로드
+  - **DB 마이그레이션** (`backend/database/models/eval.py`):
+    - 5개 Enum: EvalTaskType, EvalTrialStatus, EvalRunStatus, EvalSuitePurpose, EvalDecision
+    - 7개 테이블: eval_suites, eval_tasks, eval_runs, eval_trials, eval_transcripts, eval_outcomes, eval_grader_results
+    - 20개 인덱스: 성능 최적화를 위한 주요 컬럼 인덱싱
+    - Alembic 마이그레이션 파일: `20260118_100000_add_evals_tables.py`
   - **JSON 스키마** (`evals/schemas/`): task.schema.json, suite.schema.json, grader.schema.json
   - **샘플 YAML** (`evals/tasks/`, `evals/suites/`): WF-01/02 테스트 케이스
   - **단위 테스트** (65개 통과):

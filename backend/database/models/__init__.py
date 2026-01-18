@@ -14,6 +14,22 @@ from .action_log import ActionLog, ActionType
 from .approval_request import ApprovalRequest, ApprovalStatus, ApprovalType
 from .brief import BriefStatus, OpportunityBrief, ValidationMethod
 from .entity import Entity, EntityType, SyncStatus
+
+# Evals 모델
+from .eval import (
+    EvalDecision,
+    EvalGraderResult,
+    EvalOutcome,
+    EvalRun,
+    EvalRunStatus,
+    EvalSuite,
+    EvalSuitePurpose,
+    EvalTask,
+    EvalTaskType,
+    EvalTranscript,
+    EvalTrial,
+    EvalTrialStatus,
+)
 from .opportunity import Opportunity, OpportunityStage
 from .play_record import (
     PlayChannel,
@@ -95,4 +111,17 @@ __all__ = [
     # User (인증)
     "User",
     "UserRole",
+    # Evals (AI 에이전트 평가)
+    "EvalSuite",
+    "EvalTask",
+    "EvalRun",
+    "EvalTrial",
+    "EvalTranscript",
+    "EvalOutcome",
+    "EvalGraderResult",
+    "EvalTaskType",
+    "EvalTrialStatus",
+    "EvalRunStatus",
+    "EvalSuitePurpose",
+    "EvalDecision",
 ]

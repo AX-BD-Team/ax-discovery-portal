@@ -12,7 +12,6 @@ from typing import Any
 
 import structlog
 from anthropic import AsyncAnthropic
-from anthropic.types import TextBlock
 
 from backend.database.models.entity import EntityType
 from backend.database.models.triple import PredicateType

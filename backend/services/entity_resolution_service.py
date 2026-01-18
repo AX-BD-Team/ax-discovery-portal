@@ -12,7 +12,6 @@ from typing import Any
 
 import structlog
 from anthropic import AsyncAnthropic
-from anthropic.types import TextBlock
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
