@@ -64,6 +64,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `tests/unit/test_evals_models.py`: 32개 모델 테스트
     - `tests/unit/test_evals_loaders.py`: 33개 로더 테스트
   - **의존성**: `pyyaml>=6.0.0`, `types-PyYAML>=6.0.0` (dev)
+  - **Eval Harness (실행기)** (`backend/evals/runners/`):
+    - `TrialExecutor`: 단일 Trial 실행 (환경 설정, 에이전트 호출, Transcript/Outcome 캡처)
+    - `TaskRunner`: k번 Trial 실행 + 채점 집계 (pass@k, pass^k 계산)
+    - `SuiteRunner`: Suite 전체 실행 + 게이트 조건 검사
+    - `RunnerConfig`, `TrialResult`, `TaskResult`, `RunResult` 결과 모델
+  - **Deterministic Graders (채점기)** (`backend/evals/graders/`):
+    - `PytestGrader`: pytest 실행 기반 채점
+    - `RuffGrader`, `MypyGrader`: 정적 분석 기반 채점
+    - `StateCheckGrader`: DB/파일/API/환경 상태 검증 (12개 체크 타입)
+    - `TranscriptMetricsGrader`: 턴/도구호출/에러 메트릭 채점
+    - `ToolCallCheckGrader`: 도구 호출 패턴 검증
+    - `create_grader()`: 채점기 팩토리 함수
+  - **Evals REST API** (`backend/api/routers/evals.py`):
+    - Suite 관리: `GET /suites`, `GET /suites/{id}`, `POST /suites/sync`
+    - Run 관리: `POST /runs`, `GET /runs`, `GET /runs/{id}`, `DELETE /runs/{id}`
+    - Trial 조회: `GET /runs/{id}/trials`, `GET /trials/{id}`, `/transcript`, `/outcome`
+    - 통계/분석: `GET /stats/summary`, `GET /stats/regression`
+  - **mypy Pydantic 플러그인** 설정 추가 (`pyproject.toml`)
+  - Phase 5.0 MVP 진행률: 38% → 75%
 
 - **Opportunity Stage 파이프라인 시스템** 🚀
   - **11단계 Stage 파이프라인**: DISCOVERY → IDEA_CARD → GATE1 → MOCKUP → GATE2 → BIZ_PLANNING → PILOT → PRE_PROPOSAL → HANDOFF + HOLD/DROP

@@ -1,12 +1,52 @@
 """
 Evals 실행기 패키지
 
-Trial 실행 및 환경 관리 (Phase 5.0 이후 구현 예정)
+Trial/Task/Suite 실행 및 결과 관리
 """
 
-# TODO: Phase 5.0에서 구현
-# from backend.evals.runners.harness import EvalHarness
-# from backend.evals.runners.sandbox import SandboxManager
-# from backend.evals.runners.adapter import AgentAdapter
+from backend.evals.runners.base import (
+    BaseRunner,
+    CostBudgetExceededError,
+    MaxFailuresExceededError,
+    RunnerConfig,
+    RunnerContext,
+    RunnerError,
+    TimeoutError,
+)
+from backend.evals.runners.results import (
+    GateResult,
+    RunResult,
+    TaskResult,
+    TrialResult,
+)
+from backend.evals.runners.suite_runner import SuiteRunner, run_suite
+from backend.evals.runners.task_runner import TaskRunner, run_task
+from backend.evals.runners.trial_executor import (
+    TrialExecutor,
+    execute_trial_with_grading,
+)
 
-__all__: list[str] = []
+__all__ = [
+    # 기본 클래스
+    "BaseRunner",
+    "RunnerConfig",
+    "RunnerContext",
+    # 에러
+    "RunnerError",
+    "TimeoutError",
+    "CostBudgetExceededError",
+    "MaxFailuresExceededError",
+    # 결과 모델
+    "TrialResult",
+    "TaskResult",
+    "GateResult",
+    "RunResult",
+    # 실행기
+    "TrialExecutor",
+    "TaskRunner",
+    "SuiteRunner",
+    # 헬퍼 함수
+    "execute_trial_with_grading",
+    "run_task",
+    "run_suite",
+]

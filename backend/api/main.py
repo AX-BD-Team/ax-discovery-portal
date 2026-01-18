@@ -50,6 +50,7 @@ from .routers import (
     activities,
     auth,
     brief,
+    evals,
     inbox,
     ontology,
     play_dashboard,
@@ -128,6 +129,10 @@ TAGS_METADATA = [
     {
         "name": "search",
         "description": "시맨틱 검색 - Vector RAG 기반 유사도 검색",
+    },
+    {
+        "name": "evals",
+        "description": "AI 평가 플랫폼 - Suite/Run/Trial 관리 및 통계 분석",
     },
 ]
 
@@ -277,6 +282,8 @@ app.include_router(ontology.router, prefix="/api", tags=["ontology"])
 app.include_router(xai.router, prefix="/api", tags=["xai"])
 # Vector Search
 app.include_router(search.router, prefix="/api/search", tags=["search"])
+# Evals Platform
+app.include_router(evals.router, prefix="/api/evals", tags=["evals"])
 
 
 @app.get("/")
