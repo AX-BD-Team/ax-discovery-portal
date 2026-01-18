@@ -1,0 +1,77 @@
+# Confluence Sync 에이전트 회귀 테스트 Suite
+# 목적: Confluence DB/Live doc 업데이트 기능 회귀 방지
+
+suite:
+  id: confluence_sync_regression
+  name: "Confluence Sync 회귀 테스트"
+  description: "동기화 성공률, 데이터 무결성, 충돌 해결 기능을 검증하는 회귀 테스트"
+  version: "1.0.0"
+  purpose: regression
+  domain: agent
+  owner_team: ax-bd-team
+
+  tasks:
+    - path: "evals/tasks/agents/confluence_sync/sync_success_rate.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/confluence_sync/data_integrity.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/confluence_sync/conflict_resolution.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/confluence_sync/batch_sync.yaml"
+      enabled: true
+
+  defaults:
+    trials:
+      k: 3
+      parallel: false  # 동기화는 순차 실행
+    environment:
+      sandbox: process
+      reset: clean
+      network: internal
+    agent:
+      adapter: ax_agent_sdk
+      model: claude-sonnet-4-20250514
+      max_turns: 12
+    timeout:
+      total_seconds: 240
+      per_turn_seconds: 40
+    cost_budget:
+      max_tokens: 50000
+      max_usd: 0.6
+
+  schedule:
+    enabled: true
+    on_commit: false
+    on_pr: true
+    branches:
+      - main
+      - develop
+    cron: "0 9 * * 1-5"  # 평일 오전 9시 (KST)
+
+  gates:
+    enabled: true
+    blocking: true
+    pass_criteria:
+      min_pass_rate: 0.90
+      required_tasks:
+        - confluence_sync_success_rate
+        - confluence_data_integrity
+      max_regression_count: 0
+
+  notifications:
+    on_failure:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+    on_regression:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+
+  tags:
+    - regression
+    - confluence_sync
+    - agent
+    - integration

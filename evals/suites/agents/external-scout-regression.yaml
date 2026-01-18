@@ -1,0 +1,76 @@
+# External Scout 에이전트 회귀 테스트 Suite
+# 목적: 외부 세미나/리포트/뉴스 수집 기능 회귀 방지
+
+suite:
+  id: external_scout_regression
+  name: "External Scout 회귀 테스트"
+  description: "외부 데이터 수집, Signal 패턴 감지, AAR 생성 기능을 검증하는 회귀 테스트"
+  version: "1.0.0"
+  purpose: regression
+  domain: agent
+  owner_team: ax-bd-team
+
+  tasks:
+    - path: "evals/tasks/agents/external_scout/seminar_metadata_extraction.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/external_scout/signal_pattern_detection.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/external_scout/aar_template_generation.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/external_scout/multi_source_collection.yaml"
+      enabled: true
+
+  defaults:
+    trials:
+      k: 3
+      parallel: true
+    environment:
+      sandbox: process
+      reset: clean
+      network: external
+    agent:
+      adapter: ax_agent_sdk
+      model: claude-sonnet-4-20250514
+      max_turns: 15
+    timeout:
+      total_seconds: 240
+      per_turn_seconds: 40
+    cost_budget:
+      max_tokens: 60000
+      max_usd: 0.8
+
+  schedule:
+    enabled: true
+    on_commit: false
+    on_pr: true
+    branches:
+      - main
+      - develop
+    cron: "0 9 * * 1-5"  # 평일 오전 9시 (KST)
+
+  gates:
+    enabled: true
+    blocking: true
+    pass_criteria:
+      min_pass_rate: 0.80
+      required_tasks:
+        - external_scout_seminar_metadata
+      max_regression_count: 1
+
+  notifications:
+    on_failure:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+    on_regression:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+
+  tags:
+    - regression
+    - external_scout
+    - agent
+    - data-collection

@@ -1,0 +1,70 @@
+# Brief Writer 에이전트 역량 테스트 Suite
+# 목적: 1p Brief 생성 + Confluence 페이지 역량 검증
+
+suite:
+  id: brief_writer_capability
+  name: "Brief Writer 역량 테스트"
+  description: "Brief 필수 섹션, Confluence 페이지 생성, 포맷 규칙 준수를 검증하는 테스트"
+  version: "1.0.0"
+  purpose: capability
+  domain: agent
+  owner_team: ax-bd-team
+
+  tasks:
+    - path: "evals/tasks/agents/brief_writer/required_sections.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/brief_writer/confluence_page_creation.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/brief_writer/format_compliance.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/brief_writer/evidence_linking.yaml"
+      enabled: true
+
+  defaults:
+    trials:
+      k: 3
+      parallel: true
+    environment:
+      sandbox: process
+      reset: clean
+      network: internal
+    agent:
+      adapter: ax_agent_sdk
+      model: claude-sonnet-4-20250514
+      max_turns: 15
+    timeout:
+      total_seconds: 300
+      per_turn_seconds: 45
+    cost_budget:
+      max_tokens: 70000
+      max_usd: 0.9
+
+  schedule:
+    enabled: true
+    on_commit: false
+    on_pr: true
+    branches:
+      - main
+      - develop
+    cron: "0 10 * * 2"  # 매주 화요일 오전 10시 (KST)
+
+  gates:
+    enabled: true
+    blocking: false
+    pass_criteria:
+      min_pass_rate: 0.75
+      required_tasks:
+        - brief_writer_required_sections
+
+  notifications:
+    on_failure:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+
+  tags:
+    - capability
+    - brief_writer
+    - agent
+    - document-generation

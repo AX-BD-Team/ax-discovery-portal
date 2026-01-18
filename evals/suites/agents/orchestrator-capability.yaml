@@ -1,0 +1,69 @@
+# Orchestrator 에이전트 역량 테스트 Suite
+# 목적: 워크플로 실행 및 서브에이전트 조율 역량 검증
+
+suite:
+  id: orchestrator_capability
+  name: "Orchestrator 역량 테스트"
+  description: "워크플로 실행, 서브에이전트 조율, 에러 복구 역량을 검증하는 테스트 스위트"
+  version: "1.0.0"
+  purpose: capability
+  domain: agent
+  owner_team: ax-bd-team
+
+  tasks:
+    - path: "evals/tasks/agents/orchestrator/workflow_completion.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/orchestrator/subagent_call_order.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/orchestrator/error_recovery.yaml"
+      enabled: true
+    - path: "evals/tasks/agents/orchestrator/approval_flow.yaml"
+      enabled: true
+
+  defaults:
+    trials:
+      k: 3
+      parallel: true
+    environment:
+      sandbox: process
+      reset: clean
+      network: internal
+    agent:
+      adapter: ax_agent_sdk
+      model: claude-sonnet-4-20250514
+      max_turns: 20
+    timeout:
+      total_seconds: 300
+      per_turn_seconds: 45
+    cost_budget:
+      max_tokens: 80000
+      max_usd: 1.0
+
+  schedule:
+    enabled: true
+    on_commit: false
+    on_pr: true
+    branches:
+      - main
+      - develop
+    cron: "0 10 * * 1"  # 매주 월요일 오전 10시 (KST)
+
+  gates:
+    enabled: true
+    blocking: false
+    pass_criteria:
+      min_pass_rate: 0.75
+      required_tasks:
+        - orchestrator_workflow_completion
+
+  notifications:
+    on_failure:
+      enabled: true
+      channels:
+        - type: slack
+          target: "#ax-bd-alerts"
+
+  tags:
+    - capability
+    - orchestrator
+    - agent
