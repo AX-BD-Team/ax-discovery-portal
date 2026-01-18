@@ -72,4 +72,7 @@ apps/web/.open-next/
 
 # Load test reports
 loadtest_reports/
-*.html
+
+# Large binary files
+*.pdf
+*.docx
