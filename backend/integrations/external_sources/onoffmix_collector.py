@@ -138,7 +138,7 @@ class OnOffMixCollector(BaseSeminarCollector):
 
         Args:
             client: HTTP 클라이언트
-            category_id: 카테고리 ID
+            category_id: 카테고리 ID (interest 파라미터, 예: A0103)
             keywords: 필터 키워드
 
         Returns:
@@ -146,10 +146,10 @@ class OnOffMixCollector(BaseSeminarCollector):
         """
         seminars = []
 
-        url = f"{self.BASE_URL}/event"
+        # 2025년 이후 새 URL 구조: /event/main/?interest=A0103
+        url = f"{self.BASE_URL}/event/main/"
         params = {
-            "c": category_id,
-            "s": "1",  # 진행중인 이벤트
+            "interest": category_id,  # A0103 (과학/IT/AI) 등
         }
 
         try:
@@ -239,26 +239,69 @@ class OnOffMixCollector(BaseSeminarCollector):
         """
         seminars = []
 
-        # 이벤트 카드 패턴 (온오프믹스 HTML 구조에 맞게 조정)
-        # 더 상세한 패턴으로 이벤트 정보 추출
-        card_pattern = r'event_no=(\d+)[^>]*>.*?<[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)'
-        card_matches = re.findall(card_pattern, html, re.DOTALL | re.IGNORECASE)
+        # 2025년 온오프믹스 HTML 구조:
+        # <article class="event_area">
+        #   <a href="/event/{id}" ...>
+        #     <h5 class="title ellipsis" title="이벤트 제목">이벤트 제목</h5>
+        #   </a>
+        # </article>
 
-        # 제목과 URL 매칭
-        for event_id, title in card_matches[:30]:  # 최대 30개
-            title = title.strip()
+        # event_area 아티클 단위로 파싱
+        article_pattern = r'<article class="event_area[^"]*">(.*?)</article>'
+        articles = re.findall(article_pattern, html, re.DOTALL | re.IGNORECASE)
+
+        for article in articles:
+            # 이벤트 ID 추출
+            id_match = re.search(r'href="/event/(\d+)"', article, re.IGNORECASE)
+            if not id_match:
+                continue
+            event_id = id_match.group(1)
+
+            # 제목 추출 (h5 태그의 title 속성 또는 텍스트 내용)
+            title = None
+
+            # 방법 1: h5 태그의 title 속성
+            title_attr_match = re.search(
+                r'<h5[^>]*class="[^"]*title[^"]*"[^>]*title="([^"]+)"',
+                article,
+                re.IGNORECASE,
+            )
+            if title_attr_match:
+                title = title_attr_match.group(1).strip()
+
+            # 방법 2: h5 태그의 텍스트 내용
             if not title:
+                title_text_match = re.search(
+                    r'<h5[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)</h5>',
+                    article,
+                    re.IGNORECASE,
+                )
+                if title_text_match:
+                    title = title_text_match.group(1).strip()
+
+            # 방법 3: img alt 속성 (폴백)
+            if not title:
+                img_alt_match = re.search(r'<img[^>]*alt="([^"]+)"', article, re.IGNORECASE)
+                if img_alt_match:
+                    title = img_alt_match.group(1).strip()
+
+            if not title or len(title) < 5:
                 continue
 
-            # AI/AX 키워드 필터
-            keywords_lower = [k.lower() for k in keywords]
-            title_lower = title.lower()
+            # 날짜 추출 (div.date)
+            date = None
+            date_match = re.search(r'<div class="date">([^<]+)</div>', article, re.IGNORECASE)
+            if date_match:
+                date_text = date_match.group(1).strip()
+                # "1.21 (화)" 형식 파싱
+                date = self._parse_korean_date(date_text)
 
-            if not any(kw in title_lower for kw in keywords_lower):
-                continue
-
-            # 날짜 추출 시도
-            date = self._extract_date_from_html(html, event_id)
+            # AI/AX 키워드 필터 (선택적)
+            if keywords:
+                keywords_lower = [k.lower() for k in keywords]
+                title_lower = title.lower()
+                if not any(kw in title_lower for kw in keywords_lower):
+                    continue
 
             seminar = SeminarInfo(
                 title=title,
@@ -272,11 +315,41 @@ class OnOffMixCollector(BaseSeminarCollector):
             )
             seminars.append(seminar)
 
+            if len(seminars) >= 30:
+                break
+
         # 대체 패턴 (JSON-LD 또는 구조화된 데이터)
         if not seminars:
             seminars = self._parse_json_ld(html)
 
         return seminars
+
+    def _parse_korean_date(self, date_text: str) -> str | None:
+        """
+        한국어 날짜 형식 파싱
+
+        Args:
+            date_text: "1.21 (화)" 또는 "1월 21일" 형식
+
+        Returns:
+            str | None: YYYY-MM-DD 형식
+        """
+        from datetime import date as dt_date
+
+        try:
+            # "1.21" 또는 "01.21" 형식
+            match = re.match(r"(\d{1,2})\.(\d{1,2})", date_text)
+            if match:
+                month, day = int(match.group(1)), int(match.group(2))
+                year = dt_date.today().year
+                # 지난 달이면 내년으로 추정
+                if month < dt_date.today().month:
+                    year += 1
+                return f"{year}-{month:02d}-{day:02d}"
+        except Exception:
+            pass
+
+        return None
 
     def _parse_json_ld(self, html: str) -> list[SeminarInfo]:
         """

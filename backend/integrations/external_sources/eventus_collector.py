@@ -175,7 +175,7 @@ class EventUsCollector(BaseSeminarCollector):
         keyword: str,
     ) -> list[SeminarInfo]:
         """
-        키워드로 이벤트 검색
+        키워드로 이벤트 검색 (suggest API 사용)
 
         Args:
             client: HTTP 클라이언트
@@ -186,7 +186,41 @@ class EventUsCollector(BaseSeminarCollector):
         """
         seminars = []
 
-        # 검색 API 시도 (내부 API)
+        # 검색 suggest API 사용 (2025년 현재 작동하는 엔드포인트)
+        try:
+            response = await client.get(
+                f"{self.API_BASE}/engine/suggest",
+                params={"query": keyword},  # 'keyword' 대신 'query' 사용
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "application/json",
+                    "Origin": self.BASE_URL,
+                    "Referer": f"{self.BASE_URL}/",
+                },
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                # API 응답 구조: {"meta": {...}, "results": [...]}
+                results = data.get("results", [])
+
+                for event in results:
+                    seminar = self._parse_suggest_api_event(event)
+                    if seminar:
+                        seminars.append(seminar)
+
+                logger.info(
+                    "이벤터스 suggest API 검색 완료",
+                    keyword=keyword,
+                    count=len(seminars),
+                    total_results=data.get("meta", {}).get("page", {}).get("total_results", 0),
+                )
+                return seminars
+
+        except Exception as e:
+            logger.debug("이벤터스 suggest API 검색 실패", error=str(e))
+
+        # 기존 API 폴백 시도
         try:
             response = await client.get(
                 f"{self.API_BASE}/engine/suggest",
@@ -200,7 +234,6 @@ class EventUsCollector(BaseSeminarCollector):
 
             if response.status_code == 200:
                 data = response.json()
-                # API 응답 구조에 따라 파싱
                 events = data.get("events", data.get("results", []))
                 for event in events:
                     seminar = self._parse_api_event(event)
@@ -216,33 +249,6 @@ class EventUsCollector(BaseSeminarCollector):
 
         except Exception as e:
             logger.debug("이벤터스 API 검색 실패, HTML 폴백", error=str(e))
-
-        # HTML 페이지 폴백
-        from urllib.parse import quote
-
-        url = f"{self.BASE_URL}/search"
-        params = {"keyword": quote(keyword)}
-
-        try:
-            response = await client.get(
-                url,
-                params=params,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                    "Accept": "text/html,application/xhtml+xml",
-                },
-            )
-
-            if response.status_code == 200:
-                seminars = self._parse_event_list(response.text, [keyword])
-                logger.info(
-                    "이벤터스 HTML 검색 완료",
-                    keyword=keyword,
-                    count=len(seminars),
-                )
-
-        except Exception as e:
-            logger.error("이벤터스 검색 실패", keyword=keyword, error=str(e))
 
         return seminars
 
@@ -315,6 +321,45 @@ class EventUsCollector(BaseSeminarCollector):
             seminars = self._parse_json_ld(html)
 
         return seminars
+
+    def _parse_suggest_api_event(self, event: dict) -> SeminarInfo | None:
+        """
+        suggest API 응답에서 이벤트 파싱
+
+        Args:
+            event: suggest API 이벤트 데이터
+                   구조: {"title": {"raw": "..."}, "id": {"raw": "..."}}
+
+        Returns:
+            SeminarInfo | None
+        """
+        try:
+            # suggest API 응답 구조에서 값 추출
+            title_obj = event.get("title", {})
+            id_obj = event.get("id", {})
+
+            title = title_obj.get("raw", "") if isinstance(title_obj, dict) else str(title_obj)
+            event_id = id_obj.get("raw", "") if isinstance(id_obj, dict) else str(id_obj)
+
+            if not event_id or not title:
+                return None
+
+            # URL 구성 (event-us.kr/m/[channel]/events/[id] 형식)
+            url = f"{self.BASE_URL}/events/{event_id}"
+
+            return SeminarInfo(
+                title=title,
+                url=url,
+                source_type="eventus",
+                date=None,  # suggest API에는 날짜 정보 없음
+                categories=["IT/프로그래밍"],
+                external_id=f"eventus_{event_id}",
+                raw_data=event,
+                fetched_at=datetime.now(UTC),
+            )
+        except Exception as e:
+            logger.warning("이벤터스 suggest API 이벤트 파싱 실패", error=str(e))
+            return None
 
     def _parse_api_event(self, event: dict) -> SeminarInfo | None:
         """

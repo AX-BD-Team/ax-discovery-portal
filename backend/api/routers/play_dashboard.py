@@ -51,11 +51,19 @@ class PlayListResponse(BaseModel):
 
 
 class KPIDigestResponse(BaseModel):
-    """KPI 다이제스트 응답"""
+    """KPI 다이제스트 응답 - 프론트엔드 KPIDigest 인터페이스에 맞춤"""
 
     period: str
-    metrics: dict
-    trends: dict
+    activity_actual: int
+    activity_target: int
+    signal_actual: int
+    signal_target: int
+    brief_actual: int
+    brief_target: int
+    s2_actual: int
+    s2_target: str  # "2~4" 형식
+    avg_signal_to_brief_days: float
+    avg_brief_to_s2_days: float
 
 
 class KPIAlertsResponse(BaseModel):
@@ -84,7 +92,7 @@ async def list_plays(
     )
 
 
-@router.get("/kpi/digest")
+@router.get("/kpi/digest", response_model=KPIDigestResponse)
 async def get_kpi_digest(period: str = "week"):
     """KPI 다이제스트 조회"""
     return await play_d1_repo.get_kpi_digest(period)

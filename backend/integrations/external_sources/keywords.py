@@ -129,10 +129,12 @@ EXCLUDE_KEYWORDS: list[str] = [
 ]
 
 # 플랫폼별 카테고리 매핑
+# OnOffMix interest 파라미터 (2025년 이후 URL 구조)
 ONOFFMIX_CATEGORIES: dict[str, str] = {
-    "it": "104",  # IT/인터넷
-    "startup": "105",  # 스타트업
-    "education": "106",  # 교육/강연
+    "it": "A0103",  # 과학/IT/AI
+    "startup": "A0201",  # 비즈니스/스타트업
+    "education": "A0301",  # 교육/강연
+    "seminar": "A0302",  # 세미나/컨퍼런스
 }
 
 EVENTUS_CATEGORIES: dict[str, str] = {
@@ -140,6 +142,24 @@ EVENTUS_CATEGORIES: dict[str, str] = {
     "startup": "스타트업",
     "business": "비즈니스",
 }
+
+# RSS 피드 URL 목록 (AI/기술 관련)
+RSS_FEED_URLS: list[str] = [
+    # 국내 기술 블로그
+    "https://tech.kakao.com/feed/",  # 카카오 기술블로그
+    "https://d2.naver.com/d2.atom",  # 네이버 D2
+    "https://blog.banksalad.com/rss.xml",  # 뱅크샐러드 기술블로그
+    "https://hyperconnect.github.io/feed.xml",  # 하이퍼커넥트
+    "https://techblog.lycorp.co.jp/ko/feed/index.xml",  # LINE (LY Corp) 기술블로그
+    "https://toss.tech/rss.xml",  # 토스 기술블로그
+    # AI/ML 관련 (글로벌)
+    "https://aws.amazon.com/ko/blogs/machine-learning/feed/",  # AWS ML Blog
+    "https://openai.com/news/rss.xml",  # OpenAI News
+    "https://blog.google/innovation-and-ai/technology/ai/rss/",  # Google AI Blog (업데이트된 URL)
+    "https://azure.microsoft.com/en-us/blog/tag/ai/feed/",  # Azure AI (업데이트된 URL)
+    # 개발자 뉴스/커뮤니티
+    "https://news.ycombinator.com/rss",  # Hacker News
+]
 
 
 def filter_by_ai_keywords(text: str, min_matches: int = 1) -> bool:

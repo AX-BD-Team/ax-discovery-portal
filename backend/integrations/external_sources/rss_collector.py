@@ -12,6 +12,7 @@ import httpx
 import structlog
 
 from .base import BaseSeminarCollector, SeminarInfo
+from .keywords import RSS_FEED_URLS
 
 logger = structlog.get_logger()
 
@@ -26,10 +27,11 @@ class RSSCollector(BaseSeminarCollector):
     def __init__(self, feed_urls: list[str] | None = None):
         """
         Args:
-            feed_urls: RSS 피드 URL 목록
+            feed_urls: RSS 피드 URL 목록 (None이면 기본 피드 사용)
         """
         super().__init__(name="rss")
-        self.feed_urls = feed_urls or []
+        # 기본 피드 URL 사용 (keywords.py에 정의됨)
+        self.feed_urls = feed_urls if feed_urls is not None else RSS_FEED_URLS
 
     async def fetch_seminars(
         self,

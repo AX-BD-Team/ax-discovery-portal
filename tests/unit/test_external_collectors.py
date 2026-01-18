@@ -176,7 +176,7 @@ class TestRSSCollector:
     @pytest.mark.asyncio
     async def test_fetch_seminars_no_feeds(self):
         """피드 URL 없이 수집 시도"""
-        collector = RSSCollector()
+        collector = RSSCollector(feed_urls=[])  # 빈 목록으로 초기화
 
         result = await collector.fetch_seminars()
 
@@ -913,23 +913,35 @@ class TestCollectorHealthCheck:
 
     @pytest.mark.asyncio
     async def test_check_all(self):
-        """전체 헬스체크"""
+        """전체 헬스체크 (4개 수집기)"""
         checker = CollectorHealthChecker()
 
         with patch.object(checker.onoffmix, "fetch_seminars", new_callable=AsyncMock) as mock_onoffmix:
             with patch.object(checker.eventus, "fetch_seminars", new_callable=AsyncMock) as mock_eventus:
-                mock_onoffmix.return_value = [
-                    SeminarInfo(title="세미나1", url="https://a.com", source_type="onoffmix"),
-                ]
-                mock_eventus.return_value = []  # EventUs는 저하 상태
+                with patch.object(checker.devevent, "fetch_seminars", new_callable=AsyncMock) as mock_devevent:
+                    with patch.object(checker.rss, "fetch_seminars", new_callable=AsyncMock) as mock_rss:
+                        mock_onoffmix.return_value = [
+                            SeminarInfo(title="세미나1", url="https://a.com", source_type="onoffmix"),
+                        ]
+                        mock_eventus.return_value = []  # EventUs는 저하 상태
+                        mock_devevent.return_value = [
+                            SeminarInfo(title="세미나2", url="https://b.com", source_type="devevent"),
+                        ]
+                        mock_rss.return_value = [
+                            SeminarInfo(title="세미나3", url="https://c.com", source_type="rss"),
+                        ]
 
-                results = await checker.check_all()
+                        results = await checker.check_all()
 
-                assert len(results) == 2
-                assert results[0].collector_name == "onoffmix"
-                assert results[0].status == HealthStatus.HEALTHY
-                assert results[1].collector_name == "eventus"
-                assert results[1].status == HealthStatus.DEGRADED
+                        assert len(results) == 4
+                        assert results[0].collector_name == "onoffmix"
+                        assert results[0].status == HealthStatus.HEALTHY
+                        assert results[1].collector_name == "eventus"
+                        assert results[1].status == HealthStatus.DEGRADED
+                        assert results[2].collector_name == "devevent"
+                        assert results[2].status == HealthStatus.HEALTHY
+                        assert results[3].collector_name == "rss"
+                        assert results[3].status == HealthStatus.HEALTHY
 
     @pytest.mark.asyncio
     async def test_run_health_check_helper(self):

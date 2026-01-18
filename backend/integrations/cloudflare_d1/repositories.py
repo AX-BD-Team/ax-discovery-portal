@@ -469,25 +469,56 @@ class D1PlayRepository:
         return self._map_to_frontend(items[0])
 
     async def get_kpi_digest(self, period: str = "week") -> dict:
-        """KPI 다이제스트"""
-        sql = """
+        """KPI 다이제스트 - 프론트엔드 KPIDigest 인터페이스에 맞춤"""
+        # Play 통계
+        play_sql = """
             SELECT
                 COUNT(*) as total_plays,
-                SUM(activity_count) as total_activities
+                COALESCE(SUM(activity_count), 0) as total_activities
             FROM plays
         """
-        result = await d1_client.execute(sql)
-        item = result["results"][0] if result["results"] else {}
+        play_result = await d1_client.execute(play_sql)
+        play_item = play_result["results"][0] if play_result["results"] else {}
+
+        # Signal 통계
+        signal_sql = "SELECT COUNT(*) as total FROM signals"
+        signal_result = await d1_client.execute(signal_sql)
+        signal_count = (
+            signal_result["results"][0]["total"] if signal_result["results"] else 0
+        )
+
+        # Brief 통계
+        brief_sql = "SELECT COUNT(*) as total FROM briefs"
+        brief_result = await d1_client.execute(brief_sql)
+        brief_count = (
+            brief_result["results"][0]["total"] if brief_result["results"] else 0
+        )
+
+        # S2 단계 Signal 수 (stage = 'S2')
+        s2_sql = "SELECT COUNT(*) as total FROM signals WHERE stage = 'S2'"
+        s2_result = await d1_client.execute(s2_sql)
+        s2_count = s2_result["results"][0]["total"] if s2_result["results"] else 0
+
+        # PoC 목표값
+        targets = {
+            "activity_target": 20,
+            "signal_target": 30,
+            "brief_target": 6,
+            "s2_target": "2~4",
+        }
 
         return {
             "period": period,
-            "metrics": {
-                "total_plays": item.get("total_plays", 0),
-                "total_activities": item.get("total_activities", 0),
-                "active_plays": 0,
-                "new_signals": 0,
-            },
-            "trends": {},
+            "activity_actual": play_item.get("total_activities", 0) or 0,
+            "activity_target": targets["activity_target"],
+            "signal_actual": signal_count,
+            "signal_target": targets["signal_target"],
+            "brief_actual": brief_count,
+            "brief_target": targets["brief_target"],
+            "s2_actual": s2_count,
+            "s2_target": targets["s2_target"],
+            "avg_signal_to_brief_days": 0,  # TODO: 실제 리드타임 계산
+            "avg_brief_to_s2_days": 0,  # TODO: 실제 리드타임 계산
         }
 
     async def get_kpi_alerts(self) -> dict:
