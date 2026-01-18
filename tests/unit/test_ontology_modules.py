@@ -1285,10 +1285,22 @@ class TestOntologyRepository:
         mock_center = MagicMock(spec=Entity)
         mock_center.entity_id = "SIG-001"
 
-        with (
-            patch.object(self.repo, "get_entity", return_value=mock_center),
-            patch.object(self.repo, "query_triples", return_value=([], 0)),
-        ):
+        # execute 결과 mock (scalars().all() 체인 지원)
+        def make_execute_result(data):
+            scalars_result = MagicMock()
+            scalars_result.all.return_value = data
+            result = MagicMock()
+            result.scalars.return_value = scalars_result
+            return result
+
+        # 호출 순서: outgoing, incoming, nodes batch fetch
+        self.mock_db.execute = AsyncMock(side_effect=[
+            make_execute_result([]),  # outgoing triples
+            make_execute_result([]),  # incoming triples
+            make_execute_result([mock_center]),  # nodes batch fetch (center만)
+        ])
+
+        with patch.object(self.repo, "get_entity", return_value=mock_center):
             graph = await self.repo.get_entity_graph(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1309,8 +1321,17 @@ class TestOntologyRepository:
 
         mock_triple = MagicMock(spec=Triple)
         mock_triple.triple_id = "TRP-001"
+        mock_triple.subject_id = "SIG-001"
         mock_triple.object_id = "TOP-001"
         mock_triple.predicate = PredicateType.HAS_PAIN
+
+        # execute 결과 mock (scalars().all() 체인 지원)
+        def make_execute_result(data):
+            scalars_result = MagicMock()
+            scalars_result.all.return_value = data
+            result = MagicMock()
+            result.scalars.return_value = scalars_result
+            return result
 
         async def mock_get_entity(db, entity_id):
             if entity_id == "SIG-001":
@@ -1319,15 +1340,15 @@ class TestOntologyRepository:
                 return mock_neighbor
             return None
 
-        async def mock_query_triples(db, subject_id=None, object_id=None, limit=100):
-            if subject_id == "SIG-001":
-                return ([mock_triple], 1)
-            return ([], 0)
+        # execute 호출 순서: outgoing, incoming, nodes batch fetch
+        # visited_nodes = {SIG-001, TOP-001} 이므로 두 노드 모두 반환
+        self.mock_db.execute = AsyncMock(side_effect=[
+            make_execute_result([mock_triple]),  # outgoing triples (depth 1)
+            make_execute_result([]),  # incoming triples (depth 1)
+            make_execute_result([mock_center, mock_neighbor]),  # nodes batch fetch
+        ])
 
-        with (
-            patch.object(self.repo, "get_entity", side_effect=mock_get_entity),
-            patch.object(self.repo, "query_triples", side_effect=mock_query_triples),
-        ):
+        with patch.object(self.repo, "get_entity", side_effect=mock_get_entity):
             graph = await self.repo.get_entity_graph(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1343,25 +1364,32 @@ class TestOntologyRepository:
         mock_center = MagicMock(spec=Entity)
         mock_center.entity_id = "SIG-001"
 
+        mock_neighbor = MagicMock(spec=Entity)
+        mock_neighbor.entity_id = "TOP-001"
+
+        # HAS_PAIN만 필터링되므로 하나만 포함
         mock_triple_pain = MagicMock(spec=Triple)
         mock_triple_pain.triple_id = "TRP-001"
+        mock_triple_pain.subject_id = "SIG-001"
         mock_triple_pain.object_id = "TOP-001"
         mock_triple_pain.predicate = PredicateType.HAS_PAIN
 
-        mock_triple_brief = MagicMock(spec=Triple)
-        mock_triple_brief.triple_id = "TRP-002"
-        mock_triple_brief.object_id = "BRF-001"
-        mock_triple_brief.predicate = PredicateType.HAS_BRIEF
+        # execute 결과 mock (scalars().all() 체인 지원)
+        def make_execute_result(data):
+            scalars_result = MagicMock()
+            scalars_result.all.return_value = data
+            result = MagicMock()
+            result.scalars.return_value = scalars_result
+            return result
 
-        async def mock_query_triples(db, subject_id=None, object_id=None, limit=100):
-            if subject_id == "SIG-001":
-                return ([mock_triple_pain, mock_triple_brief], 2)
-            return ([], 0)
+        # execute 호출 순서: outgoing (필터 적용됨), incoming, nodes batch fetch
+        self.mock_db.execute = AsyncMock(side_effect=[
+            make_execute_result([mock_triple_pain]),  # outgoing (HAS_PAIN만)
+            make_execute_result([]),  # incoming
+            make_execute_result([mock_center, mock_neighbor]),  # nodes batch fetch
+        ])
 
-        with (
-            patch.object(self.repo, "get_entity", return_value=mock_center),
-            patch.object(self.repo, "query_triples", side_effect=mock_query_triples),
-        ):
+        with patch.object(self.repo, "get_entity", return_value=mock_center):
             graph = await self.repo.get_entity_graph(
                 db=self.mock_db,
                 entity_id="SIG-001",
@@ -1435,43 +1463,53 @@ class TestOntologyRepository:
     @pytest.mark.asyncio
     async def test_get_similar_entities_empty(self):
         """유사 엔티티 검색 (결과 없음)"""
-        with (
-            patch.object(self.repo, "query_triples", return_value=([], 0)),
-            patch.object(self.repo, "get_entity", return_value=None),
-        ):
-            results = await self.repo.get_similar_entities(
-                db=self.mock_db,
-                entity_id="SIG-001",
-            )
+        # execute 결과 mock (scalars().all() 체인 지원)
+        def make_execute_result(data):
+            scalars_result = MagicMock()
+            scalars_result.all.return_value = data
+            result = MagicMock()
+            result.scalars.return_value = scalars_result
+            return result
+
+        self.mock_db.execute = AsyncMock(return_value=make_execute_result([]))
+
+        results = await self.repo.get_similar_entities(
+            db=self.mock_db,
+            entity_id="SIG-001",
+        )
 
         assert results == []
 
     @pytest.mark.asyncio
     async def test_get_similar_entities_found(self):
         """유사 엔티티 검색 (결과 있음)"""
-        mock_entity = MagicMock(spec=Entity)
-        mock_entity.entity_id = "SIG-002"
+        mock_similar_entity = MagicMock(spec=Entity)
+        mock_similar_entity.entity_id = "SIG-002"
 
         mock_triple = MagicMock(spec=Triple)
+        mock_triple.subject_id = "SIG-001"
         mock_triple.object_id = "SIG-002"
         mock_triple.weight = 0.9
+        mock_triple.subject = None  # subject는 source entity
+        mock_triple.object = mock_similar_entity  # object는 유사 엔티티
 
-        async def mock_query_triples(db, subject_id=None, object_id=None, predicate=None, limit=10):
-            if subject_id == "SIG-001":
-                return ([mock_triple], 1)
-            return ([], 0)
+        # execute 결과 mock (scalars().all() 체인 지원)
+        def make_execute_result(data):
+            scalars_result = MagicMock()
+            scalars_result.all.return_value = data
+            result = MagicMock()
+            result.scalars.return_value = scalars_result
+            return result
 
-        with (
-            patch.object(self.repo, "query_triples", side_effect=mock_query_triples),
-            patch.object(self.repo, "get_entity", return_value=mock_entity),
-        ):
-            results = await self.repo.get_similar_entities(
-                db=self.mock_db,
-                entity_id="SIG-001",
-            )
+        self.mock_db.execute = AsyncMock(return_value=make_execute_result([mock_triple]))
+
+        results = await self.repo.get_similar_entities(
+            db=self.mock_db,
+            entity_id="SIG-001",
+        )
 
         assert len(results) == 1
-        assert results[0][0] == mock_entity
+        assert results[0][0] == mock_similar_entity
         assert results[0][1] == 0.9
 
     # ----- 추론 경로 역추적 테스트 -----
@@ -1522,15 +1560,28 @@ class TestOntologyRepository:
     @pytest.mark.asyncio
     async def test_get_stats(self):
         """온톨로지 통계 조회"""
-        self.mock_db.scalar = AsyncMock(
-            side_effect=[
-                10,  # entity_count
-                *[1 for _ in EntityType],  # entity_by_type
-                20,  # triple_count
-                *[1 for _ in PredicateType],  # triple_by_predicate
-                0.85,  # avg_confidence
-            ]
-        )
+        # Entity 통계 mock row
+        entity_row = MagicMock()
+        entity_row.entity_type = EntityType.SIGNAL
+        entity_row.count = 10
+
+        # Triple 통계 mock row
+        triple_row = MagicMock()
+        triple_row.predicate = PredicateType.HAS_PAIN
+        triple_row.count = 20
+
+        # execute 결과 mock
+        entity_result = MagicMock()
+        entity_result.all.return_value = [entity_row]
+
+        triple_result = MagicMock()
+        triple_result.all.return_value = [triple_row]
+
+        # execute 호출 순서에 따른 반환값 설정
+        self.mock_db.execute = AsyncMock(side_effect=[entity_result, triple_result])
+
+        # scalar (평균 신뢰도)
+        self.mock_db.scalar = AsyncMock(return_value=0.85)
 
         stats = await self.repo.get_stats(self.mock_db)
 
@@ -1539,6 +1590,9 @@ class TestOntologyRepository:
         assert stats["avg_confidence"] == 0.85
         assert "entity_by_type" in stats
         assert "triple_by_predicate" in stats
+        # EntityType.SIGNAL.value = "Signal", PredicateType.HAS_PAIN.value = "has_pain"
+        assert stats["entity_by_type"]["Signal"] == 10
+        assert stats["triple_by_predicate"]["has_pain"] == 20
 
 
 class TestOntologyRepositorySingleton:

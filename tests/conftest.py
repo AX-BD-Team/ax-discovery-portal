@@ -4,6 +4,43 @@ pytest 공용 fixtures
 모든 테스트에서 사용할 수 있는 공통 fixture 정의
 """
 
+# ============================================================
+# structlog 테스트 환경 설정 (다른 모든 import 전에 실행)
+# ============================================================
+import logging
+import sys
+
+import structlog
+
+# structlog 테스트 환경 즉시 설정 (모듈 import 시점에 실행)
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.UnicodeDecoder(),
+        structlog.dev.ConsoleRenderer(colors=False),
+    ],
+    wrapper_class=structlog.stdlib.BoundLogger,
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=False,  # 테스트 환경에서는 캐시 비활성화
+)
+
+# 기본 로깅 설정
+logging.basicConfig(
+    format="%(message)s",
+    stream=sys.stdout,
+    level=logging.WARNING,  # 테스트 시 로그 최소화
+    force=True,  # 기존 핸들러 재설정
+)
+
+# ============================================================
+# 일반 import
+# ============================================================
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -14,6 +51,39 @@ from sqlalchemy.pool import StaticPool
 
 from backend.database.base import Base
 from tests.fixtures.sample_markdown import get_agent_markdown
+
+
+# ============================================================
+# 테스트 격리 fixture
+# ============================================================
+
+
+@pytest.fixture(autouse=True)
+def reset_structlog_for_each_test():
+    """각 테스트 전후 structlog 상태 초기화"""
+    # 테스트 전: structlog 재설정
+    structlog.reset_defaults()
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.UnicodeDecoder(),
+            structlog.dev.ConsoleRenderer(colors=False),
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,
+    )
+
+    yield  # 테스트 실행
+
+    # 테스트 후: 컨텍스트 변수 정리
+    structlog.contextvars.clear_contextvars()
 
 
 @pytest.fixture
