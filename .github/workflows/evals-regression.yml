@@ -1,0 +1,376 @@
+# Evals Regression Suite CI 워크플로
+#
+# 목적: PR/커밋 시 에이전트 동작 회귀 테스트 자동 실행
+# 트리거:
+#   - PR 생성/업데이트 (main, develop 브랜치)
+#   - main 브랜치 push
+#   - 수동 실행 (workflow_dispatch)
+#   - 스케줄 (평일 오전 9시 KST)
+
+name: Evals Regression Suite
+
+on:
+  # PR 생성/업데이트 시 실행
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'backend/**'
+      - 'evals/**'
+      - '.claude/**'
+      - 'pyproject.toml'
+
+  # main 브랜치 push 시 전체 suite 실행
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'evals/**'
+      - '.claude/**'
+
+  # 수동 실행 지원
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: '실행할 Suite (regression, capability, 또는 경로)'
+        required: false
+        default: 'regression'
+        type: string
+      k:
+        description: 'Trial 횟수 (1-10)'
+        required: false
+        default: '3'
+        type: string
+      task:
+        description: '특정 Task ID (선택사항, 쉼표 구분)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run 모드 (실제 실행 없이 검증만)'
+        required: false
+        default: false
+        type: boolean
+
+  # 스케줄: 평일 오전 9시 (KST) = 오전 0시 (UTC)
+  schedule:
+    - cron: '0 0 * * 1-5'
+
+# 동시 실행 제한 (같은 PR에서 여러 커밋 시 이전 실행 취소)
+concurrency:
+  group: evals-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Python 버전
+  PYTHON_VERSION: '3.11'
+  # 기본 Suite
+  DEFAULT_SUITE: 'regression'
+  # 기본 Trial 횟수
+  DEFAULT_K: '3'
+  # 타임아웃 (분)
+  TIMEOUT_MINUTES: 30
+
+jobs:
+  # ============================================================================
+  # 사전 검증 (유효성 검사)
+  # ============================================================================
+  validate:
+    name: YAML 유효성 검사
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout 코드
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: pip 캐싱
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Suite/Task YAML 유효성 검사
+        run: |
+          echo "📋 Suite YAML 검사..."
+          for suite_file in evals/suites/**/*.yaml; do
+            if [ -f "$suite_file" ]; then
+              echo "  검사 중: $suite_file"
+              python -m backend.evals validate "$suite_file" --type suite || exit 1
+            fi
+          done
+
+          echo "📋 Task YAML 검사..."
+          for task_file in evals/tasks/**/*.yaml; do
+            if [ -f "$task_file" ]; then
+              echo "  검사 중: $task_file"
+              python -m backend.evals validate "$task_file" --type task || exit 1
+            fi
+          done
+
+          echo "✅ 모든 YAML 유효성 검사 통과"
+
+  # ============================================================================
+  # Regression Suite 실행
+  # ============================================================================
+  regression:
+    name: Regression Suite 실행
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(env.TIMEOUT_MINUTES) }}
+
+    # 조건: dry_run이 아닌 경우에만 실행
+    if: ${{ !inputs.dry_run }}
+
+    # 환경 변수 (민감 정보는 secrets 사용)
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CONFLUENCE_URL: ${{ secrets.CONFLUENCE_URL }}
+      CONFLUENCE_USERNAME: ${{ secrets.CONFLUENCE_USERNAME }}
+      CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+
+    steps:
+      - name: Checkout 코드
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: pip 캐싱
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: 실행 파라미터 설정
+        id: params
+        run: |
+          # Suite 결정
+          SUITE="${{ github.event.inputs.suite || env.DEFAULT_SUITE }}"
+          echo "suite=$SUITE" >> $GITHUB_OUTPUT
+
+          # Trial 횟수 결정
+          K="${{ github.event.inputs.k || env.DEFAULT_K }}"
+          echo "k=$K" >> $GITHUB_OUTPUT
+
+          # Task 필터 (있는 경우)
+          TASK="${{ github.event.inputs.task || '' }}"
+          if [ -n "$TASK" ]; then
+            echo "task_filter=--task $TASK" >> $GITHUB_OUTPUT
+          else
+            echo "task_filter=" >> $GITHUB_OUTPUT
+          fi
+
+          echo "📊 실행 파라미터:"
+          echo "  Suite: $SUITE"
+          echo "  K: $K"
+          echo "  Task: ${TASK:-전체}"
+
+      - name: Evals Regression Suite 실행
+        id: evals
+        run: |
+          echo "🚀 Evals 실행 시작..."
+          echo "  Suite: ${{ steps.params.outputs.suite }}"
+          echo "  K: ${{ steps.params.outputs.k }}"
+
+          # 결과 디렉토리 생성
+          mkdir -p results
+
+          # Evals 실행
+          python -m backend.evals run \
+            --suite "${{ steps.params.outputs.suite }}" \
+            --k "${{ steps.params.outputs.k }}" \
+            --parallel \
+            --parallel-workers 4 \
+            --output json \
+            ${{ steps.params.outputs.task_filter }} \
+            > results/eval-result.json 2>&1 || EVAL_EXIT_CODE=$?
+
+          # 결과 저장
+          echo "exit_code=${EVAL_EXIT_CODE:-0}" >> $GITHUB_OUTPUT
+
+          # 요약 출력
+          echo ""
+          echo "📋 결과 요약:"
+          python -m backend.evals run \
+            --suite "${{ steps.params.outputs.suite }}" \
+            --k "${{ steps.params.outputs.k }}" \
+            --parallel \
+            --output summary \
+            ${{ steps.params.outputs.task_filter }} || true
+
+      - name: 결과 아티팩트 업로드
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results-${{ github.run_id }}
+          path: results/
+          retention-days: 30
+
+      - name: PR 코멘트 작성
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // 결과 파일 읽기
+            let resultData = {};
+            try {
+              const content = fs.readFileSync('results/eval-result.json', 'utf8');
+              resultData = JSON.parse(content);
+            } catch (e) {
+              console.log('결과 파일 읽기 실패:', e.message);
+            }
+
+            // 요약 생성
+            const passed = resultData.gate_passed ?? false;
+            const decision = resultData.decision ?? 'UNKNOWN';
+            const passRate = resultData.overall_pass_rate ?? 0;
+            const avgScore = resultData.overall_avg_score ?? 0;
+            const taskResults = resultData.task_results ?? [];
+
+            // 이모지 결정
+            const statusEmoji = passed ? '✅' : '❌';
+            const statusText = passed ? '통과' : '실패';
+
+            // Task 결과 테이블 생성
+            let taskTable = '';
+            if (taskResults.length > 0) {
+              taskTable = '\n| Task | 상태 | Pass@K | 평균 점수 |\n|------|------|--------|----------|\n';
+              for (const task of taskResults) {
+                const taskStatus = task.passed ? '✅' : '❌';
+                taskTable += `| ${task.task_id} | ${taskStatus} | ${(task.pass_at_k * 100).toFixed(0)}% | ${task.avg_score.toFixed(2)} |\n`;
+              }
+            }
+
+            // 코멘트 본문
+            const body = `## ${statusEmoji} Evals Regression Suite ${statusText}
+
+            **판정**: ${decision}
+            **통과율**: ${(passRate * 100).toFixed(1)}%
+            **평균 점수**: ${avgScore.toFixed(2)}
+
+            ### Task 결과
+            ${taskTable}
+
+            > 상세 결과는 [Actions 아티팩트](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})에서 확인하세요.
+            `;
+
+            // 기존 코멘트 찾기
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.find(
+              c => c.user.login === 'github-actions[bot]' &&
+                   c.body.includes('Evals Regression Suite')
+            );
+
+            // 코멘트 작성 또는 업데이트
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body.trim(),
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body.trim(),
+              });
+            }
+
+      - name: 게이트 결과 확인
+        run: |
+          EXIT_CODE="${{ steps.evals.outputs.exit_code }}"
+
+          if [ "$EXIT_CODE" = "0" ]; then
+            echo "✅ 게이트 통과: 모든 조건 충족"
+            exit 0
+          elif [ "$EXIT_CODE" = "2" ]; then
+            echo "⚠️ MARGINAL: 일부 조건 미달 (검토 필요)"
+            # MARGINAL은 경고만 하고 통과 처리
+            exit 0
+          else
+            echo "❌ 게이트 실패: 조건 미충족"
+            exit 1
+          fi
+
+  # ============================================================================
+  # Dry Run (유효성 검사만)
+  # ============================================================================
+  dry-run:
+    name: Dry Run 검증
+    needs: validate
+    runs-on: ubuntu-latest
+    if: ${{ inputs.dry_run }}
+
+    steps:
+      - name: Dry Run 완료
+        run: |
+          echo "✅ Dry run 모드: YAML 유효성 검사 완료"
+          echo "   실제 Evals 실행은 건너뜁니다."
+
+  # ============================================================================
+  # 결과 요약 (선택적)
+  # ============================================================================
+  summary:
+    name: 결과 요약
+    needs: [validate, regression]
+    runs-on: ubuntu-latest
+    if: always() && !inputs.dry_run
+
+    steps:
+      - name: 워크플로 요약
+        run: |
+          echo "## 📊 Evals Regression Suite 결과 요약" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 검증 단계 결과
+          VALIDATE_RESULT="${{ needs.validate.result }}"
+          if [ "$VALIDATE_RESULT" = "success" ]; then
+            echo "- ✅ YAML 유효성 검사: 통과" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ YAML 유효성 검사: 실패" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # 회귀 테스트 결과
+          REGRESSION_RESULT="${{ needs.regression.result }}"
+          if [ "$REGRESSION_RESULT" = "success" ]; then
+            echo "- ✅ Regression Suite: 통과" >> $GITHUB_STEP_SUMMARY
+          elif [ "$REGRESSION_RESULT" = "skipped" ]; then
+            echo "- ⏭️ Regression Suite: 건너뜀" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Regression Suite: 실패" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 상세 로그는 각 Job을 확인하세요." >> $GITHUB_STEP_SUMMARY

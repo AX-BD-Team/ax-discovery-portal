@@ -1,0 +1,130 @@
+# VoC Analyst Agent - 우선순위 분류 품질
+# Brief 후보 선정 우선순위가 올바르게 계산되는지 테스트
+
+task:
+  id: voc_analyst_priority_ranking
+  type: workflow
+  desc: "우선순위 분류 품질 검증 - 심각도, 빈도, 해결가능성, 전략정합성을 기반으로 Brief 후보 우선순위가 올바르게 산정되는지 확인"
+  suite: voc_analyst_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: hard
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.85
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal 목록에서 Brief 후보를 선정하고 우선순위를 산정하세요:
+
+      Signal 1 - 콜센터 대기 시간:
+        - signal_id: SIG-VOC-001
+        - theme_severity: HIGH
+        - frequency: 127
+        - 해결가능성: 높음 (AI 상담 도입)
+        - 전략정합성: 높음 (AX BD 핵심 영역)
+
+      Signal 2 - 앱 성능 개선:
+        - signal_id: SIG-VOC-002
+        - theme_severity: MEDIUM
+        - frequency: 85
+        - 해결가능성: 중간 (인프라 작업 필요)
+        - 전략정합성: 중간
+
+      Signal 3 - 요금 설명 개선:
+        - signal_id: SIG-VOC-003
+        - theme_severity: MEDIUM
+        - frequency: 52
+        - 해결가능성: 높음 (UI 개선)
+        - 전략정합성: 낮음 (AX BD 영역 외)
+
+      우선순위 산정 공식:
+      score = severity(0.4) + frequency(0.3) + feasibility(0.2) + strategic_fit(0.1)
+
+      기대 순위: Signal 1 > Signal 2 > Signal 3
+    context:
+      max_candidates: 2
+      scoring_weights:
+        severity: 0.4
+        frequency: 0.3
+        feasibility: 0.2
+        strategic_fit: 0.1
+
+  success_criteria:
+    description: "우선순위가 올바르게 산정됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.brief_candidates[0].signal_id"
+        value: "SIG-VOC-001"
+        description: "1순위 = Signal 1"
+
+  graders:
+    - type: state_check
+      id: ranking_order
+      weight: 0.4
+      required: true
+      description: "순위 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.brief_candidates[0].signal_id"
+            expected: "SIG-VOC-001"
+            description: "1순위 = SIG-VOC-001"
+          - type: state_equals
+            target: "output.brief_candidates[0].priority"
+            expected: 1
+            description: "priority = 1"
+
+    - type: llm_assertion
+      id: ranking_logic
+      weight: 0.4
+      description: "순위 산정 로직 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "Signal 1이 가장 높은 우선순위를 받았다 (HIGH 심각도 + 높은 빈도 + 높은 해결가능성)"
+            weight: 1.0
+            required: true
+          - statement: "Signal 3이 전략정합성이 낮아 상대적으로 낮은 우선순위를 받았다"
+            weight: 1.0
+          - statement: "각 Brief 후보에 rationale(선정 근거)이 제공되었다"
+            weight: 0.8
+          - statement: "max_candidates 설정에 따라 최대 2개의 후보만 선정되었다"
+            weight: 0.8
+
+    - type: regex_match
+      id: candidate_format
+      weight: 0.2
+      description: "후보 형식 검증"
+      config:
+        patterns:
+          - pattern: '"priority":\s*[12]'
+            target: output
+            description: "priority 값 존재"
+          - pattern: '"rationale":\s*"[^"]+"'
+            target: output
+            description: "rationale 존재"
+          - pattern: '"brief_candidates":\s*\['
+            target: output
+            description: "brief_candidates 배열"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - ranking_order
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 60
+    grading_seconds: 60
+
+  tags:
+    - voc_analyst
+    - priority
+    - capability
+    - ranking

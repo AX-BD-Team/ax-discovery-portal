@@ -1,0 +1,120 @@
+# Brief Writer Agent - Confluence 페이지 생성
+# Brief를 Confluence 페이지로 올바르게 생성하는지 테스트
+
+task:
+  id: brief_writer_confluence_creation
+  type: workflow
+  desc: "Confluence 페이지 생성 검증 - Brief JSON을 마크다운으로 변환하고 Confluence 페이지를 올바르게 생성하는지 확인"
+  suite: brief_writer_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: integration
+    difficulty: medium
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.9
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Brief JSON을 Confluence 페이지로 생성하세요:
+
+      Brief:
+      - brief_id: BRF-2026-001
+      - title: 콜센터 AHT 최적화
+      - signal_id: SIG-2026-001
+      - total_score: 75
+      - decision: GO
+      - customer:
+          segment: 금융 콜센터
+          buyer_role: 운영본부장
+      - problem:
+          pain: 평균 통화 시간 8분으로 월 2억원 비용
+          why_now: 경쟁사 AI 도입으로 서비스 품질 격차
+
+      Confluence 설정:
+      - space_key: AXBD
+      - parent_id: BRIEFS_PARENT_ID
+      - 제목 형식: "[Brief] {title}"
+      - 레이블: brief, {signal_id}, {customer.segment}
+    context:
+      confluence_config:
+        space_key: "AXBD"
+        parent_id: "123456"
+      expected_labels: ["brief", "SIG-2026-001", "금융 콜센터"]
+
+  success_criteria:
+    description: "Confluence 페이지가 올바른 형식으로 생성됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.confluence.created"
+        value: true
+        description: "페이지 생성 성공"
+
+  graders:
+    - type: tool_call_check
+      id: confluence_api_call
+      weight: 0.4
+      required: true
+      description: "Confluence API 호출 검증"
+      config:
+        required_calls:
+          - tool: "confluence.create_page"
+            min_count: 1
+            args_match:
+              space_key: "AXBD"
+          - tool: "render_brief_template"
+            min_count: 1
+
+    - type: llm_assertion
+      id: page_content
+      weight: 0.4
+      description: "페이지 내용 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "페이지 제목이 '[Brief] 콜센터 AHT 최적화' 형식을 따른다"
+            weight: 1.0
+            required: true
+          - statement: "Brief의 모든 섹션이 마크다운 형식으로 변환되었다"
+            weight: 1.0
+          - statement: "레이블에 'brief', Signal ID, Customer segment가 포함되어 있다"
+            weight: 0.8
+          - statement: "Scorecard 정보(점수, 판정)가 페이지 헤더에 표시되어 있다"
+            weight: 0.8
+
+    - type: state_check
+      id: output_url
+      weight: 0.2
+      description: "결과 URL 반환 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.confluence.url"
+            expected: ""
+            operator: ne
+            description: "Confluence URL 반환됨"
+          - type: state_equals
+            target: "output.confluence.page_id"
+            expected: ""
+            operator: ne
+            description: "Page ID 반환됨"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - confluence_api_call
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 60
+    grading_seconds: 60
+
+  tags:
+    - brief_writer
+    - confluence
+    - capability
+    - integration

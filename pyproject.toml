@@ -64,6 +64,7 @@ loadtest = [
 [project.scripts]
 ax-portal = "backend.api.main:main"
 ax-index-entities = "scripts.index_entities:cli"
+ax-evals = "backend.evals.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/AX-BD-Team/ax-discovery-portal"
@@ -88,6 +89,7 @@ ignore = [
 "tests/*" = ["E402"]  # allow imports not at top in test files
 "backend/database/models/*" = ["F821"]  # SQLAlchemy string references for relationships
 "backend/api/main.py" = ["E402"]  # load_dotenv() must run before other imports
+"backend/evals/cli.py" = ["E402"]  # PYTHONPATH 설정 후 import 필요
 
 [tool.hatch.build.targets.wheel]
 packages = ["backend"]

@@ -1,0 +1,114 @@
+# External Scout Agent - 다양한 소스 수집
+# 세미나, 리포트, 뉴스 등 다양한 소스를 처리할 수 있는지 테스트
+
+task:
+  id: external_scout_multi_source
+  type: workflow
+  desc: "다중 소스 수집 능력 - 세미나/리포트/뉴스 소스를 모두 처리하고 일관된 형식으로 출력하는지 검증"
+  suite: external_scout_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: hard
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.85
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 3가지 소스에서 정보를 수집하고 각각 Activity와 Signal 후보를 생성하세요:
+
+      1. 세미나:
+         - URL: https://event.example.com/fintech-week-2026
+         - type: seminar
+
+      2. 리포트:
+         - URL: https://research.example.com/ai-market-report-2026.pdf
+         - type: report
+
+      3. 뉴스:
+         - URL: https://news.example.com/ai-finance-trend
+         - type: news
+
+      각 소스별로:
+      - Activity JSON 생성
+      - Signal 후보 추출 (있는 경우)
+      - 관련 themes 태깅
+    context:
+      play_id: "EXT_Desk_D01"
+      expected_sources: ["seminar", "report", "news"]
+
+  success_criteria:
+    description: "3개 소스 모두 처리되고 일관된 형식으로 출력됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.activities.length"
+        value: 3
+        description: "3개 Activity 생성"
+
+  graders:
+    - type: state_check
+      id: source_coverage
+      weight: 0.4
+      required: true
+      description: "소스 다양성 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.activities"
+            expected: 3
+            operator: gte
+            description: "3개 이상 Activity 생성"
+          - type: state_equals
+            target: "output.source_types"
+            expected: ["seminar", "report", "news"]
+            operator: contains
+            description: "3가지 소스 타입 모두 처리"
+
+    - type: llm_assertion
+      id: consistency_check
+      weight: 0.4
+      description: "출력 일관성 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "모든 Activity가 동일한 JSON 스키마를 따른다"
+            weight: 1.0
+            required: true
+          - statement: "각 소스 타입에 맞는 처리 방식이 적용되었다 (세미나: 메타데이터+AAR, 리포트: 요약+Signal, 뉴스: 필터링+Signal)"
+            weight: 1.0
+          - statement: "Signal 후보들이 일관된 형식으로 추출되었다"
+            weight: 0.8
+
+    - type: transcript_metrics
+      id: efficiency
+      weight: 0.2
+      description: "처리 효율성"
+      config:
+        thresholds:
+          max_turns: 15
+          max_tool_calls: 30
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - source_coverage
+
+  timeout:
+    total_seconds: 300
+    per_turn_seconds: 60
+    grading_seconds: 90
+
+  cost_budget:
+    max_tokens: 60000
+    max_usd: 1.5
+
+  tags:
+    - external_scout
+    - multi-source
+    - capability
+    - integration

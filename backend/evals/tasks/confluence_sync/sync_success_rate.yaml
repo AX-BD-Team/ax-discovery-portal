@@ -1,0 +1,125 @@
+# Confluence Sync Agent - 동기화 성공률
+# 다양한 이벤트에 대해 Confluence 동기화가 성공적으로 수행되는지 테스트
+
+task:
+  id: confluence_sync_success_rate
+  type: workflow
+  desc: "동기화 성공률 검증 - Activity, Signal, Brief 생성 이벤트에 대해 Confluence 동기화가 성공적으로 수행되는지 확인"
+  suite: confluence_sync_regression
+  version: "1.0.0"
+
+  metadata:
+    domain: integration
+    difficulty: medium
+    risk: medium
+    purpose: regression
+    expected_pass_rate: 0.95
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 3개 이벤트에 대해 Confluence 동기화를 수행하세요:
+
+      이벤트 1 - Activity 생성:
+      - event_type: activity.created
+      - activity_id: ACT-2026-001
+      - play_id: EXT_Desk_D01
+      - title: "AI Summit 2026 참석"
+
+      이벤트 2 - Signal 생성:
+      - event_type: signal.created
+      - signal_id: SIG-2026-001
+      - play_id: EXT_Desk_D01
+      - title: "콜센터 AHT 최적화"
+
+      이벤트 3 - Brief 생성:
+      - event_type: brief.created
+      - brief_id: BRF-2026-001
+      - signal_id: SIG-2026-001
+      - title: "콜센터 AHT 최적화 Brief"
+
+      각 이벤트에 대해:
+      1. Action Log에 기록
+      2. Live doc에 append
+      3. (Brief인 경우) Play DB 업데이트
+    context:
+      confluence_pages:
+        action_log: "786433"
+        play_db: "720899"
+        live_doc: "753719"
+      expected_sync_count: 3
+
+  success_criteria:
+    description: "3개 이벤트 모두 동기화 성공"
+    outcome_checks:
+      - type: state_equals
+        target: "output.sync_results.success_count"
+        value: 3
+        description: "3개 동기화 모두 성공"
+
+  graders:
+    - type: tool_call_check
+      id: sync_api_calls
+      weight: 0.4
+      required: true
+      description: "Confluence API 호출 검증"
+      config:
+        required_calls:
+          - tool: "confluence.db_insert_row"
+            min_count: 3
+            args_match:
+              database_id: "ACTION_LOG_DB_ID"
+          - tool: "confluence.append_to_page"
+            min_count: 3
+
+    - type: state_check
+      id: sync_status
+      weight: 0.3
+      description: "동기화 상태 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.sync_results.activity"
+            expected: "success"
+            description: "Activity 동기화 성공"
+          - type: state_equals
+            target: "output.sync_results.signal"
+            expected: "success"
+            description: "Signal 동기화 성공"
+          - type: state_equals
+            target: "output.sync_results.brief"
+            expected: "success"
+            description: "Brief 동기화 성공"
+
+    - type: llm_assertion
+      id: sync_completeness
+      weight: 0.3
+      description: "동기화 완전성 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "모든 이벤트가 Action Log에 기록되었다"
+            weight: 1.0
+            required: true
+          - statement: "모든 이벤트가 Live doc에 append되었다"
+            weight: 1.0
+          - statement: "Brief 이벤트에서 Play DB가 업데이트되었다"
+            weight: 0.8
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.85
+    required_graders:
+      - sync_api_calls
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 45
+    grading_seconds: 60
+
+  tags:
+    - confluence_sync
+    - success-rate
+    - regression
+    - integration

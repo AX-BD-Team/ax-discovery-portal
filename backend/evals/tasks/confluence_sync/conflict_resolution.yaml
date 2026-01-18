@@ -1,0 +1,122 @@
+# Confluence Sync Agent - 충돌 해결 로직
+# 버전 충돌 발생 시 적절히 처리하는지 테스트
+
+task:
+  id: confluence_sync_conflict_resolution
+  type: workflow
+  desc: "충돌 해결 로직 검증 - Confluence 페이지 버전 충돌 발생 시 낙관적 락 기반 재시도가 올바르게 수행되는지 확인"
+  suite: confluence_sync_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: hard
+    risk: high
+    purpose: capability
+    expected_pass_rate: 0.85
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      Live doc 업데이트 중 버전 충돌이 발생하는 시나리오를 처리하세요:
+
+      시나리오:
+      1. 첫 번째 업데이트 시도 시 VersionConflictError 발생
+      2. 최신 버전 재조회 후 재시도
+      3. 성공할 때까지 반복 (최대 3회)
+
+      업데이트 내용:
+      - page_id: 753719
+      - append_content: "신규 Signal 등록: SIG-2026-CNF-001"
+      - current_version: 42 (시뮬레이션: 실제 버전은 43)
+
+      충돌 처리 규칙:
+      - 버전 불일치 시 최신 버전 재조회
+      - 내용 머지 후 재시도
+      - 최대 3회 실패 시 에러 반환
+    context:
+      simulate_conflict:
+        fail_count: 2
+        actual_version: 43
+      max_retries: 3
+
+  success_criteria:
+    description: "버전 충돌이 적절히 해결되어 업데이트 성공"
+    outcome_checks:
+      - type: state_equals
+        target: "output.update_success"
+        value: true
+        description: "최종 업데이트 성공"
+      - type: state_equals
+        target: "output.retry_count"
+        value: 3
+        operator: lte
+        description: "재시도 3회 이하"
+
+  graders:
+    - type: tool_call_check
+      id: retry_behavior
+      weight: 0.4
+      required: true
+      description: "재시도 동작 검증"
+      config:
+        required_calls:
+          - tool: "confluence.get_page"
+            min_count: 2
+            args_match:
+              page_id: "753719"
+          - tool: "confluence.update_page"
+            min_count: 2
+            max_count: 4
+
+    - type: llm_assertion
+      id: conflict_handling
+      weight: 0.4
+      description: "충돌 처리 로직 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "VersionConflictError 발생 시 즉시 실패하지 않고 재시도를 수행했다"
+            weight: 1.0
+            required: true
+          - statement: "재시도 전 최신 버전을 재조회했다"
+            weight: 1.0
+            required: true
+          - statement: "버전 번호가 업데이트 요청에 포함되어 낙관적 락이 적용되었다"
+            weight: 0.8
+          - statement: "최종적으로 데이터 손실 없이 업데이트가 완료되었다"
+            weight: 1.0
+
+    - type: state_check
+      id: final_state
+      weight: 0.2
+      description: "최종 상태 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.final_version"
+            expected: 43
+            operator: gt
+            description: "버전이 증가함"
+          - type: state_equals
+            target: "output.content_preserved"
+            expected: true
+            description: "내용이 보존됨"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - retry_behavior
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 45
+    grading_seconds: 60
+
+  tags:
+    - confluence_sync
+    - conflict-resolution
+    - capability
+    - resilience

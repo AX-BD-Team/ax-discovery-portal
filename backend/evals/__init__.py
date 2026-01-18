@@ -58,6 +58,9 @@ from backend.evals.models.task import TaskDefinition
 
 # Runners
 from backend.evals.runners import (
+    GateCheckConfig,
+    GateChecker,
+    GateResult,
     RunnerConfig,
     RunResult,
     SuiteRunner,
@@ -65,6 +68,8 @@ from backend.evals.runners import (
     TaskRunner,
     TrialExecutor,
     TrialResult,
+    check_gate,
+    get_exit_code,
 )
 
 __all__ = [
@@ -105,7 +110,13 @@ __all__ = [
     "TrialResult",
     "TaskResult",
     "RunResult",
+    "GateResult",
     "RunnerConfig",
+    # Gate Checker
+    "GateChecker",
+    "GateCheckConfig",
+    "check_gate",
+    "get_exit_code",
     # Graders
     "BaseGrader",
     "PytestGrader",

@@ -1,0 +1,126 @@
+# Brief Writer Agent - 길이/포맷 규칙 준수
+# Brief가 1-Page 분량과 지정된 포맷 규칙을 준수하는지 테스트
+
+task:
+  id: brief_writer_format_compliance
+  type: workflow
+  desc: "길이/포맷 규칙 준수 검증 - Brief가 1-Page 분량(약 800-1200단어)이고 지정된 포맷을 따르는지 확인"
+  suite: brief_writer_regression
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: easy
+    risk: low
+    purpose: regression
+    expected_pass_rate: 0.95
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal과 Scorecard로 1-Page Brief를 생성하세요:
+
+      Signal:
+      - signal_id: SIG-2026-FMT-001
+      - title: 고객 이탈 예측 모델
+      - customer_segment: 통신사 마케팅
+      - pain: 고객 이탈률 15%로 연간 500억 손실
+
+      Scorecard:
+      - total_score: 68
+      - recommendation: PIVOT
+
+      포맷 규칙:
+      - 총 분량: 800-1200단어 (1-Page)
+      - JSON 스키마: brief.schema.json
+      - 필수 메타데이터: brief_id, signal_id, created_at, owner
+      - 날짜 형식: YYYY-MM-DD
+    context:
+      format_rules:
+        min_words: 800
+        max_words: 1200
+        required_fields: ["brief_id", "signal_id", "created_at", "owner"]
+
+  success_criteria:
+    description: "Brief가 1-Page 분량이고 포맷 규칙 준수"
+    outcome_checks:
+      - type: state_equals
+        target: "output.word_count"
+        value: 800
+        operator: gte
+        description: "최소 800단어"
+      - type: state_equals
+        target: "output.word_count"
+        value: 1200
+        operator: lte
+        description: "최대 1200단어"
+
+  graders:
+    - type: state_check
+      id: length_check
+      weight: 0.3
+      description: "분량 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.word_count"
+            expected: 500
+            operator: gte
+            description: "최소 분량 충족"
+          - type: state_equals
+            target: "output.word_count"
+            expected: 1500
+            operator: lte
+            description: "최대 분량 미초과"
+
+    - type: regex_match
+      id: schema_compliance
+      weight: 0.4
+      required: true
+      description: "스키마 준수 검증"
+      config:
+        patterns:
+          - pattern: '"brief_id":\s*"BRF-[A-Z0-9-]+"'
+            target: output
+            description: "brief_id 형식"
+          - pattern: '"signal_id":\s*"SIG-[A-Z0-9-]+"'
+            target: output
+            description: "signal_id 형식"
+          - pattern: '"created_at":\s*"\d{4}-\d{2}-\d{2}"'
+            target: output
+            description: "created_at 날짜 형식"
+          - pattern: '"owner":\s*"[^"]+"'
+            target: output
+            description: "owner 필드 존재"
+
+    - type: llm_assertion
+      id: format_quality
+      weight: 0.3
+      description: "포맷 품질 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "Brief가 읽기 쉬운 구조로 작성되어 있다 (명확한 섹션 구분)"
+            weight: 1.0
+          - statement: "각 섹션이 적절한 분량으로 균형있게 작성되어 있다"
+            weight: 0.8
+          - statement: "불필요한 반복이나 중복 내용이 없다"
+            weight: 0.7
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.85
+    required_graders:
+      - schema_compliance
+
+  timeout:
+    total_seconds: 150
+    per_turn_seconds: 50
+    grading_seconds: 45
+
+  tags:
+    - brief_writer
+    - format
+    - regression
+    - compliance

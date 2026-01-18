@@ -1,0 +1,119 @@
+# VoC Analyst Agent - 커버리지 검증
+# 입력된 VoC 데이터가 충분히 분석되었는지 테스트
+
+task:
+  id: voc_analyst_coverage
+  type: workflow
+  desc: "VoC 커버리지 검증 - 입력된 VoC 레코드 중 테마에 할당된 비율과 누락된 데이터 파악"
+  suite: voc_analyst_regression
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: medium
+    risk: low
+    purpose: regression
+    expected_pass_rate: 0.9
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 VoC 데이터셋을 분석하고 커버리지를 계산하세요:
+
+      입력: 100건의 VoC 레코드 (샘플)
+      - 상담 대기 관련: 35건
+      - 앱 오류 관련: 25건
+      - 요금 문의 관련: 20건
+      - 기타/노이즈: 20건
+
+      커버리지 계산:
+      1. total_records: 전체 입력 레코드 수
+      2. assigned_records: 테마에 할당된 레코드 수
+      3. coverage_rate: 할당률 (%)
+      4. unassigned_records: 미할당 레코드 (노이즈/기타)
+
+      기대 결과:
+      - 최소 70% 커버리지
+      - 노이즈 필터링 완료
+    context:
+      total_records: 100
+      expected_coverage_min: 0.7
+      noise_threshold: 0.3
+
+  success_criteria:
+    description: "커버리지 70% 이상 달성"
+    outcome_checks:
+      - type: state_equals
+        target: "output.summary.coverage_rate"
+        value: 0.7
+        operator: gte
+        description: "70% 이상 커버리지"
+
+  graders:
+    - type: state_check
+      id: coverage_check
+      weight: 0.4
+      required: true
+      description: "커버리지 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.summary.total_records"
+            expected: 100
+            description: "전체 레코드 수 정확"
+          - type: state_equals
+            target: "output.summary.coverage_rate"
+            expected: 0.7
+            operator: gte
+            description: "커버리지 70% 이상"
+
+    - type: llm_assertion
+      id: coverage_quality
+      weight: 0.4
+      description: "커버리지 품질 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "주요 테마(대기, 앱, 요금)에 관련 VoC가 적절히 할당되었다"
+            weight: 1.0
+            required: true
+          - statement: "노이즈/기타로 분류된 레코드가 실제로 분석 가치가 낮은 내용이다"
+            weight: 0.8
+          - statement: "테마 간 중복 할당 없이 명확히 구분되었다"
+            weight: 0.8
+          - statement: "커버리지 통계가 정확히 계산되었다"
+            weight: 1.0
+
+    - type: regex_match
+      id: summary_format
+      weight: 0.2
+      description: "요약 형식 검증"
+      config:
+        patterns:
+          - pattern: '"total_records":\s*100'
+            target: output
+            description: "total_records 존재"
+          - pattern: '"themes_extracted":\s*\d+'
+            target: output
+            description: "themes_extracted 존재"
+          - pattern: '"coverage_rate":\s*0\.\d+'
+            target: output
+            description: "coverage_rate 존재"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - coverage_check
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 60
+    grading_seconds: 60
+
+  tags:
+    - voc_analyst
+    - coverage
+    - regression
+    - validation

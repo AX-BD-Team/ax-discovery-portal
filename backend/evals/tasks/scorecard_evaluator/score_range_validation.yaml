@@ -1,0 +1,125 @@
+# Scorecard Evaluator Agent - 점수 범위 검증
+# 모든 점수가 유효 범위 내에 있는지 테스트
+
+task:
+  id: scorecard_score_range
+  type: workflow
+  desc: "점수 범위 검증 - 각 차원 0-20점, 총점 0-100점 범위가 지켜지는지 확인"
+  suite: scorecard_evaluator_regression
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: easy
+    risk: low
+    purpose: regression
+    expected_pass_rate: 0.98
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal을 평가하세요:
+
+      Signal:
+      - signal_id: SIG-2026-TEST-002
+      - title: 고객 세그먼트 자동화
+      - customer_segment: 마케팅팀
+      - pain: 고객 세분화에 주 40시간 소요
+
+      각 차원(Problem Severity, WTP, Data, Feasibility, Strategic Fit)을
+      0-20점 범위로 평가하고, 총점(0-100)을 계산하세요.
+    context:
+      validation_rules:
+        dimension_min: 0
+        dimension_max: 20
+        total_min: 0
+        total_max: 100
+
+  success_criteria:
+    description: "모든 점수가 유효 범위 내에 있음"
+    outcome_checks:
+      - type: state_equals
+        target: "output.total_score"
+        value: 100
+        operator: lte
+        description: "총점 100점 이하"
+      - type: state_equals
+        target: "output.total_score"
+        value: 0
+        operator: gte
+        description: "총점 0점 이상"
+
+  graders:
+    - type: state_check
+      id: range_validation
+      weight: 0.6
+      required: true
+      description: "점수 범위 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.scores.problem_severity"
+            expected: 20
+            operator: lte
+            description: "Problem Severity <= 20"
+          - type: state_equals
+            target: "output.scores.problem_severity"
+            expected: 0
+            operator: gte
+            description: "Problem Severity >= 0"
+          - type: state_equals
+            target: "output.scores.willingness_to_pay"
+            expected: 20
+            operator: lte
+            description: "WTP <= 20"
+          - type: state_equals
+            target: "output.scores.data_availability"
+            expected: 20
+            operator: lte
+            description: "Data <= 20"
+          - type: state_equals
+            target: "output.scores.feasibility"
+            expected: 20
+            operator: lte
+            description: "Feasibility <= 20"
+          - type: state_equals
+            target: "output.scores.strategic_fit"
+            expected: 20
+            operator: lte
+            description: "Strategic Fit <= 20"
+          - type: state_equals
+            target: "output.total_score"
+            expected: 100
+            operator: lte
+            description: "총점 <= 100"
+
+    - type: llm_assertion
+      id: sum_validation
+      weight: 0.4
+      description: "총점 합계 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "총점이 5개 차원 점수의 정확한 합계와 일치한다"
+            weight: 1.0
+            required: true
+          - statement: "각 차원 점수가 정수로 표현되어 있다"
+            weight: 0.5
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.95
+    required_graders:
+      - range_validation
+
+  timeout:
+    total_seconds: 120
+    per_turn_seconds: 45
+    grading_seconds: 30
+
+  tags:
+    - scorecard_evaluator
+    - validation
+    - regression
+    - score-range

@@ -1,0 +1,121 @@
+# Orchestrator Agent - 워크플로 완료율 테스트
+# 워크플로가 정상적으로 완료되는지 검증
+
+task:
+  id: orchestrator_workflow_completion
+  type: workflow
+  desc: "워크플로 실행 완료율 검증 - Seminar Pipeline(WF-01)이 모든 단계를 정상 완료하는지 테스트"
+  suite: orchestrator_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: medium
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.9
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      Seminar Pipeline(WF-01)을 실행하세요.
+      입력 데이터:
+      - type: seminar
+      - url: https://event.example.com/ai-summit-2026
+      - themes: ["AI", "금융", "자동화"]
+      - play_id: EXT_Desk_D01_Seminar
+
+      모든 단계(Activity 생성, AAR 템플릿 생성, Signal 후보 추출)가 완료되어야 합니다.
+    context:
+      workflow_id: "WF-01"
+      expected_steps:
+        - "메타데이터 추출"
+        - "Activity 생성"
+        - "AAR 템플릿 생성"
+        - "Signal 후보 추출"
+        - "Confluence 동기화"
+
+  success_criteria:
+    description: "워크플로의 모든 단계가 성공적으로 완료됨"
+    outcome_checks:
+      - type: state_equals
+        target: "workflow.status"
+        value: "completed"
+        description: "워크플로 상태가 completed여야 함"
+      - type: state_equals
+        target: "workflow.steps_completed"
+        value: 5
+        description: "5개 단계 모두 완료"
+
+  graders:
+    - type: tool_call_check
+      id: subagent_calls
+      weight: 0.4
+      description: "필수 서브에이전트 호출 검증"
+      config:
+        required_calls:
+          - tool: "call_agent"
+            min_count: 1
+            args_match:
+              agent_name: "external_scout"
+          - tool: "call_agent"
+            min_count: 1
+            args_match:
+              agent_name: "confluence_sync"
+        forbidden_calls:
+          - tool: "dangerous_operation"
+            reason: "위험 도구 호출 금지"
+
+    - type: state_check
+      id: workflow_state
+      weight: 0.3
+      description: "워크플로 최종 상태 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "workflow.status"
+            expected: "completed"
+            description: "워크플로 완료 상태"
+          - type: state_equals
+            target: "output.activity"
+            expected: true
+            operator: ne
+            description: "Activity 생성됨"
+          - type: state_equals
+            target: "output.aar_template"
+            expected: true
+            operator: ne
+            description: "AAR 템플릿 생성됨"
+
+    - type: transcript_metrics
+      id: efficiency
+      weight: 0.3
+      description: "실행 효율성 검증"
+      config:
+        thresholds:
+          max_turns: 20
+          max_tool_calls: 50
+        efficiency_score: true
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - workflow_state
+
+  timeout:
+    total_seconds: 300
+    per_turn_seconds: 60
+    grading_seconds: 60
+
+  cost_budget:
+    max_tokens: 50000
+    max_usd: 1.0
+    warn_threshold: 0.8
+
+  tags:
+    - orchestrator
+    - workflow
+    - capability
+    - wf-01

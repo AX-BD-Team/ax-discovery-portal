@@ -82,7 +82,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Trial 조회: `GET /runs/{id}/trials`, `GET /trials/{id}`, `/transcript`, `/outcome`
     - 통계/분석: `GET /stats/summary`, `GET /stats/regression`
   - **mypy Pydantic 플러그인** 설정 추가 (`pyproject.toml`)
-  - Phase 5.0 MVP 진행률: 38% → 75%
+  - **CI 게이팅 (regression suite 자동 실행)** (`backend/evals/cli.py`):
+    - CLI: `python -m backend.evals run --suite regression --parallel --k 5`
+    - 옵션: `--suite`, `--task`, `--k`, `--parallel`, `--output` (summary/json/yaml)
+    - `GateChecker`: pass_rate, required_tasks, min_score 조건 검사
+    - GitHub Actions: `.github/workflows/evals-regression.yml` (PR/push/schedule 트리거)
+    - 종료 코드: 0(PASS), 1(FAIL), 2(MARGINAL)
+  - **6개 에이전트 Eval Tasks** (`backend/evals/tasks/`):
+    - `orchestrator/`: workflow_completion, subagent_call_order, error_recovery, approval_flow (4개)
+    - `external_scout/`: seminar_metadata_extraction, signal_pattern_detection, aar_template_generation, multi_source_collection (4개)
+    - `scorecard_evaluator/`: five_dimension_accuracy, score_range_validation, red_flag_detection, recommendation_logic (4개)
+    - `brief_writer/`: required_sections, confluence_page_creation, format_compliance, evidence_linking (4개)
+    - `confluence_sync/`: sync_success_rate, data_integrity, conflict_resolution, batch_sync (4개)
+    - `voc_analyst/`: theme_extraction_accuracy, coverage_validation, signal_generation, priority_ranking (4개)
+    - 총 24개 Task YAML 파일
+  - **Phase 5.0 MVP 완료**: 75% → 100% (8/8 항목)
 
 - **Opportunity Stage 파이프라인 시스템** 🚀
   - **11단계 Stage 파이프라인**: DISCOVERY → IDEA_CARD → GATE1 → MOCKUP → GATE2 → BIZ_PLANNING → PILOT → PRE_PROPOSAL → HANDOFF + HOLD/DROP

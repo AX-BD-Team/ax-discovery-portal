@@ -1,0 +1,144 @@
+# Scorecard Evaluator Agent - 5개 차원 평가 정확성
+# 5개 평가 차원이 올바르게 산정되는지 테스트
+
+task:
+  id: scorecard_5dimension_accuracy
+  type: workflow
+  desc: "5개 차원 평가 정확성 - Problem Severity, WTP, Data, Feasibility, Strategic Fit 각 차원이 올바르게 평가되는지 검증"
+  suite: scorecard_evaluator_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: medium
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.85
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal을 5개 차원으로 평가하세요:
+
+      Signal:
+      - signal_id: SIG-2026-TEST-001
+      - title: 콜센터 AHT 최적화
+      - customer_segment: 금융 콜센터
+      - pain: 평균 통화 시간 8분으로 비용 증가, 월 2억원 손실
+      - evidence:
+        - 고객 이탈률 15% 증가
+        - 상담원 만족도 하락
+        - 경쟁사 AI 도입 사례 존재
+
+      평가 기준:
+      1. Problem Severity (20점): 심각한 Pain, 높은 빈도, 큰 비용
+      2. Willingness to Pay (20점): 예산 확보됨, Buyer 명확
+      3. Data Availability (20점): 데이터 즉시 접근 가능
+      4. Feasibility (20점): PoC 기간 내 가능
+      5. Strategic Fit (20점): AX BD 핵심 전략 정합
+
+      각 차원별 점수와 근거를 제시하고 총점을 계산하세요.
+    context:
+      output_schema: "scorecard.schema.json"
+      expected_score_range:
+        min: 50
+        max: 80
+
+  success_criteria:
+    description: "5개 차원 모두 평가되고 총점이 올바르게 계산됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.dimensions.length"
+        value: 5
+        description: "5개 차원 모두 평가됨"
+
+  graders:
+    - type: state_check
+      id: dimension_completeness
+      weight: 0.4
+      required: true
+      description: "5개 차원 완전성 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.scores.problem_severity"
+            expected: 0
+            operator: gt
+            description: "Problem Severity 점수 존재"
+          - type: state_equals
+            target: "output.scores.willingness_to_pay"
+            expected: 0
+            operator: gt
+            description: "WTP 점수 존재"
+          - type: state_equals
+            target: "output.scores.data_availability"
+            expected: 0
+            operator: gt
+            description: "Data 점수 존재"
+          - type: state_equals
+            target: "output.scores.feasibility"
+            expected: 0
+            operator: gt
+            description: "Feasibility 점수 존재"
+          - type: state_equals
+            target: "output.scores.strategic_fit"
+            expected: 0
+            operator: gt
+            description: "Strategic Fit 점수 존재"
+
+    - type: llm_rubric
+      id: evaluation_quality
+      weight: 0.4
+      description: "평가 품질 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        dimensions:
+          - name: "점수 근거의 구체성"
+            description: "각 차원 점수에 대한 근거가 구체적인 데이터나 사실에 기반하는지"
+            weight: 0.4
+            scale_min: 1
+            scale_max: 5
+          - name: "점수 범위 준수"
+            description: "각 차원이 0-20점 범위 내에서 평가되었는지"
+            weight: 0.3
+            scale_min: 1
+            scale_max: 5
+          - name: "총점 계산 정확성"
+            description: "총점이 5개 차원 점수의 합과 일치하는지"
+            weight: 0.3
+            scale_min: 1
+            scale_max: 5
+
+    - type: regex_match
+      id: schema_validation
+      weight: 0.2
+      description: "Scorecard 스키마 검증"
+      config:
+        patterns:
+          - pattern: '"total_score":\s*\d+'
+            target: output
+            description: "총점 존재"
+          - pattern: '"rationale":\s*"[^"]+"'
+            target: output
+            description: "근거 존재"
+          - pattern: '"recommendation":\s*\{[^}]+\}'
+            target: output
+            description: "추천 존재"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - dimension_completeness
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 60
+    grading_seconds: 90
+
+  tags:
+    - scorecard_evaluator
+    - 5-dimension
+    - capability
+    - accuracy

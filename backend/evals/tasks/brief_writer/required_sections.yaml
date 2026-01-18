@@ -1,0 +1,153 @@
+# Brief Writer Agent - 필수 섹션 존재 여부
+# Brief에 7개 필수 섹션이 모두 포함되는지 테스트
+
+task:
+  id: brief_writer_required_sections
+  type: workflow
+  desc: "필수 섹션 존재 검증 - Brief의 7개 필수 섹션(Customer, Problem, Solution, KPIs, Evidence, Validation, Risks)이 모두 포함되는지 확인"
+  suite: brief_writer_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: medium
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.95
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal과 Scorecard를 기반으로 1-Page Brief를 생성하세요:
+
+      Signal:
+      - signal_id: SIG-2026-BRF-001
+      - title: 콜센터 AHT 최적화
+      - customer_segment: 금융 콜센터
+      - pain: 평균 통화 시간 8분으로 월 2억원 비용 증가
+      - evidence: ["고객 이탈률 15% 증가", "상담원 만족도 60점"]
+      - kpi_hypothesis: ["AHT 30% 감소", "고객 만족도 20% 향상"]
+
+      Scorecard:
+      - total_score: 75
+      - recommendation: GO
+      - rationale: "명확한 Pain, 측정 가능한 KPI, 높은 전략 정합성"
+
+      Brief 필수 섹션:
+      1. Customer (segment, buyer_role, users, account)
+      2. Problem (pain, why_now, current_process)
+      3. Solution Hypothesis (approach, integration_points, data_needed)
+      4. KPIs
+      5. Evidence
+      6. Validation Plan (method, questions, success_criteria, timebox)
+      7. Risks
+    context:
+      output_schema: "brief.schema.json"
+      required_sections: 7
+
+  success_criteria:
+    description: "7개 필수 섹션이 모두 포함됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.brief.sections.length"
+        value: 7
+        operator: gte
+        description: "7개 이상 섹션 존재"
+
+  graders:
+    - type: string_match
+      id: section_presence
+      weight: 0.5
+      required: true
+      description: "필수 섹션 존재 검증"
+      config:
+        checks:
+          - target: output
+            expected: "Customer"
+            mode: contains
+            description: "Customer 섹션"
+          - target: output
+            expected: "Problem"
+            mode: contains
+            description: "Problem 섹션"
+          - target: output
+            expected: "Solution"
+            mode: contains
+            description: "Solution 섹션"
+          - target: output
+            expected: "KPI"
+            mode: contains
+            case_sensitive: false
+            description: "KPIs 섹션"
+          - target: output
+            expected: "Evidence"
+            mode: contains
+            description: "Evidence 섹션"
+          - target: output
+            expected: "Validation"
+            mode: contains
+            description: "Validation 섹션"
+          - target: output
+            expected: "Risk"
+            mode: contains
+            description: "Risks 섹션"
+        all_required: true
+
+    - type: llm_rubric
+      id: section_quality
+      weight: 0.3
+      description: "섹션 내용 품질"
+      config:
+        model: "claude-sonnet-4-20250514"
+        dimensions:
+          - name: "Customer 섹션 완성도"
+            description: "segment, buyer_role 등 필수 필드가 채워져 있는지"
+            weight: 0.2
+            scale_min: 1
+            scale_max: 5
+          - name: "Problem 섹션 구체성"
+            description: "Pain과 Why Now가 구체적으로 기술되어 있는지"
+            weight: 0.3
+            scale_min: 1
+            scale_max: 5
+          - name: "Validation Plan 실행가능성"
+            description: "검증 방법, 성공 기준, 기간이 현실적으로 제시되어 있는지"
+            weight: 0.3
+            scale_min: 1
+            scale_max: 5
+          - name: "Signal/Scorecard 연결성"
+            description: "입력된 Signal과 Scorecard 정보가 Brief에 잘 반영되어 있는지"
+            weight: 0.2
+            scale_min: 1
+            scale_max: 5
+
+    - type: regex_match
+      id: id_format
+      weight: 0.2
+      description: "Brief ID 형식 검증"
+      config:
+        patterns:
+          - pattern: '"brief_id":\s*"BRF-[A-Z0-9-]+"'
+            target: output
+            description: "brief_id 형식"
+          - pattern: '"signal_id":\s*"SIG-2026-BRF-001"'
+            target: output
+            description: "signal_id 연결"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.85
+    required_graders:
+      - section_presence
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 60
+    grading_seconds: 60
+
+  tags:
+    - brief_writer
+    - sections
+    - capability
+    - schema

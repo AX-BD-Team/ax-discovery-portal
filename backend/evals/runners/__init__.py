@@ -13,6 +13,12 @@ from backend.evals.runners.base import (
     RunnerError,
     TimeoutError,
 )
+from backend.evals.runners.gate_checker import (
+    GateCheckConfig,
+    GateChecker,
+    check_gate,
+    get_exit_code,
+)
 from backend.evals.runners.results import (
     GateResult,
     RunResult,
@@ -49,4 +55,9 @@ __all__ = [
     "execute_trial_with_grading",
     "run_task",
     "run_suite",
+    # 게이트 체커
+    "GateChecker",
+    "GateCheckConfig",
+    "check_gate",
+    "get_exit_code",
 ]

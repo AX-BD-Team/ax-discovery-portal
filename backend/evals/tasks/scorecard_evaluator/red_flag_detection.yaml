@@ -1,0 +1,116 @@
+# Scorecard Evaluator Agent - Red Flag 탐지
+# 정의된 Red Flag 조건을 정확히 탐지하는지 테스트
+
+task:
+  id: scorecard_red_flag_detection
+  type: workflow
+  desc: "Red Flag 탐지 정확성 - 데이터 접근 불가, Buyer 부재, 규제 이슈 등 Red Flag를 정확히 감지하는지 검증"
+  suite: scorecard_evaluator_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: medium
+    risk: high
+    purpose: capability
+    expected_pass_rate: 0.9
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal을 평가하고 Red Flag를 탐지하세요:
+
+      Signal:
+      - signal_id: SIG-2026-TEST-003
+      - title: 내부 보안 시스템 AI화
+      - customer_segment: 금융사 보안팀
+      - pain: 보안 이벤트 분석에 과도한 시간 소요
+      - notes:
+        - 데이터 접근 불가 (내부 정책)
+        - 보안 등급 최고 수준
+        - 예산 오너 불명확
+        - 해외 경쟁사가 6개월 전 유사 솔루션 런칭
+
+      Red Flag 체크리스트:
+      1. 데이터 접근 불가 (내부 정책)
+      2. Buyer/예산 오너 부재
+      3. 규제/법무 이슈
+      4. 경쟁사 선점 (6개월+)
+      5. KT DS 역량 외 영역
+      6. 보안 등급 제약
+    context:
+      expected_red_flags:
+        - "데이터 접근 불가"
+        - "보안 등급 제약"
+        - "예산 오너 부재"
+        - "경쟁사 선점"
+
+  success_criteria:
+    description: "4개 이상 Red Flag가 탐지됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.red_flags.length"
+        value: 3
+        operator: gte
+        description: "최소 3개 Red Flag 탐지"
+
+  graders:
+    - type: state_check
+      id: flag_detection
+      weight: 0.4
+      required: true
+      description: "Red Flag 탐지 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.red_flags"
+            expected: 3
+            operator: gte
+            description: "최소 3개 Red Flag"
+
+    - type: llm_assertion
+      id: flag_accuracy
+      weight: 0.4
+      description: "Red Flag 정확도"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "데이터 접근 불가가 Red Flag로 탐지되었다"
+            weight: 1.0
+            required: true
+          - statement: "보안 등급 제약이 Red Flag로 탐지되었다"
+            weight: 1.0
+            required: true
+          - statement: "예산 오너 부재가 Red Flag로 탐지되었다"
+            weight: 1.0
+          - statement: "경쟁사 선점이 Red Flag로 탐지되었다"
+            weight: 0.8
+
+    - type: llm_assertion
+      id: recommendation_impact
+      weight: 0.2
+      description: "Red Flag가 추천에 반영됨"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "다수의 Red Flag로 인해 GO가 아닌 HOLD 또는 NO_GO 추천이 내려졌다"
+            weight: 1.0
+            required: true
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - flag_detection
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 60
+    grading_seconds: 60
+
+  tags:
+    - scorecard_evaluator
+    - red-flag
+    - capability
+    - risk-detection

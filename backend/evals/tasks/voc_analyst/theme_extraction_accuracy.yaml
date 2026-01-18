@@ -1,0 +1,136 @@
+# VoC Analyst Agent - 테마 추출 정확도
+# VoC 데이터에서 테마를 정확하게 추출하는지 테스트
+
+task:
+  id: voc_analyst_theme_extraction
+  type: workflow
+  desc: "테마 추출 정확도 검증 - VoC/티켓 데이터에서 유사 문장을 클러스터링하고 테마를 정확히 추출하는지 확인"
+  suite: voc_analyst_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: hard
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.85
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 VoC 데이터에서 테마를 추출하세요:
+
+      VoC 샘플 (20건 중 발췌):
+      1. "대기 시간이 너무 길어요. 30분 넘게 기다렸습니다."
+      2. "상담원 연결까지 오래 걸립니다."
+      3. "앱이 자주 멈춰요. 업데이트 후 더 심해졌어요."
+      4. "모바일 앱 로딩이 느립니다."
+      5. "청구서 금액이 이상해요. 설명이 필요합니다."
+      6. "요금 청구 내역을 이해하기 어렵습니다."
+      7. "기다리는 시간 동안 음악만 나와요."
+      8. "앱 오류가 자주 발생합니다."
+      9. "청구서에 이중 청구가 있어요."
+      10. "상담 대기가 너무 길어서 포기했습니다."
+
+      테마 추출 요구사항:
+      - 최소 빈도 5회 이상
+      - 최대 5개 테마
+      - 각 테마에 키워드, 빈도, 심각도, 샘플 텍스트 포함
+    context:
+      source_type: "csv"
+      play_id: "KT_Desk_V01_VoC"
+      min_frequency: 5
+      max_themes: 5
+      expected_themes:
+        - "상담 대기 시간"
+        - "앱 오류/성능"
+        - "요금 청구"
+
+  success_criteria:
+    description: "3개 이상 테마가 정확히 추출됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.themes.length"
+        value: 3
+        operator: gte
+        description: "최소 3개 테마 추출"
+
+  graders:
+    - type: state_check
+      id: theme_count
+      weight: 0.3
+      required: true
+      description: "테마 개수 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.themes"
+            expected: 3
+            operator: gte
+            description: "3개 이상 테마"
+          - type: state_equals
+            target: "output.themes"
+            expected: 5
+            operator: lte
+            description: "5개 이하 테마"
+
+    - type: llm_assertion
+      id: theme_accuracy
+      weight: 0.5
+      description: "테마 정확도 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "대기 시간 관련 VoC가 하나의 테마로 클러스터링되었다"
+            weight: 1.0
+            required: true
+          - statement: "앱 오류/성능 관련 VoC가 하나의 테마로 클러스터링되었다"
+            weight: 1.0
+            required: true
+          - statement: "요금 청구 관련 VoC가 하나의 테마로 클러스터링되었다"
+            weight: 1.0
+          - statement: "각 테마에 대표 키워드가 추출되었다"
+            weight: 0.8
+          - statement: "각 테마에 빈도와 심각도가 계산되었다"
+            weight: 0.8
+
+    - type: regex_match
+      id: theme_format
+      weight: 0.2
+      description: "테마 형식 검증"
+      config:
+        patterns:
+          - pattern: '"theme_id":\s*"THM-[0-9]+"'
+            target: output
+            description: "theme_id 형식"
+          - pattern: '"frequency":\s*\d+'
+            target: output
+            description: "빈도 존재"
+          - pattern: '"severity":\s*"(HIGH|MEDIUM|LOW)"'
+            target: output
+            description: "심각도 존재"
+          - pattern: '"keywords":\s*\['
+            target: output
+            description: "키워드 배열 존재"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - theme_count
+
+  timeout:
+    total_seconds: 240
+    per_turn_seconds: 80
+    grading_seconds: 90
+
+  cost_budget:
+    max_tokens: 80000
+    max_usd: 2.0
+
+  tags:
+    - voc_analyst
+    - theme-extraction
+    - capability
+    - clustering

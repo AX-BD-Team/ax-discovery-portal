@@ -1,0 +1,124 @@
+# Confluence Sync Agent - 데이터 무결성 검증
+# 동기화된 데이터가 원본과 일치하는지 테스트
+
+task:
+  id: confluence_sync_data_integrity
+  type: workflow
+  desc: "데이터 무결성 검증 - Confluence에 동기화된 데이터가 원본 이벤트 데이터와 정확히 일치하는지 확인"
+  suite: confluence_sync_regression
+  version: "1.0.0"
+
+  metadata:
+    domain: data_quality
+    difficulty: medium
+    risk: high
+    purpose: regression
+    expected_pass_rate: 0.98
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 Signal 이벤트를 Confluence에 동기화하세요:
+
+      Signal:
+      - signal_id: SIG-2026-INT-001
+      - title: "고객 세그먼트 자동화"
+      - play_id: EXT_Desk_D01
+      - owner: "김철수"
+      - created_at: "2026-01-18T10:30:00+09:00"
+      - pain: "고객 세분화에 주 40시간 소요"
+      - evidence_count: 3
+
+      동기화 후 검증:
+      1. Action Log 레코드의 필드값 일치
+      2. Live doc append 내용 일치
+      3. URL/링크 정확성
+    context:
+      expected_fields:
+        log_id: "LOG-*"
+        play_id: "EXT_Desk_D01"
+        action_type: "Signal"
+        title: "고객 세그먼트 자동화"
+        actor: "김철수"
+
+  success_criteria:
+    description: "동기화된 데이터가 원본과 100% 일치"
+    outcome_checks:
+      - type: state_equals
+        target: "output.integrity_check.passed"
+        value: true
+        description: "무결성 검사 통과"
+
+  graders:
+    - type: state_check
+      id: field_matching
+      weight: 0.5
+      required: true
+      description: "필드 매칭 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.synced_data.play_id"
+            expected: "EXT_Desk_D01"
+            description: "play_id 일치"
+          - type: state_equals
+            target: "output.synced_data.action_type"
+            expected: "Signal"
+            description: "action_type 일치"
+          - type: state_equals
+            target: "output.synced_data.title"
+            expected: "고객 세그먼트 자동화"
+            description: "title 일치"
+          - type: state_equals
+            target: "output.synced_data.actor"
+            expected: "김철수"
+            description: "actor 일치"
+
+    - type: llm_assertion
+      id: content_accuracy
+      weight: 0.3
+      description: "내용 정확성 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "Signal의 모든 핵심 필드가 Action Log에 누락 없이 기록되었다"
+            weight: 1.0
+            required: true
+          - statement: "날짜/시간 형식이 일관되게 유지되었다"
+            weight: 0.8
+          - statement: "한글 텍스트가 깨지지 않고 정확히 저장되었다"
+            weight: 1.0
+
+    - type: regex_match
+      id: format_validation
+      weight: 0.2
+      description: "형식 검증"
+      config:
+        patterns:
+          - pattern: "SIG-2026-INT-001"
+            target: output
+            description: "Signal ID 포함"
+          - pattern: "EXT_Desk_D01"
+            target: output
+            description: "Play ID 포함"
+          - pattern: "2026-01-18"
+            target: output
+            description: "날짜 포함"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.95
+    required_graders:
+      - field_matching
+
+  timeout:
+    total_seconds: 120
+    per_turn_seconds: 40
+    grading_seconds: 45
+
+  tags:
+    - confluence_sync
+    - data-integrity
+    - regression
+    - validation

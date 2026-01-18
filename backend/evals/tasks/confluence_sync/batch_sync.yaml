@@ -1,0 +1,114 @@
+# Confluence Sync Agent - 주간 배치 동기화
+# Play DB QTD 집계 업데이트가 올바르게 수행되는지 테스트
+
+task:
+  id: confluence_sync_batch
+  type: workflow
+  desc: "주간 배치 동기화 검증 - Play DB의 QTD(Quarter-to-Date) 통계가 올바르게 집계되고 업데이트되는지 확인"
+  suite: confluence_sync_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: medium
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.9
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      주간 배치 동기화를 실행하세요:
+
+      활성 Play 목록:
+      - EXT_Desk_D01 (세미나 파이프라인)
+      - KT_Desk_V01 (VoC 마이닝)
+
+      각 Play에 대해 QTD 통계 집계:
+      - activity_qtd: 분기 내 Activity 수
+      - signal_qtd: 분기 내 Signal 수
+      - brief_qtd: 분기 내 Brief 수
+      - s2_qtd: 분기 내 S2(Validation) 수
+      - s3_qtd: 분기 내 S3(Pilot) 수
+      - status: RAG 상태 계산
+
+      샘플 데이터:
+      EXT_Desk_D01:
+        activities: 15, signals: 8, briefs: 3, s2: 1, s3: 0
+      KT_Desk_V01:
+        activities: 8, signals: 12, briefs: 2, s2: 2, s3: 1
+    context:
+      batch_schedule: "0 18 * * 5"
+      active_plays: ["EXT_Desk_D01", "KT_Desk_V01"]
+
+  success_criteria:
+    description: "2개 Play QTD 통계 모두 업데이트됨"
+    outcome_checks:
+      - type: state_equals
+        target: "output.updated_plays.length"
+        value: 2
+        description: "2개 Play 업데이트"
+
+  graders:
+    - type: tool_call_check
+      id: db_update_calls
+      weight: 0.4
+      required: true
+      description: "DB 업데이트 호출 검증"
+      config:
+        required_calls:
+          - tool: "confluence.db_upsert_row"
+            min_count: 2
+            args_match:
+              database_id: "PLAY_DB_ID"
+
+    - type: state_check
+      id: stats_accuracy
+      weight: 0.3
+      description: "통계 정확성 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.play_stats.EXT_Desk_D01.activity_qtd"
+            expected: 15
+            description: "EXT Activity 수"
+          - type: state_equals
+            target: "output.play_stats.EXT_Desk_D01.signal_qtd"
+            expected: 8
+            description: "EXT Signal 수"
+          - type: state_equals
+            target: "output.play_stats.KT_Desk_V01.s3_qtd"
+            expected: 1
+            description: "KT S3 수"
+
+    - type: llm_assertion
+      id: rag_calculation
+      weight: 0.3
+      description: "RAG 상태 계산 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "각 Play의 status가 QTD 통계를 기반으로 계산되었다"
+            weight: 1.0
+          - statement: "last_updated 필드가 현재 시간으로 업데이트되었다"
+            weight: 0.8
+          - statement: "모든 QTD 필드가 정수로 저장되었다"
+            weight: 0.7
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - db_update_calls
+
+  timeout:
+    total_seconds: 240
+    per_turn_seconds: 60
+    grading_seconds: 60
+
+  tags:
+    - confluence_sync
+    - batch
+    - capability
+    - statistics

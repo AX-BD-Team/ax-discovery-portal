@@ -60,7 +60,7 @@
 
 ## 🚧 진행 중인 Phase
 
-### Phase 5: AI 에이전트 평가(Evals) 플랫폼 (75% 완료) - 진행 중
+### Phase 5: AI 에이전트 평가(Evals) 플랫폼 (Phase 5.0 MVP 100% 완료) - 진행 중
 
 > **근거**: RosettaLens 번역본 'AI 에이전트를 위한 평가(evals) 쉽게 이해하기' 및 Anthropic Engineering
 > **목적**: 에이전트 품질을 개발 단계에서 자동 검증, 프로덕션 반응적 루프 감소
@@ -75,8 +75,8 @@
 | 4 | Eval Harness 기본 구현 (단일 프로세스 실행기) | ✅ | Week 8 |
 | 5 | Deterministic Graders (pytest, ruff, mypy 기반) | ✅ | Week 8 |
 | 6 | Transcript/Outcome 저장 + 간단 뷰어 API | ✅ | Week 8 |
-| 7 | CI 게이팅 (regression suite 자동 실행) | 🔲 | Week 9 |
-| 8 | 기존 6개 에이전트 기본 Task 작성 (각 3-5개) | 🔲 | Week 10 |
+| 7 | CI 게이팅 (regression suite 자동 실행) | ✅ | Week 9 |
+| 8 | 기존 6개 에이전트 기본 Task 작성 (각 3-5개) | ✅ | Week 10 |
 
 #### Phase 5.1: 신뢰성 강화 (Phase 5.0 완료 후)
 
@@ -249,10 +249,10 @@
 | Phase 2.5 | 11 | 0 | 100% |
 | Phase 3 | 36 | 1 | 97% |
 | Phase 4 | 17 | 1 | 94% |
-| **Phase 5 (Evals)** | **3** | **15** | **17%** |
+| **Phase 5 (Evals)** | **8** | **10** | **44%** |
 | Week 6 | 16 | 3 | 84% |
 | **전체 (PoC)** | **108** | **5** | **96%** |
-| **전체 (Evals 포함)** | **111** | **20** | **85%** |
+| **전체 (Evals 포함)** | **116** | **15** | **89%** |
 
 ---
 

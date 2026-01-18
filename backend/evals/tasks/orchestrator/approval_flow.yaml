@@ -1,0 +1,115 @@
+# Orchestrator Agent - Human-in-the-loop 승인 처리
+# Brief 생성 전 승인 요청이 올바르게 처리되는지 테스트
+
+task:
+  id: orchestrator_approval_flow
+  type: workflow
+  desc: "Human-in-the-loop 승인 처리 - Brief 생성 전 승인 요청 및 거부 시 로그 기록 검증"
+  suite: orchestrator_capability
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: medium
+    risk: medium
+    purpose: capability
+    expected_pass_rate: 0.9
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      Inbound Triage(WF-04) 워크플로를 실행하세요.
+
+      Signal 데이터:
+      - signal_id: SIG-2026-002
+      - title: 고객 이탈 예측 모델
+      - total_score: 75
+      - recommendation: GO
+
+      Brief 생성 전 반드시 bd_lead에게 승인을 요청하세요.
+      승인이 거부되면 사유를 로그에 기록하세요.
+    context:
+      workflow_id: "WF-04"
+      approval_simulation:
+        type: "BRIEF_GENERATION"
+        approver: "bd_lead"
+        decision: "rejected"
+        reason: "추가 검토 필요"
+
+  success_criteria:
+    description: "승인 요청 및 거부 처리가 올바르게 수행됨"
+    outcome_checks:
+      - type: state_equals
+        target: "approval.requested"
+        value: true
+        description: "승인 요청됨"
+      - type: state_equals
+        target: "rejection.logged"
+        value: true
+        description: "거부 사유 로그됨"
+
+  graders:
+    - type: tool_call_check
+      id: approval_request
+      weight: 0.4
+      required: true
+      description: "승인 요청 도구 호출 검증"
+      config:
+        required_calls:
+          - tool: "request_approval"
+            min_count: 1
+            args_match:
+              type: "BRIEF_GENERATION"
+              approvers: ["bd_lead"]
+        forbidden_calls:
+          - tool: "call_agent"
+            reason: "승인 없이 brief_writer 호출 금지"
+
+    - type: state_check
+      id: rejection_handling
+      weight: 0.3
+      description: "거부 처리 상태 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "workflow.brief_generated"
+            expected: false
+            description: "Brief가 생성되지 않음"
+          - type: state_equals
+            target: "log.rejection_reason"
+            expected: "추가 검토 필요"
+            description: "거부 사유가 로그됨"
+
+    - type: llm_assertion
+      id: approval_logic
+      weight: 0.3
+      description: "승인 로직 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "GO 판정 후 Brief 생성 전에 반드시 승인을 요청했다"
+            weight: 1.0
+            required: true
+          - statement: "승인 거부 시 Brief 생성을 진행하지 않았다"
+            weight: 1.0
+            required: true
+          - statement: "거부 사유를 적절히 로그에 기록했다"
+            weight: 0.8
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.8
+    required_graders:
+      - approval_request
+
+  timeout:
+    total_seconds: 180
+    per_turn_seconds: 45
+    grading_seconds: 60
+
+  tags:
+    - orchestrator
+    - approval
+    - human-in-the-loop
+    - capability

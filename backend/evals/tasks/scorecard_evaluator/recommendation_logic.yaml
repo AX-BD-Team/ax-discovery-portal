@@ -1,0 +1,134 @@
+# Scorecard Evaluator Agent - Recommendation 로직
+# 점수와 Red Flag에 따른 GO/PIVOT/HOLD/NO_GO 판정이 올바른지 테스트
+
+task:
+  id: scorecard_recommendation_logic
+  type: workflow
+  desc: "Recommendation 로직 검증 - 총점과 Red Flag 개수에 따라 올바른 판정(GO/PIVOT/HOLD/NO_GO)이 내려지는지 확인"
+  suite: scorecard_evaluator_regression
+  version: "1.0.0"
+
+  metadata:
+    domain: functionality
+    difficulty: medium
+    risk: medium
+    purpose: regression
+    expected_pass_rate: 0.95
+    owner: "ax-bd-team"
+    created_at: "2026-01-18"
+
+  inputs:
+    prompt: |
+      다음 3개 Signal을 각각 평가하고 Recommendation을 도출하세요:
+
+      Signal A (GO 예상):
+      - signal_id: SIG-A
+      - title: 고객 상담 자동응답
+      - pain: 명확한 비용 절감 기회
+      - evidence: 예산 확보, 데이터 접근 가능, 전략 정합
+
+      Signal B (PIVOT 예상):
+      - signal_id: SIG-B
+      - title: 재고 예측 시스템
+      - pain: 재고 과잉으로 손실
+      - evidence: 예산 불확실, Red Flag 1개 (데이터 접근 제한)
+
+      Signal C (NO_GO 예상):
+      - signal_id: SIG-C
+      - title: 핵심 보안 시스템
+      - pain: 보안 이벤트 처리
+      - evidence: 데이터 접근 불가, 규제 이슈, 경쟁사 선점
+
+      Recommendation 로직:
+      - GO: 총점 >= 70, Red Flag 0개
+      - PIVOT: 총점 >= 50, Red Flag <= 1개
+      - HOLD: 총점 >= 30
+      - NO_GO: 그 외
+    context:
+      test_cases:
+        - id: "SIG-A"
+          expected_decision: "GO"
+        - id: "SIG-B"
+          expected_decision: "PIVOT"
+        - id: "SIG-C"
+          expected_decision: "NO_GO"
+
+  success_criteria:
+    description: "3개 Signal 모두 올바른 Recommendation"
+    outcome_checks:
+      - type: state_equals
+        target: "output.scorecards.SIG-A.decision"
+        value: "GO"
+        description: "Signal A = GO"
+      - type: state_equals
+        target: "output.scorecards.SIG-C.decision"
+        value: "NO_GO"
+        description: "Signal C = NO_GO"
+
+  graders:
+    - type: state_check
+      id: decision_accuracy
+      weight: 0.5
+      required: true
+      description: "판정 정확도 검증"
+      config:
+        checks:
+          - type: state_equals
+            target: "output.scorecards.SIG-A.recommendation.decision"
+            expected: "GO"
+            description: "Signal A = GO"
+          - type: state_equals
+            target: "output.scorecards.SIG-B.recommendation.decision"
+            expected: "PIVOT"
+            description: "Signal B = PIVOT"
+          - type: state_equals
+            target: "output.scorecards.SIG-C.recommendation.decision"
+            expected: "NO_GO"
+            description: "Signal C = NO_GO"
+
+    - type: llm_assertion
+      id: logic_consistency
+      weight: 0.3
+      description: "로직 일관성 검증"
+      config:
+        model: "claude-sonnet-4-20250514"
+        assertions:
+          - statement: "총점 70 이상이고 Red Flag가 없는 경우 GO로 판정되었다"
+            weight: 1.0
+            required: true
+          - statement: "Red Flag가 2개 이상인 경우 GO가 아닌 다른 판정이 내려졌다"
+            weight: 1.0
+            required: true
+          - statement: "각 판정에 next_step이 적절히 제안되었다 (GO=BRIEF, NO_GO=DROP 등)"
+            weight: 0.8
+
+    - type: regex_match
+      id: next_step_format
+      weight: 0.2
+      description: "next_step 형식 검증"
+      config:
+        patterns:
+          - pattern: '"next_step":\s*"(BRIEF|NEED_MORE_EVIDENCE|DROP)"'
+            target: output
+            description: "next_step 값 존재"
+
+  scoring:
+    mode: weighted
+    pass_threshold: 0.85
+    required_graders:
+      - decision_accuracy
+
+  timeout:
+    total_seconds: 300
+    per_turn_seconds: 90
+    grading_seconds: 90
+
+  cost_budget:
+    max_tokens: 80000
+    max_usd: 2.0
+
+  tags:
+    - scorecard_evaluator
+    - recommendation
+    - regression
+    - decision-logic
