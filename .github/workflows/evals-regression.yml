@@ -114,7 +114,7 @@ jobs:
             if [ -f "$suite_file" ]; then
               echo "  검사 중: $suite_file"
               python -m backend.evals validate "$suite_file" --type suite || exit 1
-              ((suite_count++))
+              suite_count=$((suite_count + 1))
             fi
           done
           echo "  Suite 파일 ${suite_count}개 검사 완료"
@@ -125,7 +125,7 @@ jobs:
             if [ -f "$task_file" ]; then
               echo "  검사 중: $task_file"
               python -m backend.evals validate "$task_file" --type task || exit 1
-              ((task_count++))
+              task_count=$((task_count + 1))
             fi
           done
           echo "  Task 파일 ${task_count}개 검사 완료"
