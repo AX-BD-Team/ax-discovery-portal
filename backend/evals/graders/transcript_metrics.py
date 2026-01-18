@@ -98,8 +98,7 @@ class TranscriptMetricsGrader(BaseGrader):
 
         # 필수 조건 체크 (에러 수 초과 시 무조건 실패)
         passed = (
-            evaluations.get("errors", {}).get("passed", True)
-            and passed_count >= total_checks * 0.5
+            evaluations.get("errors", {}).get("passed", True) and passed_count >= total_checks * 0.5
         )
 
         # 부분 점수
@@ -192,16 +191,16 @@ class TranscriptMetricsGrader(BaseGrader):
             "retries": n_retries,
         }
 
-    def _evaluate_metrics(
-        self, metrics: dict[str, int]
-    ) -> dict[str, dict[str, Any]]:
+    def _evaluate_metrics(self, metrics: dict[str, int]) -> dict[str, dict[str, Any]]:
         """각 메트릭 평가"""
         evaluations: dict[str, dict[str, Any]] = {}
 
         # 턴 수 평가
         turns = metrics["turns"]
         turns_passed = turns <= self.max_turns
-        turns_score = max(0.0, 1.0 - (turns / (self.max_turns * 2)) if turns > self.max_turns else 1.0)
+        turns_score = max(
+            0.0, 1.0 - (turns / (self.max_turns * 2)) if turns > self.max_turns else 1.0
+        )
         evaluations["turns"] = {
             "value": turns,
             "max": self.max_turns,
@@ -213,7 +212,12 @@ class TranscriptMetricsGrader(BaseGrader):
         # 도구 호출 수 평가
         tool_calls = metrics["tool_calls"]
         tool_calls_passed = tool_calls <= self.max_tool_calls
-        tool_calls_score = max(0.0, 1.0 - (tool_calls / (self.max_tool_calls * 2)) if tool_calls > self.max_tool_calls else 1.0)
+        tool_calls_score = max(
+            0.0,
+            1.0 - (tool_calls / (self.max_tool_calls * 2))
+            if tool_calls > self.max_tool_calls
+            else 1.0,
+        )
         evaluations["tool_calls"] = {
             "value": tool_calls,
             "max": self.max_tool_calls,
@@ -253,7 +257,9 @@ class TranscriptMetricsGrader(BaseGrader):
             value = metrics[key]
             threshold_val = float(threshold)
             passed = value <= threshold_val
-            score_val = max(0.0, 1.0 - (value / (threshold_val * 2)) if value > threshold_val else 1.0)
+            score_val = max(
+                0.0, 1.0 - (value / (threshold_val * 2)) if value > threshold_val else 1.0
+            )
             evaluations[key] = {
                 "value": value,
                 "max": threshold_val,

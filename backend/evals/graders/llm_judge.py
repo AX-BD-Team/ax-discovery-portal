@@ -231,8 +231,7 @@ class LLMJudgeGrader(BaseGrader):
 
             # 부분 점수 생성
             partial_scores = {
-                cs.criterion: cs.score / cs.max_score
-                for cs in evaluation.criterion_scores
+                cs.criterion: cs.score / cs.max_score for cs in evaluation.criterion_scores
             }
 
             # 평가 프롬프트 및 응답 저장용 문자열 생성
@@ -345,9 +344,7 @@ class LLMJudgeGrader(BaseGrader):
 
     def _build_prompt(self, agent_input: str, agent_output: str) -> str:
         """평가 프롬프트 생성"""
-        criteria_list = "\n".join(
-            f"- {criterion}" for criterion in self.config.criteria
-        )
+        criteria_list = "\n".join(f"- {criterion}" for criterion in self.config.criteria)
 
         return f"""## 평가 루브릭
 {self.config.rubric}
@@ -393,7 +390,7 @@ class LLMJudgeGrader(BaseGrader):
 }}
 ```
 
-각 기준({', '.join(self.config.criteria)})에 대해 반드시 점수와 근거를 제공하세요."""
+각 기준({", ".join(self.config.criteria)})에 대해 반드시 점수와 근거를 제공하세요."""
 
     def _parse_evaluation_response(self, content: str) -> JudgeEvaluation:
         """
@@ -537,25 +534,27 @@ class LLMJudgeGrader(BaseGrader):
     def to_dict(self) -> dict[str, Any]:
         """채점기 정보를 딕셔너리로 반환"""
         base = super().to_dict()
-        base.update({
-            "config": {
-                "rubric": self.config.rubric[:100] + "..."
-                if len(self.config.rubric) > 100
-                else self.config.rubric,
-                "criteria": self.config.criteria,
-                "scoring_scale": self.config.scoring_scale,
-                "model": self.config.model,
-                "temperature": self.config.temperature,
-                "pass_threshold": self.config.pass_threshold,
-                "enable_cache": self.config.enable_cache,
-            },
-            "total_usage": {
-                "input_tokens": self._total_usage.input_tokens,
-                "output_tokens": self._total_usage.output_tokens,
-                "total_tokens": self._total_usage.total_tokens,
-                "cost_usd": self._total_usage.cost_usd,
-            },
-        })
+        base.update(
+            {
+                "config": {
+                    "rubric": self.config.rubric[:100] + "..."
+                    if len(self.config.rubric) > 100
+                    else self.config.rubric,
+                    "criteria": self.config.criteria,
+                    "scoring_scale": self.config.scoring_scale,
+                    "model": self.config.model,
+                    "temperature": self.config.temperature,
+                    "pass_threshold": self.config.pass_threshold,
+                    "enable_cache": self.config.enable_cache,
+                },
+                "total_usage": {
+                    "input_tokens": self._total_usage.input_tokens,
+                    "output_tokens": self._total_usage.output_tokens,
+                    "total_tokens": self._total_usage.total_tokens,
+                    "cost_usd": self._total_usage.cost_usd,
+                },
+            }
+        )
         return base
 
 

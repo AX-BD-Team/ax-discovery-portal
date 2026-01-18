@@ -76,7 +76,9 @@ class PlayRecord(Base):
 
     # 원천/채널/주기 (Phase 1 확장)
     source: Mapped[str | None] = mapped_column(String(20))  # KT/그룹사/대외/공통
-    channel: Mapped[str | None] = mapped_column(String(20))  # 데스크/자사활동/영업PM/인바운드/아웃바운드
+    channel: Mapped[str | None] = mapped_column(
+        String(20)
+    )  # 데스크/자사활동/영업PM/인바운드/아웃바운드
     cycle: Mapped[str | None] = mapped_column(String(20))  # 주간/월간/분기/격주/상시
     priority: Mapped[str | None] = mapped_column(String(5))  # P0/P1/P2
     quarter: Mapped[str | None] = mapped_column(String(10))  # 2026Q1 등

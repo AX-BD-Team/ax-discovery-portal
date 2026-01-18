@@ -168,11 +168,7 @@ class EventbriteCollector(BaseSeminarCollector):
 
         # 카테고리
         if categories:
-            cat_ids = [
-                self.CATEGORY_IDS.get(c)
-                for c in categories
-                if c in self.CATEGORY_IDS
-            ]
+            cat_ids = [self.CATEGORY_IDS.get(c) for c in categories if c in self.CATEGORY_IDS]
             if cat_ids:
                 params["categories"] = ",".join(filter(None, cat_ids))
 

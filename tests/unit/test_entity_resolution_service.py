@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend.database.models.entity import Entity, EntityType
-from backend.database.models.triple import PredicateType
 from backend.services.entity_resolution_service import (
     EntityMatch,
     EntityResolutionService,
@@ -110,9 +109,7 @@ class TestEntityResolutionService:
         candidate3 = MagicMock(spec=Entity)
         candidate3.name = "SK C&C"
 
-        result = await service._rule_based_match(
-            new_entity, [candidate1, candidate2, candidate3]
-        )
+        result = await service._rule_based_match(new_entity, [candidate1, candidate2, candidate3])
 
         assert result is not None
         assert result["entity"] == candidate2
@@ -138,9 +135,7 @@ class TestEntityResolutionService:
     async def test_resolve_entities_creates_new(self, service, mock_db):
         """후보 없을 때 새 엔티티 생성 액션 테스트"""
         with patch.object(service, "_find_candidates", return_value=[]):
-            new_entities = [
-                ExtractedEntity(name="새 회사", entity_type=EntityType.ORGANIZATION)
-            ]
+            new_entities = [ExtractedEntity(name="새 회사", entity_type=EntityType.ORGANIZATION)]
 
             result = await service.resolve_entities(mock_db, new_entities)
 
@@ -281,9 +276,7 @@ class TestSameAsPair:
     def test_with_extracted_entities(self):
         """추출된 엔티티로 쌍 생성 테스트"""
         entity_a = ExtractedEntity(name="삼성SDS", entity_type=EntityType.ORGANIZATION)
-        entity_b = ExtractedEntity(
-            name="삼성에스디에스", entity_type=EntityType.ORGANIZATION
-        )
+        entity_b = ExtractedEntity(name="삼성에스디에스", entity_type=EntityType.ORGANIZATION)
 
         pair = SameAsPair(
             entity_a=entity_a,

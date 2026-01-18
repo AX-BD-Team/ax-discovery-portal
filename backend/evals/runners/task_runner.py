@@ -172,10 +172,7 @@ class TaskRunner(BaseRunner):
             trial_seeds.extend([None] * (k - len(seeds)))
 
         # 병렬 실행
-        tasks = [
-            run_with_semaphore(i, trial_seeds[i])
-            for i in range(k)
-        ]
+        tasks = [run_with_semaphore(i, trial_seeds[i]) for i in range(k)]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 

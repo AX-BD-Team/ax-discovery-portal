@@ -154,7 +154,10 @@ class TrialExecutor:
 
         except TimeoutError as e:
             return self._handle_error(
-                trial, transcript, outcome, started_at,
+                trial,
+                transcript,
+                outcome,
+                started_at,
                 error=str(e),
                 error_type="timeout",
                 status=TrialStatus.TIMEOUT,
@@ -162,7 +165,10 @@ class TrialExecutor:
 
         except RunnerError as e:
             return self._handle_error(
-                trial, transcript, outcome, started_at,
+                trial,
+                transcript,
+                outcome,
+                started_at,
                 error=str(e),
                 error_type="runner_error",
                 status=TrialStatus.FAILED,
@@ -171,7 +177,10 @@ class TrialExecutor:
         except Exception as e:
             self.logger.exception("Trial 실행 중 예외 발생", trial_id=trial_id)
             return self._handle_error(
-                trial, transcript, outcome, started_at,
+                trial,
+                transcript,
+                outcome,
+                started_at,
                 error=str(e),
                 error_type=type(e).__name__,
                 status=TrialStatus.FAILED,
@@ -325,8 +334,8 @@ class TrialExecutor:
         """
         self.logger.debug(
             "에이전트 실행 (stub)",
-            adapter=agent_config.adapter.value if hasattr(agent_config, 'adapter') else "default",
-            model=agent_config.model if hasattr(agent_config, 'model') else None,
+            adapter=agent_config.adapter.value if hasattr(agent_config, "adapter") else "default",
+            model=agent_config.model if hasattr(agent_config, "model") else None,
             prompt_length=len(prompt),
         )
 
@@ -338,16 +347,20 @@ class TrialExecutor:
         await asyncio.sleep(0.1)  # 시뮬레이션 지연
 
         # Transcript 기록
-        transcript.messages.append({
-            "role": "user",
-            "content": prompt,
-            "timestamp": datetime.now().isoformat(),
-        })
-        transcript.messages.append({
-            "role": "assistant",
-            "content": "[Stub 응답] 에이전트 실행이 완료되었습니다.",
-            "timestamp": datetime.now().isoformat(),
-        })
+        transcript.messages.append(
+            {
+                "role": "user",
+                "content": prompt,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+        transcript.messages.append(
+            {
+                "role": "assistant",
+                "content": "[Stub 응답] 에이전트 실행이 완료되었습니다.",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
         transcript.n_turns = 1
 
         # Stub 결과
@@ -450,7 +463,7 @@ async def execute_trial_with_grading(
             grader_results.append(grader_result)
 
             # 가중치 기반 점수 계산
-            weight = getattr(grader, 'weight', 1.0) if grader else 1.0
+            weight = getattr(grader, "weight", 1.0) if grader else 1.0
             total_score += grader_result.score * weight
             total_weight += weight
 
@@ -459,14 +472,16 @@ async def execute_trial_with_grading(
 
         except Exception as e:
             logger.exception(f"채점기 실행 실패: {e}")
-            grader_results.append(GraderResult(
-                trial_id=result.trial_id,
-                grader_id=f"grader_{len(grader_results)}",
-                grader_type="error",
-                score=0.0,
-                passed=False,
-                error_message=str(e),
-            ))
+            grader_results.append(
+                GraderResult(
+                    trial_id=result.trial_id,
+                    grader_id=f"grader_{len(grader_results)}",
+                    grader_type="error",
+                    score=0.0,
+                    passed=False,
+                    error_message=str(e),
+                )
+            )
             all_passed = False
 
     # 최종 점수 계산

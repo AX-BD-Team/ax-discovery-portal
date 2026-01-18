@@ -111,30 +111,36 @@ class StateCheckGrader(BaseGrader):
                     else:
                         partial_scores[check_id] = 0.0
 
-                    check_results.append({
-                        "check_id": check_id,
-                        "type": check_type,
-                        "passed": result["passed"],
-                        "message": result.get("message", ""),
-                    })
+                    check_results.append(
+                        {
+                            "check_id": check_id,
+                            "type": check_type,
+                            "passed": result["passed"],
+                            "message": result.get("message", ""),
+                        }
+                    )
 
                 except TimeoutError:
                     partial_scores[check_id] = 0.0
-                    check_results.append({
-                        "check_id": check_id,
-                        "type": check_type,
-                        "passed": False,
-                        "message": "체크 타임아웃",
-                    })
+                    check_results.append(
+                        {
+                            "check_id": check_id,
+                            "type": check_type,
+                            "passed": False,
+                            "message": "체크 타임아웃",
+                        }
+                    )
 
                 except Exception as e:
                     partial_scores[check_id] = 0.0
-                    check_results.append({
-                        "check_id": check_id,
-                        "type": check_type,
-                        "passed": False,
-                        "message": f"체크 실패: {e}",
-                    })
+                    check_results.append(
+                        {
+                            "check_id": check_id,
+                            "type": check_type,
+                            "passed": False,
+                            "message": f"체크 실패: {e}",
+                        }
+                    )
 
             duration = time.perf_counter() - start_time
 
@@ -148,8 +154,7 @@ class StateCheckGrader(BaseGrader):
             failed_checks = [r for r in check_results if not r["passed"]]
             if failed_checks:
                 failure_details = ", ".join(
-                    f"{r['check_id']}({r['type']}): {r['message']}"
-                    for r in failed_checks[:3]
+                    f"{r['check_id']}({r['type']}): {r['message']}" for r in failed_checks[:3]
                 )
                 explanation += f"\n실패 항목: {failure_details}"
 
@@ -310,7 +315,9 @@ class StateCheckGrader(BaseGrader):
             import aiohttp
 
             async with aiohttp.ClientSession() as session:
-                async with session.request(method, endpoint, timeout=aiohttp.ClientTimeout(total=timeout)) as resp:
+                async with session.request(
+                    method, endpoint, timeout=aiohttp.ClientTimeout(total=timeout)
+                ) as resp:
                     actual_status = resp.status
                     passed = actual_status == expected_status
                     return {
@@ -404,9 +411,7 @@ class StateCheckGrader(BaseGrader):
         except Exception as e:
             return {"passed": False, "message": f"포트 체크 실패: {e}"}
 
-    def _compare_values(
-        self, actual: Any, expected: Any, operator: str = "eq"
-    ) -> bool:
+    def _compare_values(self, actual: Any, expected: Any, operator: str = "eq") -> bool:
         """값 비교"""
         try:
             if operator == "eq":

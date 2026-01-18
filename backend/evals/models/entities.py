@@ -152,9 +152,7 @@ class Trial(BaseModel):
     # 채점 결과
     passed: bool | None = Field(None, description="통과 여부")
     score: float | None = Field(None, ge=0, le=1, description="점수 (0-1)")
-    grader_results: list[dict[str, Any]] = Field(
-        default_factory=list, description="채점기별 결과"
-    )
+    grader_results: list[dict[str, Any]] = Field(default_factory=list, description="채점기별 결과")
 
     # 에러 정보
     error_message: str | None = Field(None, description="에러 메시지")
@@ -173,14 +171,10 @@ class Transcript(BaseModel):
     trial_id: str = Field(..., description="소속 Trial ID")
 
     # 메시지 기록
-    messages: list[dict[str, Any]] = Field(
-        default_factory=list, description="대화 메시지 목록"
-    )
+    messages: list[dict[str, Any]] = Field(default_factory=list, description="대화 메시지 목록")
 
     # 도구 호출 기록
-    tool_calls: list[dict[str, Any]] = Field(
-        default_factory=list, description="도구 호출 목록"
-    )
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list, description="도구 호출 목록")
 
     # 중간 상태
     intermediate_states: list[dict[str, Any]] = Field(
@@ -210,9 +204,7 @@ class Outcome(BaseModel):
     trial_id: str = Field(..., description="소속 Trial ID")
 
     # 최종 상태
-    final_state: dict[str, Any] = Field(
-        default_factory=dict, description="최종 환경 상태"
-    )
+    final_state: dict[str, Any] = Field(default_factory=dict, description="최종 환경 상태")
 
     # 생성된 아티팩트
     artifacts: list[dict[str, Any]] = Field(
@@ -220,19 +212,13 @@ class Outcome(BaseModel):
     )
 
     # DB 변경
-    db_changes: list[dict[str, Any]] = Field(
-        default_factory=list, description="DB 변경 내역"
-    )
+    db_changes: list[dict[str, Any]] = Field(default_factory=list, description="DB 변경 내역")
 
     # 파일 해시 (무결성 검증용)
-    file_hashes: dict[str, str] = Field(
-        default_factory=dict, description="파일 경로 → SHA256 해시"
-    )
+    file_hashes: dict[str, str] = Field(default_factory=dict, description="파일 경로 → SHA256 해시")
 
     # API 응답
-    api_responses: list[dict[str, Any]] = Field(
-        default_factory=list, description="API 호출 결과"
-    )
+    api_responses: list[dict[str, Any]] = Field(default_factory=list, description="API 호출 결과")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -253,9 +239,7 @@ class GraderResult(BaseModel):
     passed: bool = Field(..., description="통과 여부")
 
     # 부분 점수 (partial credit)
-    partial_scores: dict[str, float] = Field(
-        default_factory=dict, description="항목별 부분 점수"
-    )
+    partial_scores: dict[str, float] = Field(default_factory=dict, description="항목별 부분 점수")
 
     # 설명
     explanation: str | None = Field(None, description="채점 설명/근거")

@@ -36,9 +36,7 @@ class TaskMetadata(BaseModel):
     difficulty: Difficulty = Field(Difficulty.MEDIUM, description="난이도")
     risk: Risk = Field(Risk.LOW, description="위험도")
     purpose: SuitePurpose | None = Field(None, description="평가 목적")
-    expected_pass_rate: float | None = Field(
-        None, ge=0, le=1, description="기대 통과율"
-    )
+    expected_pass_rate: float | None = Field(None, ge=0, le=1, description="기대 통과율")
     owner: str | None = Field(None, description="담당자/팀")
     created_at: str | None = Field(None, description="생성 일자 (YYYY-MM-DD)")
     updated_at: str | None = Field(None, description="수정 일자")
@@ -62,13 +60,9 @@ class TaskInputs(BaseModel):
 
     prompt: str | None = Field(None, description="에이전트에게 전달할 프롬프트")
     prompt_file: str | None = Field(None, description="프롬프트 파일 경로")
-    context: dict[str, Any] = Field(
-        default_factory=dict, description="추가 컨텍스트"
-    )
+    context: dict[str, Any] = Field(default_factory=dict, description="추가 컨텍스트")
     files: list[FileInput] = Field(default_factory=list, description="초기 파일 목록")
-    environment_variables: dict[str, str] = Field(
-        default_factory=dict, description="환경 변수"
-    )
+    environment_variables: dict[str, str] = Field(default_factory=dict, description="환경 변수")
 
 
 # ============================================================================
@@ -116,9 +110,7 @@ class ReferenceSolution(BaseModel):
 
     description: str | None = Field(None, description="솔루션 설명")
     files: list[FileInput] = Field(default_factory=list, description="정답 파일 목록")
-    expected_outcome: dict[str, Any] = Field(
-        default_factory=dict, description="기대 결과 상태"
-    )
+    expected_outcome: dict[str, Any] = Field(default_factory=dict, description="기대 결과 상태")
 
 
 # ============================================================================
@@ -212,9 +204,7 @@ class StaticAnalysisConfig(BaseModel):
     tools: list[StaticAnalysisToolConfig] = Field(
         default_factory=list, description="분석 도구 목록"
     )
-    commands: list[str] = Field(
-        default_factory=list, description="직접 실행할 명령어 (deprecated)"
-    )
+    commands: list[str] = Field(default_factory=list, description="직접 실행할 명령어 (deprecated)")
     allow_warnings: bool = Field(False, description="경고 허용")
     max_errors: int = Field(0, description="허용 에러 개수")
     target_paths: list[str] = Field(default_factory=list, description="분석 대상 경로")
@@ -282,9 +272,7 @@ class ToolCallCheckConfig(BaseModel):
     required_calls: list[ToolCallRequirement] = Field(
         default_factory=list, description="필수 호출 도구"
     )
-    forbidden_calls: list[ForbiddenToolCall] = Field(
-        default_factory=list, description="금지 도구"
-    )
+    forbidden_calls: list[ForbiddenToolCall] = Field(default_factory=list, description="금지 도구")
     call_order: list[str] = Field(default_factory=list, description="호출 순서")
     check_order: bool = Field(False, description="순서 검사 (false 권장)")
 
@@ -454,9 +442,7 @@ class ScoringConfig(BaseModel):
 
     mode: ScoringMode = Field(ScoringMode.WEIGHTED, description="채점 모드")
     pass_threshold: float = Field(0.8, ge=0, le=1, description="통과 임계값")
-    required_graders: list[str] = Field(
-        default_factory=list, description="필수 통과 채점기 ID"
-    )
+    required_graders: list[str] = Field(default_factory=list, description="필수 통과 채점기 ID")
     partial_credit_rules: list[PartialCreditRule] = Field(
         default_factory=list, description="부분 점수 규칙"
     )

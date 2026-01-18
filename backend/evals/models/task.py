@@ -67,9 +67,7 @@ class TaskDefinitionInner(BaseModel):
 
     # 채점
     graders: list[GraderConfig] = Field(..., min_length=1, description="채점기 목록")
-    tracked_metrics: list[MetricConfig] = Field(
-        default_factory=list, description="추적 메트릭"
-    )
+    tracked_metrics: list[MetricConfig] = Field(default_factory=list, description="추적 메트릭")
     scoring: ScoringConfig = Field(..., description="채점 설정")
 
     # 제한

@@ -2,7 +2,6 @@
 LLM Extraction Service 단위 테스트
 """
 
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -11,9 +10,9 @@ from backend.database.models.entity import EntityType
 from backend.database.models.triple import PredicateType
 from backend.services.llm_extraction_service import (
     EvidenceSpan,
-    ExtractionResult,
     ExtractedEntity,
     ExtractedRelation,
+    ExtractionResult,
     LLMExtractionService,
     PromptLoader,
     parse_entity_type,
@@ -232,9 +231,7 @@ class TestLLMExtractionService:
         ]
 
         mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            side_effect=[entity_response, relation_response]
-        )
+        mock_client.messages.create = AsyncMock(side_effect=[entity_response, relation_response])
         service.client = mock_client
 
         # 테스트 실행

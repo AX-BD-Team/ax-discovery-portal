@@ -105,23 +105,32 @@ jobs:
 
       - name: Suite/Task YAML 유효성 검사
         run: |
+          # globstar 활성화 (bash에서 ** 패턴 지원)
+          shopt -s globstar nullglob
+
           echo "📋 Suite YAML 검사..."
+          suite_count=0
           for suite_file in evals/suites/**/*.yaml; do
             if [ -f "$suite_file" ]; then
               echo "  검사 중: $suite_file"
               python -m backend.evals validate "$suite_file" --type suite || exit 1
+              ((suite_count++))
             fi
           done
+          echo "  Suite 파일 ${suite_count}개 검사 완료"
 
           echo "📋 Task YAML 검사..."
+          task_count=0
           for task_file in evals/tasks/**/*.yaml; do
             if [ -f "$task_file" ]; then
               echo "  검사 중: $task_file"
               python -m backend.evals validate "$task_file" --type task || exit 1
+              ((task_count++))
             fi
           done
+          echo "  Task 파일 ${task_count}개 검사 완료"
 
-          echo "✅ 모든 YAML 유효성 검사 통과"
+          echo "✅ 모든 YAML 유효성 검사 통과 (Suite: ${suite_count}, Task: ${task_count})"
 
   # ============================================================================
   # Regression Suite 실행
@@ -132,8 +141,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ fromJSON(env.TIMEOUT_MINUTES) }}
 
-    # 조건: dry_run이 아닌 경우에만 실행
-    if: ${{ !inputs.dry_run }}
+    # 조건: dry_run이 아닌 경우에만 실행 (push/PR 이벤트에서는 항상 실행)
+    if: ${{ github.event.inputs.dry_run != 'true' }}
 
     # 환경 변수 (민감 정보는 secrets 사용)
     env:
@@ -331,7 +340,7 @@ jobs:
     name: Dry Run 검증
     needs: validate
     runs-on: ubuntu-latest
-    if: ${{ inputs.dry_run }}
+    if: ${{ github.event.inputs.dry_run == 'true' }}
 
     steps:
       - name: Dry Run 완료
@@ -346,7 +355,7 @@ jobs:
     name: 결과 요약
     needs: [validate, regression]
     runs-on: ubuntu-latest
-    if: always() && !inputs.dry_run
+    if: ${{ always() && github.event.inputs.dry_run != 'true' }}
 
     steps:
       - name: 워크플로 요약

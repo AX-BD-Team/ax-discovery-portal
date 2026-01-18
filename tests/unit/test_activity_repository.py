@@ -187,11 +187,14 @@ class TestActivityRepository:
 
         # 3개 생성
         for i in range(3):
-            await activity_repo.create_activity(test_db_session, {
-                "title": f"Play 테스트 세미나 {i}",
-                "url": f"https://example.com/play-test-{i}",
-                "play_id": play_id,
-            })
+            await activity_repo.create_activity(
+                test_db_session,
+                {
+                    "title": f"Play 테스트 세미나 {i}",
+                    "url": f"https://example.com/play-test-{i}",
+                    "play_id": play_id,
+                },
+            )
         await test_db_session.commit()
 
         items, total = await activity_repo.list_by_play(test_db_session, play_id)
@@ -204,22 +207,26 @@ class TestActivityRepository:
         """소스 타입별 Activity 목록 조회"""
         # RSS 2개, Festa 1개 생성
         for i in range(2):
-            await activity_repo.create_activity(test_db_session, {
-                "title": f"RSS 세미나 {i}",
-                "url": f"https://example.com/rss-{i}",
-                "source_type": "rss",
-            })
-        await activity_repo.create_activity(test_db_session, {
-            "title": "Festa 이벤트",
-            "url": "https://festa.io/events/test",
-            "source_type": "festa",
-        })
+            await activity_repo.create_activity(
+                test_db_session,
+                {
+                    "title": f"RSS 세미나 {i}",
+                    "url": f"https://example.com/rss-{i}",
+                    "source_type": "rss",
+                },
+            )
+        await activity_repo.create_activity(
+            test_db_session,
+            {
+                "title": "Festa 이벤트",
+                "url": "https://festa.io/events/test",
+                "source_type": "festa",
+            },
+        )
         await test_db_session.commit()
 
         # RSS만 조회
-        rss_items, rss_total = await activity_repo.list_by_source_type(
-            test_db_session, "rss"
-        )
+        rss_items, rss_total = await activity_repo.list_by_source_type(test_db_session, "rss")
 
         assert rss_total == 2
 
@@ -234,11 +241,14 @@ class TestActivityRepository:
         assert id1.endswith("00001")
 
         # Activity 생성 후 다음 ID 확인
-        await activity_repo.create_activity(test_db_session, {
-            "activity_id": id1,
-            "title": "ID 테스트",
-            "url": "https://example.com/id-test",
-        })
+        await activity_repo.create_activity(
+            test_db_session,
+            {
+                "activity_id": id1,
+                "title": "ID 테스트",
+                "url": "https://example.com/id-test",
+            },
+        )
         await test_db_session.commit()
 
         id2 = await activity_repo.generate_activity_id(test_db_session)
@@ -248,16 +258,22 @@ class TestActivityRepository:
     async def test_get_stats(self, test_db_session):
         """Activity 통계 조회"""
         # 다양한 소스의 Activity 생성
-        await activity_repo.create_activity(test_db_session, {
-            "title": "RSS 1",
-            "url": "https://example.com/stats-rss-1",
-            "source_type": "rss",
-        })
-        await activity_repo.create_activity(test_db_session, {
-            "title": "Festa 1",
-            "url": "https://example.com/stats-festa-1",
-            "source_type": "festa",
-        })
+        await activity_repo.create_activity(
+            test_db_session,
+            {
+                "title": "RSS 1",
+                "url": "https://example.com/stats-rss-1",
+                "source_type": "rss",
+            },
+        )
+        await activity_repo.create_activity(
+            test_db_session,
+            {
+                "title": "Festa 1",
+                "url": "https://example.com/stats-festa-1",
+                "source_type": "festa",
+            },
+        )
         await test_db_session.commit()
 
         stats = await activity_repo.get_stats(test_db_session)
@@ -307,11 +323,14 @@ class TestActivityRepositoryEdgeCases:
 
         # 10개 생성
         for i in range(10):
-            await activity_repo.create_activity(test_db_session, {
-                "title": f"페이지네이션 테스트 {i}",
-                "url": f"https://example.com/pagination-{i}",
-                "play_id": play_id,
-            })
+            await activity_repo.create_activity(
+                test_db_session,
+                {
+                    "title": f"페이지네이션 테스트 {i}",
+                    "url": f"https://example.com/pagination-{i}",
+                    "play_id": play_id,
+                },
+            )
         await test_db_session.commit()
 
         # 첫 페이지 (5개)
@@ -322,9 +341,7 @@ class TestActivityRepositoryEdgeCases:
         assert total == 10
 
         # 두 번째 페이지 (5개)
-        items_page2, _ = await activity_repo.list_by_play(
-            test_db_session, play_id, limit=5, skip=5
-        )
+        items_page2, _ = await activity_repo.list_by_play(test_db_session, play_id, limit=5, skip=5)
         assert len(items_page2) == 5
 
         # 페이지 내용이 다른지 확인

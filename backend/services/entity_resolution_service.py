@@ -278,11 +278,7 @@ class EntityResolutionService:
 
         # 이름 기반 검색 (부분 일치)
         name_parts = new_entity.name.split()
-        conditions = [
-            Entity.name.ilike(f"%{part}%")
-            for part in name_parts
-            if len(part) >= 2
-        ]
+        conditions = [Entity.name.ilike(f"%{part}%") for part in name_parts if len(part) >= 2]
 
         if conditions:
             query = (
@@ -324,10 +320,7 @@ class EntityResolutionService:
         entities_json = json.dumps(
             [
                 {"name": new_entity.name, "type": new_entity.entity_type.value},
-                *[
-                    {"name": c.name, "type": c.entity_type.value}
-                    for c in candidates
-                ],
+                *[{"name": c.name, "type": c.entity_type.value} for c in candidates],
             ],
             ensure_ascii=False,
             indent=2,

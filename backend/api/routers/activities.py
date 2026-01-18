@@ -129,24 +129,14 @@ async def list_activities(
     # SQLite 호환성을 위해 DB 종류에 따라 분기
     if play_id:
         # PostgreSQL: properties->>'play_id', SQLite: json_extract(properties, '$.play_id')
-        base_conditions.append(
-            Entity.properties["play_id"].astext == play_id
-        )
+        base_conditions.append(Entity.properties["play_id"].astext == play_id)
     if source_type:
-        base_conditions.append(
-            Entity.properties["source_type"].astext == source_type
-        )
+        base_conditions.append(Entity.properties["source_type"].astext == source_type)
     if status:
-        base_conditions.append(
-            Entity.properties["status"].astext == status
-        )
+        base_conditions.append(Entity.properties["status"].astext == status)
 
     # 총 개수 조회 (별도 쿼리로 분리하여 최적화)
-    count_query = (
-        select(func.count())
-        .select_from(Entity)
-        .where(*base_conditions)
-    )
+    count_query = select(func.count()).select_from(Entity).where(*base_conditions)
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
@@ -190,7 +180,17 @@ async def get_activity_stats(
     today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
     # 소스 타입별 개수를 DB에서 직접 집계 (PostgreSQL JSONB)
-    source_types = ["rss", "festa", "eventbrite", "manual", "onoffmix", "eventus", "devevent", "chat", "upload"]
+    source_types = [
+        "rss",
+        "festa",
+        "eventbrite",
+        "manual",
+        "onoffmix",
+        "eventus",
+        "devevent",
+        "chat",
+        "upload",
+    ]
 
     # 총 개수 + 오늘 수집 개수를 단일 쿼리로
     stats_query = select(

@@ -58,9 +58,7 @@ class PassCriteria(BaseModel):
     """통과 기준"""
 
     min_pass_rate: float = Field(0.95, ge=0, le=1, description="최소 통과율")
-    required_tasks: list[str] = Field(
-        default_factory=list, description="필수 통과 Task ID"
-    )
+    required_tasks: list[str] = Field(default_factory=list, description="필수 통과 Task ID")
     max_regression_count: int = Field(0, ge=0, description="허용 회귀 개수")
 
 
@@ -77,10 +75,12 @@ class GateConfig(BaseModel):
     enabled: bool = Field(True, description="게이트 활성화")
     blocking: bool = Field(True, description="실패 시 배포 차단")
     pass_criteria: PassCriteria = Field(
-        default_factory=PassCriteria, description="통과 기준"  # type: ignore[arg-type]
+        default_factory=PassCriteria,
+        description="통과 기준",  # type: ignore[arg-type]
     )
     exceptions: GateExceptions = Field(
-        default_factory=GateExceptions, description="예외 설정"  # type: ignore[arg-type]
+        default_factory=GateExceptions,
+        description="예외 설정",  # type: ignore[arg-type]
     )
 
 
@@ -100,9 +100,7 @@ class NotificationEvent(BaseModel):
     """알림 이벤트 설정"""
 
     enabled: bool = Field(True, description="활성화")
-    channels: list[NotificationTarget] = Field(
-        default_factory=list, description="알림 채널"
-    )
+    channels: list[NotificationTarget] = Field(default_factory=list, description="알림 채널")
 
 
 class SaturationNotification(BaseModel):
@@ -126,16 +124,20 @@ class NotificationConfig(BaseModel):
     """알림 설정"""
 
     on_failure: NotificationEvent = Field(
-        default_factory=NotificationEvent, description="실패 시 알림"  # type: ignore[arg-type]
+        default_factory=NotificationEvent,
+        description="실패 시 알림",  # type: ignore[arg-type]
     )
     on_regression: NotificationEvent = Field(
-        default_factory=NotificationEvent, description="회귀 시 알림"  # type: ignore[arg-type]
+        default_factory=NotificationEvent,
+        description="회귀 시 알림",  # type: ignore[arg-type]
     )
     on_saturation: SaturationNotification = Field(
-        default_factory=SaturationNotification, description="포화 시 알림"  # type: ignore[arg-type]
+        default_factory=SaturationNotification,
+        description="포화 시 알림",  # type: ignore[arg-type]
     )
     daily_digest: DailyDigestNotification = Field(
-        default_factory=DailyDigestNotification, description="일일 다이제스트"  # type: ignore[arg-type]
+        default_factory=DailyDigestNotification,
+        description="일일 다이제스트",  # type: ignore[arg-type]
     )
 
 
@@ -174,9 +176,7 @@ class SuiteDefinitionInner(BaseModel):
     )
     name: str = Field(..., max_length=100, description="Suite 이름")
     purpose: SuitePurpose = Field(..., description="목적")
-    tasks: list[str | TaskReference] = Field(
-        ..., min_length=1, description="Task 목록"
-    )
+    tasks: list[str | TaskReference] = Field(..., min_length=1, description="Task 목록")
 
     # 선택 필드
     description: str | None = Field(None, max_length=500, description="설명")

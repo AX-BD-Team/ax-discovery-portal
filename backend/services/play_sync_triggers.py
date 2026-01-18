@@ -37,7 +37,9 @@ class PlaySyncTriggers:
         if not signal.play_id:
             return
 
-        self.logger.info("Signal created trigger", signal_id=signal.signal_id, play_id=signal.play_id)
+        self.logger.info(
+            "Signal created trigger", signal_id=signal.signal_id, play_id=signal.play_id
+        )
 
         # 1. Play 통계 업데이트
         await play_sync_service.update_play_stats_from_db(db, signal.play_id)
@@ -56,7 +58,9 @@ class PlaySyncTriggers:
         if not signal.play_id:
             return
 
-        self.logger.info("Signal updated trigger", signal_id=signal.signal_id, play_id=signal.play_id)
+        self.logger.info(
+            "Signal updated trigger", signal_id=signal.signal_id, play_id=signal.play_id
+        )
 
         await play_sync_service.update_play_stats_from_db(db, signal.play_id)
 

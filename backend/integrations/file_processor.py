@@ -98,9 +98,7 @@ class FileProcessor:
             logger.warning(f"지원하지 않는 파일 형식: {ext}")
             return []
 
-    async def process_image(
-        self, content: bytes, content_type: str
-    ) -> list[SeminarInfo]:
+    async def process_image(self, content: bytes, content_type: str) -> list[SeminarInfo]:
         """
         이미지 OCR → 세미나 정보
 
@@ -206,9 +204,7 @@ class FileProcessor:
             logger.error("PDF 처리 오류", error=str(e))
             return []
 
-    async def process_document(
-        self, content: bytes, extension: str
-    ) -> list[SeminarInfo]:
+    async def process_document(self, content: bytes, extension: str) -> list[SeminarInfo]:
         """
         DOCX/XLSX → 세미나 정보
         """
@@ -233,9 +229,7 @@ class FileProcessor:
                 try:
                     from openpyxl import load_workbook
                 except ImportError:
-                    logger.warning(
-                        "openpyxl이 설치되지 않았습니다. pip install openpyxl 실행 필요"
-                    )
+                    logger.warning("openpyxl이 설치되지 않았습니다. pip install openpyxl 실행 필요")
                     return []
 
                 wb = load_workbook(BytesIO(content))
@@ -260,9 +254,7 @@ class FileProcessor:
             logger.error("문서 처리 오류", error=str(e))
             return []
 
-    async def process_text_file(
-        self, content: bytes, extension: str
-    ) -> list[SeminarInfo]:
+    async def process_text_file(self, content: bytes, extension: str) -> list[SeminarInfo]:
         """
         텍스트 파일 → 세미나 정보
         """
@@ -581,8 +573,7 @@ JSON만 반환하고 다른 설명은 생략해주세요."""
                         results.append(
                             SeminarInfo(
                                 title=title,
-                                description=item.get("description")
-                                or item.get("설명"),
+                                description=item.get("description") or item.get("설명"),
                                 date=item.get("date") or item.get("날짜"),
                                 organizer=item.get("organizer")
                                 or item.get("주최")
@@ -623,9 +614,7 @@ JSON만 반환하고 다른 설명은 생략해주세요."""
                             title=title,
                             description=row.get("description") or row.get("설명"),
                             date=row.get("date") or row.get("날짜"),
-                            organizer=row.get("organizer")
-                            or row.get("주최")
-                            or row.get("host"),
+                            organizer=row.get("organizer") or row.get("주최") or row.get("host"),
                             url=row.get("url") or row.get("link"),
                             categories=[],
                             confidence=0.9,

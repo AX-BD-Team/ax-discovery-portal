@@ -364,6 +364,7 @@ class TestCLIArguments:
     def test_import_cli(self):
         """CLI 모듈 import 테스트"""
         from backend.evals import cli
+
         assert hasattr(cli, "main")
 
     def test_run_command_args(self):
@@ -371,13 +372,18 @@ class TestCLIArguments:
         from backend.evals.cli import create_parser
 
         parser = create_parser()
-        args = parser.parse_args([
-            "run",
-            "--suite", "regression",
-            "--k", "3",
-            "--parallel",
-            "--output", "json",
-        ])
+        args = parser.parse_args(
+            [
+                "run",
+                "--suite",
+                "regression",
+                "--k",
+                "3",
+                "--parallel",
+                "--output",
+                "json",
+            ]
+        )
 
         assert args.command == "run"
         assert args.suite == "regression"
@@ -390,10 +396,12 @@ class TestCLIArguments:
         from backend.evals.cli import create_parser
 
         parser = create_parser()
-        args = parser.parse_args([
-            "validate",
-            "evals/tasks/workflow/test.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "validate",
+                "evals/tasks/workflow/test.yaml",
+            ]
+        )
 
         assert args.command == "validate"
         assert args.path == "evals/tasks/workflow/test.yaml"
@@ -421,7 +429,7 @@ class TestCLIIntegration:
         """Suite 목록 조회 테스트"""
         import sys
 
-        with patch.object(sys, 'argv', ['cli', 'list', '--suites']):
+        with patch.object(sys, "argv", ["cli", "list", "--suites"]):
             # CLI 실행은 실제 파일 시스템에 의존하므로 mock 필요
             pass  # 통합 테스트는 별도 실행
 

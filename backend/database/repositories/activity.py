@@ -51,9 +51,7 @@ class ActivityRepository(CRUDBase[Entity]):
             Entity | None
         """
         # 모든 Activity 조회 후 Python에서 URL 필터링 (PostgreSQL JSON 호환성)
-        result = await db.execute(
-            select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
-        )
+        result = await db.execute(select(Entity).where(Entity.entity_type == EntityType.ACTIVITY))
         all_activities = result.scalars().all()
 
         for activity in all_activities:
@@ -112,10 +110,7 @@ class ActivityRepository(CRUDBase[Entity]):
         all_activities = list(result.scalars().all())
 
         # Python에서 play_id 필터링 (PostgreSQL JSON 호환성)
-        filtered = [
-            a for a in all_activities
-            if (a.properties or {}).get("play_id") == play_id
-        ]
+        filtered = [a for a in all_activities if (a.properties or {}).get("play_id") == play_id]
 
         total = len(filtered)
         items = filtered[skip : skip + limit]
@@ -151,8 +146,7 @@ class ActivityRepository(CRUDBase[Entity]):
 
         # Python에서 source_type 필터링 (PostgreSQL JSON 호환성)
         filtered = [
-            a for a in all_activities
-            if (a.properties or {}).get("source_type") == source_type
+            a for a in all_activities if (a.properties or {}).get("source_type") == source_type
         ]
 
         total = len(filtered)
@@ -262,9 +256,7 @@ class ActivityRepository(CRUDBase[Entity]):
                 "raw_data": activity_data.get("raw_data", {}),
             },
             published_at=(
-                datetime.fromisoformat(activity_data["date"])
-                if activity_data.get("date")
-                else None
+                datetime.fromisoformat(activity_data["date"]) if activity_data.get("date") else None
             ),
             ingested_at=datetime.now(UTC),
             created_by=activity_data.get("created_by", "external_scout"),

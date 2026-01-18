@@ -109,11 +109,12 @@ class NotificationService:
         # 알림 본문
         rag_emoji = {"G": "🟢", "Y": "🟡", "R": "🔴"}
         rag = rag_emoji.get(
-            play.status if isinstance(play.status, str) else play.status.value,
-            "⚪"
+            play.status if isinstance(play.status, str) else play.status.value, "⚪"
         )
 
-        text = f"*{play.play_name}*\n" f"상태: {rag} | Signal: {play.signal_qtd} | Brief: {play.brief_qtd}"
+        text = (
+            f"*{play.play_name}*\n상태: {rag} | Signal: {play.signal_qtd} | Brief: {play.brief_qtd}"
+        )
 
         # 필드 정보
         fields = {

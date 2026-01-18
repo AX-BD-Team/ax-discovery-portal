@@ -418,13 +418,10 @@ class OntologyRepository:
     async def get_stats(self, db: AsyncSession) -> dict:
         """온톨로지 통계 (최적화: N개 쿼리 -> 3개 쿼리)"""
         # 엔티티 타입별 개수를 단일 GROUP BY 쿼리로 조회
-        entity_stats_query = (
-            select(
-                Entity.entity_type,
-                func.count().label("count"),
-            )
-            .group_by(Entity.entity_type)
-        )
+        entity_stats_query = select(
+            Entity.entity_type,
+            func.count().label("count"),
+        ).group_by(Entity.entity_type)
         entity_result = await db.execute(entity_stats_query)
         entity_rows = entity_result.all()
 
@@ -435,13 +432,10 @@ class OntologyRepository:
             entity_count += row.count
 
         # Triple 통계를 단일 쿼리로 조회 (predicate별 개수 + 평균 신뢰도)
-        triple_stats_query = (
-            select(
-                Triple.predicate,
-                func.count().label("count"),
-            )
-            .group_by(Triple.predicate)
-        )
+        triple_stats_query = select(
+            Triple.predicate,
+            func.count().label("count"),
+        ).group_by(Triple.predicate)
         triple_result = await db.execute(triple_stats_query)
         triple_rows = triple_result.all()
 

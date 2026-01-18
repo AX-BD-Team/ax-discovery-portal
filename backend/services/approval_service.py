@@ -88,14 +88,10 @@ class ApprovalService:
             raise ValueError(f"Opportunity not found: {opportunity_id}")
 
         # 이미 대기 중인 승인 요청 확인
-        existing_requests = await approval_request_repo.get_by_opportunity_id(
-            db, opportunity_id
-        )
+        existing_requests = await approval_request_repo.get_by_opportunity_id(db, opportunity_id)
         for req in existing_requests:
             if req.status == ApprovalStatus.PENDING and req.target_stage == target_stage.value:
-                raise ValueError(
-                    f"Pending approval request already exists: {req.request_id}"
-                )
+                raise ValueError(f"Pending approval request already exists: {req.request_id}")
 
         # 승인자 목록 결정
         approvers = custom_approvers or self._get_default_approvers(target_stage, opp)
@@ -161,18 +157,18 @@ class ApprovalService:
             raise ValueError(f"Approval request not found: {request_id}")
 
         if approval.status != ApprovalStatus.PENDING:
-            raise ValueError(
-                f"Request is not pending. Current status: {approval.status.value}"
-            )
+            raise ValueError(f"Request is not pending. Current status: {approval.status.value}")
 
         # 응답 기록 추가
         responses = approval.responses or []
-        responses.append({
-            "user_id": responded_by,
-            "decision": decision,
-            "responded_at": datetime.now(UTC).isoformat(),
-            "comments": comments,
-        })
+        responses.append(
+            {
+                "user_id": responded_by,
+                "decision": decision,
+                "responded_at": datetime.now(UTC).isoformat(),
+                "comments": comments,
+            }
+        )
         approval.responses = responses
 
         # 결과 처리
@@ -233,9 +229,7 @@ class ApprovalService:
         expired_ids = []
 
         # 모든 대기 중인 요청 조회
-        pending_requests, _ = await approval_request_repo.get_pending_all(
-            db, skip=0, limit=1000
-        )
+        pending_requests, _ = await approval_request_repo.get_pending_all(db, skip=0, limit=1000)
 
         now = datetime.now(UTC)
         for req in pending_requests:
@@ -288,12 +282,10 @@ class ApprovalService:
 
     def _check_all_required_approvals(self, approval: ApprovalRequest) -> bool:
         """모든 필수 승인이 완료되었는지 확인"""
-        required_roles = {
-            a["role"] for a in approval.approvers if a.get("required", False)
-        }
+        required_roles = {a["role"] for a in approval.approvers if a.get("required", False)}
 
         approved_by = set()
-        for resp in (approval.responses or []):
+        for resp in approval.responses or []:
             if resp.get("decision") == "APPROVED":
                 # 응답자의 역할 확인 (실제 구현에서는 사용자 역할 조회 필요)
                 user_id = resp.get("user_id")

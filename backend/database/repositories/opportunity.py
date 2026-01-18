@@ -112,9 +112,7 @@ class OpportunityRepository(CRUDBase[Opportunity]):
         signal_id: str,
     ) -> Opportunity | None:
         """Signal ID로 Opportunity 조회"""
-        result = await db.execute(
-            select(Opportunity).where(Opportunity.signal_id == signal_id)
-        )
+        result = await db.execute(select(Opportunity).where(Opportunity.signal_id == signal_id))
         return result.scalar_one_or_none()
 
     async def get_by_brief_id(
@@ -123,9 +121,7 @@ class OpportunityRepository(CRUDBase[Opportunity]):
         brief_id: str,
     ) -> Opportunity | None:
         """Brief ID로 Opportunity 조회"""
-        result = await db.execute(
-            select(Opportunity).where(Opportunity.brief_id == brief_id)
-        )
+        result = await db.execute(select(Opportunity).where(Opportunity.brief_id == brief_id))
         return result.scalar_one_or_none()
 
     async def get_stage_stats(self, db: AsyncSession) -> dict:
@@ -136,13 +132,10 @@ class OpportunityRepository(CRUDBase[Opportunity]):
             dict: 단계별 개수 및 통계
         """
         # 단일 GROUP BY 쿼리로 모든 통계 조회
-        stats_query = (
-            select(
-                Opportunity.current_stage,
-                func.count().label("count"),
-            )
-            .group_by(Opportunity.current_stage)
-        )
+        stats_query = select(
+            Opportunity.current_stage,
+            func.count().label("count"),
+        ).group_by(Opportunity.current_stage)
         result = await db.execute(stats_query)
         rows = result.all()
 
@@ -185,13 +178,10 @@ class OpportunityRepository(CRUDBase[Opportunity]):
         ]
 
         # 단일 GROUP BY 쿼리로 모든 단계 개수 조회
-        stats_query = (
-            select(
-                Opportunity.current_stage,
-                func.count().label("count"),
-            )
-            .group_by(Opportunity.current_stage)
-        )
+        stats_query = select(
+            Opportunity.current_stage,
+            func.count().label("count"),
+        ).group_by(Opportunity.current_stage)
         result = await db.execute(stats_query)
         rows = result.all()
 
@@ -201,11 +191,13 @@ class OpportunityRepository(CRUDBase[Opportunity]):
         # 퍼널 순서대로 데이터 구성
         funnel_data = []
         for stage, label in funnel_stages:
-            funnel_data.append({
-                "stage": stage.value,
-                "label": label,
-                "count": stage_counts.get(stage, 0),
-            })
+            funnel_data.append(
+                {
+                    "stage": stage.value,
+                    "label": label,
+                    "count": stage_counts.get(stage, 0),
+                }
+            )
 
         return funnel_data
 

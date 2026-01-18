@@ -59,9 +59,7 @@ class PlaySyncService:
 
         # Signal 건수 집계
         signal_count_result = await db.execute(
-            select(func.count())
-            .select_from(Signal)
-            .where(Signal.play_id == play_id)
+            select(func.count()).select_from(Signal).where(Signal.play_id == play_id)
         )
         signal_count = signal_count_result.scalar() or 0
 
@@ -69,9 +67,11 @@ class PlaySyncService:
         brief_count_result = await db.execute(
             select(func.count())
             .select_from(OpportunityBrief)
-            .where(OpportunityBrief.signal_id.in_(
-                select(Signal.signal_id).where(Signal.play_id == play_id)
-            ))
+            .where(
+                OpportunityBrief.signal_id.in_(
+                    select(Signal.signal_id).where(Signal.play_id == play_id)
+                )
+            )
         )
         brief_count = brief_count_result.scalar() or 0
 
@@ -221,7 +221,7 @@ class PlaySyncService:
 
         def update_row(match):
             # 기존 행을 새 데이터로 교체
-            row = f"""| {play.play_id} | {play.activity_qtd}/{play.activity_goal if hasattr(play, 'activity_goal') else 0} | {play.signal_qtd}/{play.signal_goal if hasattr(play, 'signal_goal') else 0} | {play.brief_qtd}/{play.brief_goal if hasattr(play, 'brief_goal') else 0} | {rag_emoji.get(play.status if isinstance(play.status, str) else play.status.value, '⚪')} | {play.next_action or ''} |"""
+            row = f"""| {play.play_id} | {play.activity_qtd}/{play.activity_goal if hasattr(play, "activity_goal") else 0} | {play.signal_qtd}/{play.signal_goal if hasattr(play, "signal_goal") else 0} | {play.brief_qtd}/{play.brief_goal if hasattr(play, "brief_goal") else 0} | {rag_emoji.get(play.status if isinstance(play.status, str) else play.status.value, "⚪")} | {play.next_action or ""} |"""
             return row
 
         # 패턴이 있으면 교체, 없으면 원본 반환
@@ -233,12 +233,16 @@ class PlaySyncService:
                 if play.play_id in line and "|" in line:
                     # 테이블 행으로 추정
                     rag = rag_emoji.get(
-                        play.status if isinstance(play.status, str) else play.status.value if hasattr(play.status, 'value') else "G",
-                        "⚪"
+                        play.status
+                        if isinstance(play.status, str)
+                        else play.status.value
+                        if hasattr(play.status, "value")
+                        else "G",
+                        "⚪",
                     )
-                    activity_goal = getattr(play, 'activity_goal', 0) or 0
-                    signal_goal = getattr(play, 'signal_goal', 0) or 0
-                    brief_goal = getattr(play, 'brief_goal', 0) or 0
+                    activity_goal = getattr(play, "activity_goal", 0) or 0
+                    signal_goal = getattr(play, "signal_goal", 0) or 0
+                    brief_goal = getattr(play, "brief_goal", 0) or 0
 
                     updated_line = f"| {play.play_id} | {play.activity_qtd}/{activity_goal} | {play.signal_qtd}/{signal_goal} | {play.brief_qtd}/{brief_goal} | {rag} | {play.next_action or ''} |"
                     updated_lines.append(updated_line)
@@ -263,12 +267,16 @@ class PlaySyncService:
         rows = []
         for play in plays:
             rag = rag_emoji.get(
-                play.status if isinstance(play.status, str) else play.status.value if hasattr(play.status, 'value') else "G",
-                "⚪"
+                play.status
+                if isinstance(play.status, str)
+                else play.status.value
+                if hasattr(play.status, "value")
+                else "G",
+                "⚪",
             )
-            activity_goal = getattr(play, 'activity_goal', 0) or 0
-            signal_goal = getattr(play, 'signal_goal', 0) or 0
-            brief_goal = getattr(play, 'brief_goal', 0) or 0
+            activity_goal = getattr(play, "activity_goal", 0) or 0
+            signal_goal = getattr(play, "signal_goal", 0) or 0
+            brief_goal = getattr(play, "brief_goal", 0) or 0
 
             row = f"""<tr>
                 <td>{play.play_id}</td>
@@ -277,7 +285,7 @@ class PlaySyncService:
                 <td>{play.signal_qtd}/{signal_goal}</td>
                 <td>{play.brief_qtd}/{brief_goal}</td>
                 <td>{rag}</td>
-                <td>{play.next_action or ''}</td>
+                <td>{play.next_action or ""}</td>
             </tr>"""
             rows.append(row)
 
@@ -294,7 +302,7 @@ class PlaySyncService:
                 </tr>
             </thead>
             <tbody>
-                {''.join(rows)}
+                {"".join(rows)}
             </tbody>
         </table>"""
 

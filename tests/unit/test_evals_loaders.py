@@ -21,7 +21,6 @@ from backend.evals.models.enums import GraderType, ScoringMode, SuitePurpose, Ta
 from backend.evals.models.suite import SuiteDefinition
 from backend.evals.models.task import TaskDefinition
 
-
 # ============================================================================
 # Fixture
 # ============================================================================

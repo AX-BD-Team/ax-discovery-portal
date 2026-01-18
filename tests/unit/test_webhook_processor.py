@@ -256,9 +256,7 @@ class TestWebhookProcessor:
         )
 
         # EventbriteCollector.fetch_event_detail을 Mock
-        with patch(
-            "backend.integrations.external_sources.EventbriteCollector"
-        ) as MockCollector:
+        with patch("backend.integrations.external_sources.EventbriteCollector") as MockCollector:
             mock_collector = MagicMock()
             mock_collector.fetch_event_detail = AsyncMock(return_value=None)
             MockCollector.return_value = mock_collector
@@ -432,9 +430,7 @@ class TestWebhookProcessorErrorHandling:
 
         # 잘못된 데이터로 페이로드 생성 (빈 URL은 실제로 허용됨)
         # 대신 DB 저장 중 오류를 시뮬레이션
-        with patch.object(
-            processor, "_save_activity", new_callable=AsyncMock
-        ) as mock_save:
+        with patch.object(processor, "_save_activity", new_callable=AsyncMock) as mock_save:
             mock_save.side_effect = Exception("DB 연결 오류")
 
             payload = RSSWebhookPayload(

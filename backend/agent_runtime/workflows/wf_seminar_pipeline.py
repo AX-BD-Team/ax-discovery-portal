@@ -742,10 +742,7 @@ class SeminarPipelineWithOntology(SeminarPipelineWithEvents):
                     message="Signal Entity를 생성하고 있습니다...",
                 )
                 # Signal 엔티티 개수 세기
-                signal_entities = [
-                    e for e in extracted_entities
-                    if e.entity_type.value == "Signal"
-                ]
+                signal_entities = [e for e in extracted_entities if e.entity_type.value == "Signal"]
                 await self.emitter.emit_step_finished(
                     step_id="SIGNAL_CREATION",
                     step_index=7,
@@ -769,7 +766,8 @@ class SeminarPipelineWithOntology(SeminarPipelineWithEvents):
                 ontology_result.entity_count += creation_result.entity_created_count
                 ontology_result.triple_count = creation_result.triple_created_count
                 ontology_result.signal_entity_ids = [
-                    e.entity_id for e in creation_result.created_entities
+                    e.entity_id
+                    for e in creation_result.created_entities
                     if e.entity_type.value == "Signal"
                 ]
                 ontology_result.extraction_notes = (
@@ -805,11 +803,13 @@ class SeminarPipelineWithOntology(SeminarPipelineWithEvents):
                 for signal_entity in creation_result.created_entities:
                     if signal_entity.entity_type.value == "Signal":
                         props = signal_entity.properties or {}
-                        signals.append({
-                            "entity_id": signal_entity.entity_id,
-                            "title": signal_entity.name,
-                            "pain": props.get("pain", ""),
-                        })
+                        signals.append(
+                            {
+                                "entity_id": signal_entity.entity_id,
+                                "title": signal_entity.name,
+                                "pain": props.get("pain", ""),
+                            }
+                        )
 
             else:
                 # AAR 없으면 스킵

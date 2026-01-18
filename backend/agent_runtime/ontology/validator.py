@@ -124,12 +124,20 @@ PREDICATE_CONSTRAINTS: dict[PredicateType, PredicateConstraint] = {
     ),
     PredicateType.PROGRESSES_TO: PredicateConstraint(
         subject_types={
-            EntityType.ACTIVITY, EntityType.SIGNAL, EntityType.SCORECARD,
-            EntityType.BRIEF, EntityType.VALIDATION, EntityType.PILOT,
+            EntityType.ACTIVITY,
+            EntityType.SIGNAL,
+            EntityType.SCORECARD,
+            EntityType.BRIEF,
+            EntityType.VALIDATION,
+            EntityType.PILOT,
         },
         object_types={
-            EntityType.ACTIVITY, EntityType.SIGNAL, EntityType.SCORECARD,
-            EntityType.BRIEF, EntityType.VALIDATION, EntityType.PILOT,
+            EntityType.ACTIVITY,
+            EntityType.SIGNAL,
+            EntityType.SCORECARD,
+            EntityType.BRIEF,
+            EntityType.VALIDATION,
+            EntityType.PILOT,
         },
     ),
     # ===== Topic Relations (4종) =====

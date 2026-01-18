@@ -118,7 +118,9 @@ class TaskRepository(CRUDBase[Task]):
             list[Task]
         """
         result = await db.execute(
-            select(Task).where(Task.status == TaskStatus.BLOCKED.value).order_by(Task.updated_at.desc())
+            select(Task)
+            .where(Task.status == TaskStatus.BLOCKED.value)
+            .order_by(Task.updated_at.desc())
         )
         return list(result.scalars().all())
 

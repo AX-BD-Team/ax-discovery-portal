@@ -423,13 +423,10 @@ async def list_suites(
     )
 
     # Suite와 task_count를 LEFT JOIN으로 한 번에 조회
-    query = (
-        select(
-            EvalSuite,
-            func.coalesce(task_count_subquery.c.task_count, 0).label("task_count"),
-        )
-        .outerjoin(task_count_subquery, EvalSuite.suite_id == task_count_subquery.c.suite_id)
-    )
+    query = select(
+        EvalSuite,
+        func.coalesce(task_count_subquery.c.task_count, 0).label("task_count"),
+    ).outerjoin(task_count_subquery, EvalSuite.suite_id == task_count_subquery.c.suite_id)
 
     if purpose:
         try:
@@ -608,9 +605,7 @@ async def create_run(
         suite_result = await db.execute(suite_query)
         suite = suite_result.scalar_one_or_none()
         if not suite:
-            raise HTTPException(
-                status_code=404, detail=f"Suite not found: {request.suite_id}"
-            )
+            raise HTTPException(status_code=404, detail=f"Suite not found: {request.suite_id}")
         suite_version = suite.version
 
     # Task 존재 확인 (task_ids가 주어진 경우)
@@ -808,8 +803,7 @@ async def get_run(
             summary.passed_trials += 1
         summary.total_cost_usd += trial.cost_usd
         summary.avg_duration_seconds = (
-            summary.avg_duration_seconds * (summary.total_trials - 1)
-            + trial.duration_seconds
+            summary.avg_duration_seconds * (summary.total_trials - 1) + trial.duration_seconds
         ) / summary.total_trials
 
     # Pass rate 계산
@@ -1052,9 +1046,7 @@ async def get_transcript(
     transcript = result.scalar_one_or_none()
 
     if not transcript:
-        raise HTTPException(
-            status_code=404, detail=f"Transcript not found for trial: {trial_id}"
-        )
+        raise HTTPException(status_code=404, detail=f"Transcript not found for trial: {trial_id}")
 
     return TranscriptResponse(
         trial_id=transcript.trial_id,
@@ -1096,9 +1088,7 @@ async def get_outcome(
     outcome = result.scalar_one_or_none()
 
     if not outcome:
-        raise HTTPException(
-            status_code=404, detail=f"Outcome not found for trial: {trial_id}"
-        )
+        raise HTTPException(status_code=404, detail=f"Outcome not found for trial: {trial_id}")
 
     return OutcomeResponse(
         trial_id=outcome.trial_id,
@@ -1184,8 +1174,7 @@ async def get_stats_summary(
                 daily.passed_trials += 1
             daily.total_cost_usd += trial.cost_usd
             daily.avg_duration_seconds = (
-                daily.avg_duration_seconds * (daily.total_trials - 1)
-                + trial.duration_seconds
+                daily.avg_duration_seconds * (daily.total_trials - 1) + trial.duration_seconds
             ) / daily.total_trials
 
     # Run 수 추가 및 pass rate 계산
@@ -1285,9 +1274,7 @@ async def detect_regressions(
         for trial in trials:
             if trial.task_id not in task_trials:
                 task_trials[trial.task_id] = []
-                task_descriptions[trial.task_id] = (
-                    trial.task.description if trial.task else None
-                )
+                task_descriptions[trial.task_id] = trial.task.description if trial.task else None
             if trial.passed is not None:
                 task_trials[trial.task_id].append(trial.passed)
 
@@ -1339,8 +1326,12 @@ async def detect_regressions(
             improvements.append(item)
 
     # 전체 pass rate 변화
-    baseline_overall = sum(r[0] for r in baseline_rates.values()) / len(baseline_rates) if baseline_rates else 0.0
-    current_overall = sum(r[0] for r in current_rates.values()) / len(current_rates) if current_rates else 0.0
+    baseline_overall = (
+        sum(r[0] for r in baseline_rates.values()) / len(baseline_rates) if baseline_rates else 0.0
+    )
+    current_overall = (
+        sum(r[0] for r in current_rates.values()) / len(current_rates) if current_rates else 0.0
+    )
     overall_delta = current_overall - baseline_overall
 
     return RegressionReport(

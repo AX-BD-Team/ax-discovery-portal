@@ -390,14 +390,20 @@ class EventUsCollector(BaseSeminarCollector):
             # URL 구성
             channel = event.get("channel", {})
             channel_name = channel.get("name", "") if isinstance(channel, dict) else ""
-            url = f"{self.BASE_URL}/{channel_name}/events/{event_id}" if channel_name else f"{self.BASE_URL}/events/{event_id}"
+            url = (
+                f"{self.BASE_URL}/{channel_name}/events/{event_id}"
+                if channel_name
+                else f"{self.BASE_URL}/events/{event_id}"
+            )
 
             return SeminarInfo(
                 title=title,
                 url=url,
                 source_type="eventus",
                 date=date,
-                organizer=event.get("organizer", {}).get("name") if isinstance(event.get("organizer"), dict) else None,
+                organizer=event.get("organizer", {}).get("name")
+                if isinstance(event.get("organizer"), dict)
+                else None,
                 description=event.get("summary", "")[:1000],
                 location=event.get("location") or ("온라인" if event.get("is_online") else None),
                 categories=["IT/프로그래밍"],

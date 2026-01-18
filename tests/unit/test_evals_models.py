@@ -6,50 +6,38 @@ backend/evals/models/ 모듈 테스트
 
 from datetime import UTC, datetime
 
-import pytest
-from pydantic import ValidationError
-
 from backend.evals.models.configs import (
-    AgentConfig,
     CostBudget,
     EnvironmentConfig,
     GraderConfig,
-    MetricConfig,
     ScoringConfig,
-    SuccessCriteria,
     TaskInputs,
     TaskMetadata,
     TimeoutConfig,
     TrialConfig,
 )
 from backend.evals.models.entities import (
-    AggregatedMetrics,
     GraderResult,
     Outcome,
-    Run,
     Suite,
     Task,
     Transcript,
     Trial,
 )
 from backend.evals.models.enums import (
-    AgentAdapter,
     Decision,
     Difficulty,
     Domain,
     GraderType,
-    MetricType,
     NetworkAccess,
     ResetMode,
     Risk,
-    RunStatus,
     SandboxType,
     ScoringMode,
     SuitePurpose,
     TaskType,
     TrialStatus,
 )
-
 
 # ============================================================================
 # Enum 테스트

@@ -16,9 +16,9 @@ from backend.services.entity_resolution_service import (
     ResolutionResult,
 )
 from backend.services.llm_extraction_service import (
-    ExtractionResult,
     ExtractedEntity,
     ExtractedRelation,
+    ExtractionResult,
     LLMExtractionService,
 )
 from backend.services.ontology_integration_service import OntologyIntegrationService
@@ -107,9 +107,7 @@ class TestOntologyIntegrationFlow:
         ]
 
         mock_client = AsyncMock()
-        mock_client.messages.create = AsyncMock(
-            side_effect=[entity_response, relation_response]
-        )
+        mock_client.messages.create = AsyncMock(side_effect=[entity_response, relation_response])
         llm_service.client = mock_client
 
         # 추출 실행
@@ -133,9 +131,7 @@ class TestOntologyIntegrationFlow:
     async def test_entity_resolution_with_existing_entities(self, mock_db):
         """기존 엔티티와의 해결 테스트"""
         # Entity Resolution 서비스
-        with patch(
-            "backend.services.entity_resolution_service.AsyncAnthropic"
-        ):
+        with patch("backend.services.entity_resolution_service.AsyncAnthropic"):
             resolution_service = EntityResolutionService()
 
         # 기존 엔티티 설정
@@ -250,9 +246,7 @@ class TestOntologyIntegrationFlow:
         )
 
         # 온톨로지 통합 서비스
-        integration_service = OntologyIntegrationService(
-            resolution_service=mock_resolution
-        )
+        integration_service = OntologyIntegrationService(resolution_service=mock_resolution)
 
         # 목 Entity
         mock_org = MagicMock(spec=Entity)
@@ -273,12 +267,8 @@ class TestOntologyIntegrationFlow:
         mock_triple = MagicMock(spec=Triple)
         mock_triple.triple_id = "TRP-123456789012"
 
-        with patch(
-            "backend.services.ontology_integration_service.ontology_repo"
-        ) as mock_repo:
-            mock_repo.create_entity = AsyncMock(
-                side_effect=[mock_org, mock_person, mock_signal]
-            )
+        with patch("backend.services.ontology_integration_service.ontology_repo") as mock_repo:
+            mock_repo.create_entity = AsyncMock(side_effect=[mock_org, mock_person, mock_signal])
             mock_repo.query_triples = AsyncMock(return_value=([], 0))
             mock_repo.create_triple = AsyncMock(return_value=mock_triple)
 

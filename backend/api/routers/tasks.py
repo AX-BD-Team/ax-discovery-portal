@@ -136,7 +136,9 @@ def _task_to_response(task) -> TaskResponse:
 @router.get("", response_model=TaskListResponse)
 async def list_tasks(
     play_id: Annotated[str | None, Query(description="Play ID 필터")] = None,
-    status: Annotated[str | None, Query(description="상태 필터 (pending, in_progress, completed, blocked)")] = None,
+    status: Annotated[
+        str | None, Query(description="상태 필터 (pending, in_progress, completed, blocked)")
+    ] = None,
     db: AsyncSession = Depends(get_db),
 ):
     """

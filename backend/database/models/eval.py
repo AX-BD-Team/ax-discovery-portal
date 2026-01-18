@@ -105,9 +105,7 @@ class EvalSuite(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     version: Mapped[str] = mapped_column(String(20), default="1.0.0")
-    purpose: Mapped[EvalSuitePurpose] = mapped_column(
-        Enum(EvalSuitePurpose), nullable=False
-    )
+    purpose: Mapped[EvalSuitePurpose] = mapped_column(Enum(EvalSuitePurpose), nullable=False)
 
     # 분류
     domain: Mapped[str | None] = mapped_column(String(50))
@@ -526,14 +524,10 @@ class EvalGraderResult(Base):
     # 실행 정보
     duration_seconds: Mapped[float] = mapped_column(Float, default=0.0)
     error_message: Mapped[str | None] = mapped_column(Text)
-    graded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    graded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     # Relationships
-    trial: Mapped[EvalTrial] = relationship(
-        "EvalTrial", back_populates="grader_result_details"
-    )
+    trial: Mapped[EvalTrial] = relationship("EvalTrial", back_populates="grader_result_details")
 
     # Indexes
     __table_args__ = (

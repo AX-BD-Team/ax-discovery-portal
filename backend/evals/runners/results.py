@@ -246,8 +246,7 @@ class RunResult:
         # Trial 통계
         self.total_trials = sum(t.trial_count for t in self.task_results)
         self.passed_trials = sum(
-            sum(1 for trial in t.trials if trial.passed)
-            for t in self.task_results
+            sum(1 for trial in t.trials if trial.passed) for t in self.task_results
         )
 
         # 비율 계산
@@ -256,9 +255,7 @@ class RunResult:
 
         # 평균 점수
         all_scores = [
-            trial.score
-            for task_result in self.task_results
-            for trial in task_result.trials
+            trial.score for task_result in self.task_results for trial in task_result.trials
         ]
         if all_scores:
             self.overall_avg_score = sum(all_scores) / len(all_scores)

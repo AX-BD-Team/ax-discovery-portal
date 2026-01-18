@@ -23,17 +23,18 @@ class SyncDiff:
 
     only_in_system: list[TodoItem] = field(default_factory=list)
     only_in_confluence: list[TodoItem] = field(default_factory=list)
-    status_diff: list[tuple[TodoItem, TodoItem]] = field(default_factory=list)  # (system, confluence)
-    content_diff: list[tuple[TodoItem, TodoItem]] = field(default_factory=list)  # (system, confluence)
+    status_diff: list[tuple[TodoItem, TodoItem]] = field(
+        default_factory=list
+    )  # (system, confluence)
+    content_diff: list[tuple[TodoItem, TodoItem]] = field(
+        default_factory=list
+    )  # (system, confluence)
 
     @property
     def has_diff(self) -> bool:
         """차이점이 있는지 확인"""
         return bool(
-            self.only_in_system
-            or self.only_in_confluence
-            or self.status_diff
-            or self.content_diff
+            self.only_in_system or self.only_in_confluence or self.status_diff or self.content_diff
         )
 
     @property
@@ -121,19 +122,23 @@ class ProgressReport:
         lines.extend(["", "---", ""])
 
         if self.stale_items:
-            lines.extend([
-                "## ⚠️ 장기 미완료 항목",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## ⚠️ 장기 미완료 항목",
+                    "",
+                ]
+            )
             for item in self.stale_items[:10]:  # 최대 10개
                 lines.append(f"- [{item.phase}] {item.content}")
             lines.extend(["", "---", ""])
 
         if self.recommendations:
-            lines.extend([
-                "## 💡 권장 사항",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## 💡 권장 사항",
+                    "",
+                ]
+            )
             for rec in self.recommendations:
                 lines.append(f"- {rec}")
 
@@ -170,6 +175,7 @@ class TodoSyncService:
         if self._confluence is None:
             try:
                 from backend.integrations.mcp_confluence.server import ConfluenceMCP
+
                 self._confluence = ConfluenceMCP()
             except ImportError:
                 self.logger.warning("ConfluenceMCP를 가져올 수 없습니다")
@@ -290,6 +296,7 @@ class TodoSyncService:
     def _normalize_content(self, content: str) -> str:
         """내용 정규화 (비교용)"""
         import re
+
         # 버전, 이모지, 공백 정규화
         normalized = re.sub(r"v\d+\.\d+\.\d+", "", content)
         normalized = re.sub(r"✅|🚧|📋|🎯", "", normalized)
@@ -372,20 +379,13 @@ class TodoSyncService:
             )
 
         # Phase별 불균형
-        phase_rates = [
-            stats["completion_rate"]
-            for stats in report.phase_stats.values()
-        ]
+        phase_rates = [stats["completion_rate"] for stats in report.phase_stats.values()]
         if phase_rates and max(phase_rates) - min(phase_rates) > 50:
-            recommendations.append(
-                "Phase별 완료율 편차가 큽니다. 리소스 재분배를 고려하세요."
-            )
+            recommendations.append("Phase별 완료율 편차가 큽니다. 리소스 재분배를 고려하세요.")
 
         # 성공적인 경우
         if report.completion_rate >= 80:
-            recommendations.append(
-                "🎉 훌륭합니다! 완료율 80% 이상 달성했습니다."
-            )
+            recommendations.append("🎉 훌륭합니다! 완료율 80% 이상 달성했습니다.")
 
         return recommendations
 
@@ -504,6 +504,7 @@ class TodoSyncService:
     def _extract_keywords(self, content: str) -> list[str]:
         """내용에서 키워드 추출"""
         import re
+
         # 영문 단어와 한글 단어 추출
         words = re.findall(r"[a-zA-Z]+|[가-힣]+", content)
         # 3글자 이상만

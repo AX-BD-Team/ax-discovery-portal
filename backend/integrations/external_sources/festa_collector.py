@@ -158,11 +158,7 @@ class FestaCollector(BaseSeminarCollector):
         # 지역 필터링
         if location:
             location_lower = location.lower()
-            seminars = [
-                s
-                for s in seminars
-                if s.location and location_lower in s.location.lower()
-            ]
+            seminars = [s for s in seminars if s.location and location_lower in s.location.lower()]
 
         return seminars
 

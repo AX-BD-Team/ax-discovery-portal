@@ -305,10 +305,19 @@ class DevEventCollector(BaseSeminarCollector):
 
                 # 태그에서 AI 관련 태그 확인
                 tags = re.findall(r"`([^`]+)`", combined_info)
-                ai_tags = ["ai", "ml", "딥러닝", "머신러닝", "인공지능", "gpt", "llm", "생성형", "data", "데이터"]
-                has_ai_tag = any(
-                    any(ai in tag.lower() for ai in ai_tags) for tag in tags
-                )
+                ai_tags = [
+                    "ai",
+                    "ml",
+                    "딥러닝",
+                    "머신러닝",
+                    "인공지능",
+                    "gpt",
+                    "llm",
+                    "생성형",
+                    "data",
+                    "데이터",
+                ]
+                has_ai_tag = any(any(ai in tag.lower() for ai in ai_tags) for tag in tags)
 
                 if has_keyword or has_ai_tag:
                     # 분류 정보 추출

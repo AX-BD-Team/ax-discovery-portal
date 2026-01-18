@@ -483,16 +483,12 @@ class D1PlayRepository:
         # Signal 통계
         signal_sql = "SELECT COUNT(*) as total FROM signals"
         signal_result = await d1_client.execute(signal_sql)
-        signal_count = (
-            signal_result["results"][0]["total"] if signal_result["results"] else 0
-        )
+        signal_count = signal_result["results"][0]["total"] if signal_result["results"] else 0
 
         # Brief 통계
         brief_sql = "SELECT COUNT(*) as total FROM briefs"
         brief_result = await d1_client.execute(brief_sql)
-        brief_count = (
-            brief_result["results"][0]["total"] if brief_result["results"] else 0
-        )
+        brief_count = brief_result["results"][0]["total"] if brief_result["results"] else 0
 
         # S2 단계 Signal 수 (stage = 'S2')
         s2_sql = "SELECT COUNT(*) as total FROM signals WHERE stage = 'S2'"

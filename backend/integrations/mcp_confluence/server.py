@@ -144,10 +144,7 @@ class ConfluenceMCP:
             body_html = self._markdown_to_confluence(body_md)
 
             page = self.client.update_page(
-                page_id=page_id,
-                title=current["title"],
-                body=body_html,
-                type="page"
+                page_id=page_id, title=current["title"], body=body_html, type="page"
             )
 
             return {"page_id": page_id, "version": page["version"]["number"], "url": current["url"]}
@@ -392,11 +389,11 @@ class ConfluenceMCP:
         # 2-4. 체크박스 (Task list)
         html = html.replace(
             '<input type="checkbox" disabled>',
-            '<ac:task-status>incomplete</ac:task-status>',
+            "<ac:task-status>incomplete</ac:task-status>",
         )
         html = html.replace(
             '<input type="checkbox" checked disabled>',
-            '<ac:task-status>complete</ac:task-status>',
+            "<ac:task-status>complete</ac:task-status>",
         )
 
         # 2-5. 취소선: <s> → <span style>

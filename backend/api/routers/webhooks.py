@@ -283,9 +283,11 @@ async def receive_custom_webhook(
     )
 
     # Play ID
-    play_id = payload.play_id or os.getenv(
-        "SEMINAR_DEFAULT_PLAY_ID", "EXT_Desk_D01_Seminar"
-    ) or "EXT_Desk_D01_Seminar"
+    play_id = (
+        payload.play_id
+        or os.getenv("SEMINAR_DEFAULT_PLAY_ID", "EXT_Desk_D01_Seminar")
+        or "EXT_Desk_D01_Seminar"
+    )
 
     # 웹훅 처리
     processor = WebhookProcessor(db)

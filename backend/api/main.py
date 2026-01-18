@@ -26,7 +26,9 @@ if settings.sentry_dsn:
         # 성능 모니터링 (개발 환경에서는 100% 수집, 프로덕션에서는 설정값 사용)
         traces_sample_rate=1.0 if settings.is_development else settings.sentry_traces_sample_rate,
         # 프로파일링 (개발 환경에서는 비활성화, 프로덕션에서는 설정값 사용)
-        profiles_sample_rate=0.0 if settings.is_development else settings.sentry_profiles_sample_rate,
+        profiles_sample_rate=0.0
+        if settings.is_development
+        else settings.sentry_profiles_sample_rate,
         # 통합
         integrations=[
             StarletteIntegration(transaction_style="endpoint"),

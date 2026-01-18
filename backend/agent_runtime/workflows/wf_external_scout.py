@@ -161,11 +161,13 @@ class ExternalScoutPipeline:
                     source=source,
                     error=str(e),
                 )
-                errors.append({
-                    "source": source,
-                    "error": str(e),
-                    "type": "collection",
-                })
+                errors.append(
+                    {
+                        "source": source,
+                        "error": str(e),
+                        "type": "collection",
+                    }
+                )
 
         total_collected = len(all_seminars)
         self.logger.info(f"Total collected: {total_collected} seminars")
@@ -355,11 +357,13 @@ class ExternalScoutPipelineWithDB(ExternalScoutPipeline):
                     source=source,
                     error=str(e),
                 )
-                errors.append({
-                    "source": source,
-                    "error": str(e),
-                    "type": "collection",
-                })
+                errors.append(
+                    {
+                        "source": source,
+                        "error": str(e),
+                        "type": "collection",
+                    }
+                )
 
         total_collected = len(all_seminars)
 
@@ -414,11 +418,13 @@ class ExternalScoutPipelineWithDB(ExternalScoutPipeline):
                     url=seminar.url,
                     error=str(e),
                 )
-                errors.append({
-                    "url": seminar.url,
-                    "error": str(e),
-                    "type": "save",
-                })
+                errors.append(
+                    {
+                        "url": seminar.url,
+                        "error": str(e),
+                        "type": "save",
+                    }
+                )
 
         # 커밋
         await self.db.commit()
@@ -437,10 +443,12 @@ class ExternalScoutPipelineWithDB(ExternalScoutPipeline):
                 confluence_url = confluence_result.get("page_url")
             except Exception as e:
                 self.logger.error("Confluence sync failed", error=str(e))
-                errors.append({
-                    "type": "confluence_sync",
-                    "error": str(e),
-                })
+                errors.append(
+                    {
+                        "type": "confluence_sync",
+                        "error": str(e),
+                    }
+                )
 
         # 4. 결과 생성
         finished_at = datetime.now(UTC)

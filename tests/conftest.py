@@ -52,7 +52,6 @@ from sqlalchemy.pool import StaticPool
 from backend.database.base import Base
 from tests.fixtures.sample_markdown import get_agent_markdown
 
-
 # ============================================================
 # 테스트 격리 fixture
 # ============================================================

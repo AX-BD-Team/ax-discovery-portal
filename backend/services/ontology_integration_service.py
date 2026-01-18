@@ -56,8 +56,7 @@ class OntologyCreationResult:
         return {
             "created_entities": [e.to_dict() for e in self.created_entities],
             "merged_entities": [
-                {"extracted": e.name, "merged_to": m.entity_id}
-                for e, m in self.merged_entities
+                {"extracted": e.name, "merged_to": m.entity_id} for e, m in self.merged_entities
             ],
             "created_triples": [t.to_dict() for t in self.created_triples],
             "skipped_triples": self.skipped_triples,
@@ -128,9 +127,7 @@ class OntologyIntegrationService:
             )
 
             # 2. 엔티티 생성/병합
-            entity_id_map = await self._process_entities(
-                db, resolution_result, result, created_by
-            )
+            entity_id_map = await self._process_entities(db, resolution_result, result, created_by)
 
             # 3. Triple 생성
             await self._process_relations(
@@ -301,9 +298,7 @@ class OntologyIntegrationService:
                 # 기존 엔티티로 병합
                 existing_entity = match.existing_entity
                 entity_id_map[match.new_entity.name] = existing_entity.entity_id
-                result.merged_entities.append(
-                    (match.new_entity, existing_entity)
-                )
+                result.merged_entities.append((match.new_entity, existing_entity))
                 result.entity_merged_count += 1
 
                 self.logger.debug(
@@ -355,12 +350,14 @@ class OntologyIntegrationService:
             object_id = entity_id_map.get(relation.object)
 
             if not subject_id or not object_id:
-                result.skipped_triples.append({
-                    "subject": relation.subject,
-                    "predicate": relation.predicate.value,
-                    "object": relation.object,
-                    "reason": "Entity not found in map",
-                })
+                result.skipped_triples.append(
+                    {
+                        "subject": relation.subject,
+                        "predicate": relation.predicate.value,
+                        "object": relation.object,
+                        "reason": "Entity not found in map",
+                    }
+                )
                 result.triple_skipped_count += 1
                 continue
 
@@ -373,12 +370,14 @@ class OntologyIntegrationService:
             )
 
             if not validation.is_valid:
-                result.skipped_triples.append({
-                    "subject": relation.subject,
-                    "predicate": relation.predicate.value,
-                    "object": relation.object,
-                    "reason": "; ".join(e.message for e in validation.errors),
-                })
+                result.skipped_triples.append(
+                    {
+                        "subject": relation.subject,
+                        "predicate": relation.predicate.value,
+                        "object": relation.object,
+                        "reason": "; ".join(e.message for e in validation.errors),
+                    }
+                )
                 result.triple_skipped_count += 1
                 continue
 
@@ -392,12 +391,14 @@ class OntologyIntegrationService:
             )
 
             if existing:
-                result.skipped_triples.append({
-                    "subject": relation.subject,
-                    "predicate": relation.predicate.value,
-                    "object": relation.object,
-                    "reason": "Duplicate triple",
-                })
+                result.skipped_triples.append(
+                    {
+                        "subject": relation.subject,
+                        "predicate": relation.predicate.value,
+                        "object": relation.object,
+                        "reason": "Duplicate triple",
+                    }
+                )
                 result.triple_skipped_count += 1
                 continue
 
@@ -448,7 +449,6 @@ class OntologyIntegrationService:
 
         same_as_pair: SameAsPair
         for same_as_pair in uncertain_pairs:
-
             # 두 엔티티의 ID 조회
             if isinstance(same_as_pair.entity_a, ExtractedEntity):
                 entity_a_id = entity_id_map.get(same_as_pair.entity_a.name)

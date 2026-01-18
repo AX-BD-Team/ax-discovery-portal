@@ -161,9 +161,7 @@ class ToolCallCheckGrader(BaseGrader):
         # 없으면 빈 리스트 반환
         return tool_calls
 
-    def _validate_required_tools(
-        self, tool_calls: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _validate_required_tools(self, tool_calls: list[dict[str, Any]]) -> dict[str, Any]:
         """필수 도구 호출 검증"""
         if not self.required_tools:
             return {"name": "required_tools", "passed": True, "message": "필수 도구 없음"}
@@ -184,9 +182,7 @@ class ToolCallCheckGrader(BaseGrader):
             "message": message,
         }
 
-    def _validate_forbidden_tools(
-        self, tool_calls: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _validate_forbidden_tools(self, tool_calls: list[dict[str, Any]]) -> dict[str, Any]:
         """금지 도구 호출 검증"""
         if not self.forbidden_tools:
             return {"name": "forbidden_tools", "passed": True, "message": "금지 도구 없음"}
@@ -204,9 +200,7 @@ class ToolCallCheckGrader(BaseGrader):
             "message": message,
         }
 
-    def _validate_sequence(
-        self, tool_calls: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _validate_sequence(self, tool_calls: list[dict[str, Any]]) -> dict[str, Any]:
         """호출 순서 검증 (부분 순서 매칭)"""
         if not self.expected_sequence:
             return {"name": "sequence", "passed": True, "message": "순서 검증 없음"}
@@ -237,9 +231,7 @@ class ToolCallCheckGrader(BaseGrader):
             "message": message,
         }
 
-    def _validate_call_counts(
-        self, tool_calls: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _validate_call_counts(self, tool_calls: list[dict[str, Any]]) -> dict[str, Any]:
         """호출 횟수 검증"""
         # 도구별 호출 횟수 집계
         call_counts: dict[str, int] = {}
@@ -272,17 +264,14 @@ class ToolCallCheckGrader(BaseGrader):
             "message": message,
         }
 
-    def _validate_args_patterns(
-        self, tool_calls: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _validate_args_patterns(self, tool_calls: list[dict[str, Any]]) -> dict[str, Any]:
         """인자 패턴 검증"""
         violations: list[str] = []
 
         for tool_name, patterns in self.args_patterns.items():
             # 해당 도구의 모든 호출 검증
             tool_specific_calls = [
-                c for c in tool_calls
-                if c.get("name", c.get("tool", "")) == tool_name
+                c for c in tool_calls if c.get("name", c.get("tool", "")) == tool_name
             ]
 
             for i, call in enumerate(tool_specific_calls):
@@ -290,6 +279,7 @@ class ToolCallCheckGrader(BaseGrader):
                 if isinstance(args, str):
                     try:
                         import json
+
                         args = json.loads(args)
                     except (json.JSONDecodeError, TypeError):
                         args = {}
@@ -306,9 +296,7 @@ class ToolCallCheckGrader(BaseGrader):
                     elif isinstance(pattern, dict):
                         # 딕셔너리 패턴: 필드별 검증
                         if actual_value != pattern:
-                            violations.append(
-                                f"{tool_name}[{i}].{arg_name}: 값 불일치"
-                            )
+                            violations.append(f"{tool_name}[{i}].{arg_name}: 값 불일치")
                     else:
                         # 값 일치 검증
                         if actual_value != pattern:

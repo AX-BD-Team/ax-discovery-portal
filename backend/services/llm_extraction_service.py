@@ -278,10 +278,7 @@ class LLMExtractionService:
 
         # 엔티티 목록을 JSON으로 변환
         entities_json = json.dumps(
-            [
-                {"name": e.name, "type": e.entity_type.value}
-                for e in entities
-            ],
+            [{"name": e.name, "type": e.entity_type.value} for e in entities],
             ensure_ascii=False,
             indent=2,
         )

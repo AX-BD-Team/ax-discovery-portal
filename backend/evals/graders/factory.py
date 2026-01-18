@@ -79,14 +79,11 @@ class GraderFactory:
                 GraderType.LLM_REFERENCE,
             ):
                 raise NotImplementedError(
-                    f"LLM 채점기 미구현: {grader_type.value}. "
-                    "향후 버전에서 지원 예정입니다."
+                    f"LLM 채점기 미구현: {grader_type.value}. 향후 버전에서 지원 예정입니다."
                 )
 
             if grader_type == GraderType.HUMAN_REVIEW:
-                raise NotImplementedError(
-                    "인간 리뷰 채점기 미구현. 향후 버전에서 지원 예정입니다."
-                )
+                raise NotImplementedError("인간 리뷰 채점기 미구현. 향후 버전에서 지원 예정입니다.")
 
             raise ValueError(f"지원하지 않는 채점기 타입: {grader_type.value}")
 

@@ -509,7 +509,9 @@ async def resume_opportunity(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/transitions", response_model=list[StageTransitionResponse])
+@router.get(
+    "/opportunities/{opportunity_id}/transitions", response_model=list[StageTransitionResponse]
+)
 async def get_opportunity_transitions(
     opportunity_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -760,12 +762,14 @@ async def _process_approval_decision(
 
     # 응답 기록 추가
     responses = approval.responses or []
-    responses.append({
-        "user_id": data.responded_by,
-        "decision": decision,
-        "responded_at": datetime.now(UTC).isoformat(),
-        "comments": data.comments,
-    })
+    responses.append(
+        {
+            "user_id": data.responded_by,
+            "decision": decision,
+            "responded_at": datetime.now(UTC).isoformat(),
+            "comments": data.comments,
+        }
+    )
     approval.responses = responses
 
     # 상태 업데이트

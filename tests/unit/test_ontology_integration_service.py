@@ -10,9 +10,9 @@ from backend.database.models.entity import Entity, EntityType
 from backend.database.models.triple import PredicateType, Triple
 from backend.services.entity_resolution_service import EntityMatch, ResolutionResult
 from backend.services.llm_extraction_service import (
-    ExtractionResult,
     ExtractedEntity,
     ExtractedRelation,
+    ExtractionResult,
 )
 from backend.services.ontology_integration_service import (
     OntologyCreationResult,
@@ -94,9 +94,7 @@ class TestOntologyIntegrationService:
         mock_entity.entity_id = "ACT-12345678"
         mock_entity.name = "AWS re:Invent 2025"
 
-        with patch(
-            "backend.services.ontology_integration_service.ontology_repo"
-        ) as mock_repo:
+        with patch("backend.services.ontology_integration_service.ontology_repo") as mock_repo:
             mock_repo.create_entity = AsyncMock(return_value=mock_entity)
 
             entity = await service.create_activity_entity(
@@ -130,9 +128,7 @@ class TestOntologyIntegrationService:
         mock_triple = MagicMock(spec=Triple)
         mock_triple.triple_id = "TRP-123456789012"
 
-        with patch(
-            "backend.services.ontology_integration_service.ontology_repo"
-        ) as mock_repo:
+        with patch("backend.services.ontology_integration_service.ontology_repo") as mock_repo:
             mock_repo.create_entity = AsyncMock(return_value=mock_signal)
             mock_repo.create_triple = AsyncMock(return_value=mock_triple)
 
@@ -194,9 +190,7 @@ class TestOntologyIntegrationService:
         mock_person.entity_type = MagicMock()
         mock_person.entity_type.value = "Person"
 
-        with patch(
-            "backend.services.ontology_integration_service.ontology_repo"
-        ) as mock_repo:
+        with patch("backend.services.ontology_integration_service.ontology_repo") as mock_repo:
             mock_repo.create_entity = AsyncMock(side_effect=[mock_org, mock_person])
             mock_repo.query_triples = AsyncMock(return_value=([], 0))
 
@@ -269,9 +263,7 @@ class TestOntologyIntegrationService:
         mock_triple = MagicMock(spec=Triple)
         mock_triple.triple_id = "TRP-123456789012"
 
-        with patch(
-            "backend.services.ontology_integration_service.ontology_repo"
-        ) as mock_repo:
+        with patch("backend.services.ontology_integration_service.ontology_repo") as mock_repo:
             mock_repo.create_entity = AsyncMock(side_effect=[mock_org, mock_person])
             mock_repo.query_triples = AsyncMock(return_value=([], 0))
             mock_repo.create_triple = AsyncMock(return_value=mock_triple)
@@ -341,9 +333,7 @@ class TestOntologyIntegrationService:
         # 이미 존재하는 Triple 반환
         existing_triple = MagicMock(spec=Triple)
 
-        with patch(
-            "backend.services.ontology_integration_service.ontology_repo"
-        ) as mock_repo:
+        with patch("backend.services.ontology_integration_service.ontology_repo") as mock_repo:
             mock_repo.create_entity = AsyncMock(side_effect=[mock_org_a, mock_org_b])
             mock_repo.query_triples = AsyncMock(return_value=([existing_triple], 1))
 
@@ -461,9 +451,7 @@ class TestTripleValidation:
         mock_signal.entity_type = MagicMock()
         mock_signal.entity_type.value = "Signal"
 
-        with patch(
-            "backend.services.ontology_integration_service.ontology_repo"
-        ) as mock_repo:
+        with patch("backend.services.ontology_integration_service.ontology_repo") as mock_repo:
             mock_repo.create_entity = AsyncMock(side_effect=[mock_topic, mock_signal])
             mock_repo.query_triples = AsyncMock(return_value=([], 0))
 

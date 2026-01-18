@@ -182,9 +182,7 @@ class PytestGrader(BaseGrader):
                 error_message=str(e),
             )
 
-    def _parse_pytest_output(
-        self, stdout: str, stderr: str, return_code: int
-    ) -> dict[str, Any]:
+    def _parse_pytest_output(self, stdout: str, stderr: str, return_code: int) -> dict[str, Any]:
         """pytest 출력 파싱"""
         result: dict[str, Any] = {
             "passed_tests": 0,

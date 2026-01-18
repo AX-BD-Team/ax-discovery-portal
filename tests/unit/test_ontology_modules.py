@@ -1294,11 +1294,13 @@ class TestOntologyRepository:
             return result
 
         # 호출 순서: outgoing, incoming, nodes batch fetch
-        self.mock_db.execute = AsyncMock(side_effect=[
-            make_execute_result([]),  # outgoing triples
-            make_execute_result([]),  # incoming triples
-            make_execute_result([mock_center]),  # nodes batch fetch (center만)
-        ])
+        self.mock_db.execute = AsyncMock(
+            side_effect=[
+                make_execute_result([]),  # outgoing triples
+                make_execute_result([]),  # incoming triples
+                make_execute_result([mock_center]),  # nodes batch fetch (center만)
+            ]
+        )
 
         with patch.object(self.repo, "get_entity", return_value=mock_center):
             graph = await self.repo.get_entity_graph(
@@ -1342,11 +1344,13 @@ class TestOntologyRepository:
 
         # execute 호출 순서: outgoing, incoming, nodes batch fetch
         # visited_nodes = {SIG-001, TOP-001} 이므로 두 노드 모두 반환
-        self.mock_db.execute = AsyncMock(side_effect=[
-            make_execute_result([mock_triple]),  # outgoing triples (depth 1)
-            make_execute_result([]),  # incoming triples (depth 1)
-            make_execute_result([mock_center, mock_neighbor]),  # nodes batch fetch
-        ])
+        self.mock_db.execute = AsyncMock(
+            side_effect=[
+                make_execute_result([mock_triple]),  # outgoing triples (depth 1)
+                make_execute_result([]),  # incoming triples (depth 1)
+                make_execute_result([mock_center, mock_neighbor]),  # nodes batch fetch
+            ]
+        )
 
         with patch.object(self.repo, "get_entity", side_effect=mock_get_entity):
             graph = await self.repo.get_entity_graph(
@@ -1383,11 +1387,13 @@ class TestOntologyRepository:
             return result
 
         # execute 호출 순서: outgoing (필터 적용됨), incoming, nodes batch fetch
-        self.mock_db.execute = AsyncMock(side_effect=[
-            make_execute_result([mock_triple_pain]),  # outgoing (HAS_PAIN만)
-            make_execute_result([]),  # incoming
-            make_execute_result([mock_center, mock_neighbor]),  # nodes batch fetch
-        ])
+        self.mock_db.execute = AsyncMock(
+            side_effect=[
+                make_execute_result([mock_triple_pain]),  # outgoing (HAS_PAIN만)
+                make_execute_result([]),  # incoming
+                make_execute_result([mock_center, mock_neighbor]),  # nodes batch fetch
+            ]
+        )
 
         with patch.object(self.repo, "get_entity", return_value=mock_center):
             graph = await self.repo.get_entity_graph(
@@ -1463,6 +1469,7 @@ class TestOntologyRepository:
     @pytest.mark.asyncio
     async def test_get_similar_entities_empty(self):
         """유사 엔티티 검색 (결과 없음)"""
+
         # execute 결과 mock (scalars().all() 체인 지원)
         def make_execute_result(data):
             scalars_result = MagicMock()

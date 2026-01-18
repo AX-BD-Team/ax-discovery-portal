@@ -238,9 +238,15 @@ class TestRSSCollector:
         """날짜 범위 필터링"""
         collector = RSSCollector()
         seminars = [
-            SeminarInfo(title="과거 이벤트", url="https://a.com", source_type="rss", date="2025-01-01"),
-            SeminarInfo(title="현재 이벤트", url="https://b.com", source_type="rss", date="2026-06-15"),
-            SeminarInfo(title="미래 이벤트", url="https://c.com", source_type="rss", date="2027-12-01"),
+            SeminarInfo(
+                title="과거 이벤트", url="https://a.com", source_type="rss", date="2025-01-01"
+            ),
+            SeminarInfo(
+                title="현재 이벤트", url="https://b.com", source_type="rss", date="2026-06-15"
+            ),
+            SeminarInfo(
+                title="미래 이벤트", url="https://c.com", source_type="rss", date="2027-12-01"
+            ),
         ]
 
         filtered = collector.filter_by_date_range(
@@ -783,7 +789,9 @@ class TestCollectorFiltering:
         collector = RSSCollector()
         seminars = [
             SeminarInfo(title="날짜 없음", url="https://a.com", source_type="rss", date=None),
-            SeminarInfo(title="날짜 있음", url="https://b.com", source_type="rss", date="2026-06-01"),
+            SeminarInfo(
+                title="날짜 있음", url="https://b.com", source_type="rss", date="2026-06-01"
+            ),
         ]
 
         filtered = collector.filter_by_date_range(seminars, start_date="2026-01-01")
@@ -916,16 +924,28 @@ class TestCollectorHealthCheck:
         """전체 헬스체크 (4개 수집기)"""
         checker = CollectorHealthChecker()
 
-        with patch.object(checker.onoffmix, "fetch_seminars", new_callable=AsyncMock) as mock_onoffmix:
-            with patch.object(checker.eventus, "fetch_seminars", new_callable=AsyncMock) as mock_eventus:
-                with patch.object(checker.devevent, "fetch_seminars", new_callable=AsyncMock) as mock_devevent:
-                    with patch.object(checker.rss, "fetch_seminars", new_callable=AsyncMock) as mock_rss:
+        with patch.object(
+            checker.onoffmix, "fetch_seminars", new_callable=AsyncMock
+        ) as mock_onoffmix:
+            with patch.object(
+                checker.eventus, "fetch_seminars", new_callable=AsyncMock
+            ) as mock_eventus:
+                with patch.object(
+                    checker.devevent, "fetch_seminars", new_callable=AsyncMock
+                ) as mock_devevent:
+                    with patch.object(
+                        checker.rss, "fetch_seminars", new_callable=AsyncMock
+                    ) as mock_rss:
                         mock_onoffmix.return_value = [
-                            SeminarInfo(title="세미나1", url="https://a.com", source_type="onoffmix"),
+                            SeminarInfo(
+                                title="세미나1", url="https://a.com", source_type="onoffmix"
+                            ),
                         ]
                         mock_eventus.return_value = []  # EventUs는 저하 상태
                         mock_devevent.return_value = [
-                            SeminarInfo(title="세미나2", url="https://b.com", source_type="devevent"),
+                            SeminarInfo(
+                                title="세미나2", url="https://b.com", source_type="devevent"
+                            ),
                         ]
                         mock_rss.return_value = [
                             SeminarInfo(title="세미나3", url="https://c.com", source_type="rss"),
@@ -946,7 +966,9 @@ class TestCollectorHealthCheck:
     @pytest.mark.asyncio
     async def test_run_health_check_helper(self):
         """run_health_check 헬퍼 함수"""
-        with patch.object(CollectorHealthChecker, "check_all", new_callable=AsyncMock) as mock_check:
+        with patch.object(
+            CollectorHealthChecker, "check_all", new_callable=AsyncMock
+        ) as mock_check:
             mock_check.return_value = [
                 HealthCheckResult(
                     collector_name="onoffmix",
