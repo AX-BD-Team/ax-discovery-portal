@@ -7,6 +7,7 @@ Play의 next_action을 Task 목록으로 변환
 import re
 from dataclasses import dataclass
 from datetime import date
+from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -198,7 +199,10 @@ class TaskConverter:
             templates.extend(self.generate_goal_task_templates(play))
 
         # 3. Task 생성
-        task_due = due_date or (play.due_date if hasattr(play, "due_date") else None)
+        # SQLAlchemy Date → Python date 변환 (mypy 타입 호환성)
+        play_due_raw = play.due_date if hasattr(play, "due_date") else None
+        play_due = cast(date | None, play_due_raw)  # SQLAlchemy Date는 런타임에 Python date
+        task_due: date | None = due_date or play_due
         assignee = play.owner.split("(")[0].replace("Owner:", "").strip() if play.owner else None
 
         for template in templates:

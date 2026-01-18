@@ -491,12 +491,12 @@ class OntologyResult:
     """온톨로지 생성 결과"""
 
     activity_entity_id: str | None = None
-    signal_entity_ids: list[str] = None
+    signal_entity_ids: list[str] | None = None
     entity_count: int = 0
     triple_count: int = 0
     extraction_notes: str | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.signal_entity_ids is None:
             self.signal_entity_ids = []
 
@@ -804,10 +804,11 @@ class SeminarPipelineWithOntology(SeminarPipelineWithEvents):
                 # Signal 정보를 결과에 추가
                 for signal_entity in creation_result.created_entities:
                     if signal_entity.entity_type.value == "Signal":
+                        props = signal_entity.properties or {}
                         signals.append({
                             "entity_id": signal_entity.entity_id,
                             "title": signal_entity.name,
-                            "pain": signal_entity.properties.get("pain", ""),
+                            "pain": props.get("pain", ""),
                         })
 
             else:

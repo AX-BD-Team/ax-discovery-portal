@@ -1215,12 +1215,12 @@ async def run_external_scout(
     )
 
     # 입력 데이터 구성
+    # ⚠️ festa_categories 제거 (Festa 2025.01.31 서비스 종료)
     input_data = ExternalScoutInput(
         sources=request.sources,
         keywords=request.keywords,
         categories=request.categories,
         rss_feed_urls=request.rss_feed_urls,
-        festa_categories=request.festa_categories,
         eventbrite_location=request.eventbrite_location,
         limit_per_source=request.limit_per_source,
         play_id=request.play_id,

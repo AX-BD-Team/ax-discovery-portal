@@ -12,6 +12,7 @@ from typing import Any
 
 import structlog
 from anthropic import AsyncAnthropic
+from anthropic.types import TextBlock
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -274,7 +275,7 @@ class EntityResolutionService:
     ) -> list[Entity]:
         """후보 기존 엔티티 검색"""
         # 1. 동일 타입의 엔티티 중 이름이 유사한 것 검색
-        candidates = []
+        candidates: list[Entity] = []
 
         # 이름 기반 검색 (부분 일치)
         name_parts = new_entity.name.split()
@@ -344,7 +345,9 @@ class EntityResolutionService:
                 system=prompts["system"],
             )
 
-            content = response.content[0].text
+            # TextBlock 타입 가드 (hasattr 사용으로 mock 호환)
+            first_block = response.content[0]
+            content = first_block.text if hasattr(first_block, "text") else ""
             result = self._parse_json_response(content)
 
             # same_as_groups에서 new_entity와 매칭되는 그룹 찾기

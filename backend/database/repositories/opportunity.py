@@ -159,8 +159,8 @@ class OpportunityRepository(CRUDBase[Opportunity]):
 
         return {
             "total": total,
-            "active": active_count,
-            "inactive": total - active_count if total else 0,
+            "active": active_count or 0,
+            "inactive": (total or 0) - (active_count or 0),
             "by_stage": stage_stats,
         }
 

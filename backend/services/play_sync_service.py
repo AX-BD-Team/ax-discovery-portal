@@ -169,7 +169,7 @@ class PlaySyncService:
 
         plays = await play_record_repo.get_all(db)
 
-        results = {"total": len(plays), "synced": 0, "errors": []}
+        results: dict[str, Any] = {"total": len(plays), "synced": 0, "errors": []}
 
         try:
             # 1. Confluence 페이지 조회

@@ -297,18 +297,19 @@ class OntologyIntegrationService:
         entity_id_map: dict[str, str] = {}  # 추출 엔티티 이름 → DB 엔티티 ID
 
         for match in resolution.matches:
-            if match.action == "merge":
+            if match.action == "merge" and match.existing_entity is not None:
                 # 기존 엔티티로 병합
-                entity_id_map[match.new_entity.name] = match.existing_entity.entity_id
+                existing_entity = match.existing_entity
+                entity_id_map[match.new_entity.name] = existing_entity.entity_id
                 result.merged_entities.append(
-                    (match.new_entity, match.existing_entity)
+                    (match.new_entity, existing_entity)
                 )
                 result.entity_merged_count += 1
 
                 self.logger.debug(
                     "Entity merged",
                     new_name=match.new_entity.name,
-                    existing_id=match.existing_entity.entity_id,
+                    existing_id=existing_entity.entity_id,
                 )
 
             else:  # "create" or "same_as"
@@ -437,7 +438,7 @@ class OntologyIntegrationService:
     async def _process_same_as(
         self,
         db: AsyncSession,
-        uncertain_pairs,
+        uncertain_pairs: list,
         entity_id_map: dict[str, str],
         result: OntologyCreationResult,
         created_by: str | None,
@@ -445,19 +446,19 @@ class OntologyIntegrationService:
         """SAME_AS Triple 생성 (불확실한 쌍)"""
         from backend.services.entity_resolution_service import SameAsPair
 
-        for pair in uncertain_pairs:
-            pair: SameAsPair
+        same_as_pair: SameAsPair
+        for same_as_pair in uncertain_pairs:
 
             # 두 엔티티의 ID 조회
-            if isinstance(pair.entity_a, ExtractedEntity):
-                entity_a_id = entity_id_map.get(pair.entity_a.name)
+            if isinstance(same_as_pair.entity_a, ExtractedEntity):
+                entity_a_id = entity_id_map.get(same_as_pair.entity_a.name)
             else:
-                entity_a_id = pair.entity_a.entity_id
+                entity_a_id = same_as_pair.entity_a.entity_id
 
-            if isinstance(pair.entity_b, ExtractedEntity):
-                entity_b_id = entity_id_map.get(pair.entity_b.name)
+            if isinstance(same_as_pair.entity_b, ExtractedEntity):
+                entity_b_id = entity_id_map.get(same_as_pair.entity_b.name)
             else:
-                entity_b_id = pair.entity_b.entity_id
+                entity_b_id = same_as_pair.entity_b.entity_id
 
             if not entity_a_id or not entity_b_id:
                 continue
@@ -480,8 +481,8 @@ class OntologyIntegrationService:
                 subject_id=entity_a_id,
                 predicate=PredicateType.SAME_AS,
                 object_id=entity_b_id,
-                confidence=pair.confidence,
-                properties={"reason": pair.reason},
+                confidence=same_as_pair.confidence,
+                properties={"reason": same_as_pair.reason},
                 created_by=created_by,
             )
 

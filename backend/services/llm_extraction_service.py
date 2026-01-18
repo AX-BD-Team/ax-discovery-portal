@@ -12,6 +12,7 @@ from typing import Any
 
 import structlog
 from anthropic import AsyncAnthropic
+from anthropic.types import TextBlock
 
 from backend.database.models.entity import EntityType
 from backend.database.models.triple import PredicateType
@@ -238,8 +239,9 @@ class LLMExtractionService:
                 system=prompts["system"],
             )
 
-            # 응답 파싱
-            content = response.content[0].text
+            # 응답 파싱 (TextBlock 타입 가드: hasattr 사용으로 mock 호환)
+            first_block = response.content[0]
+            content = first_block.text if hasattr(first_block, "text") else ""
             result = self._parse_json_response(content)
 
             entities = []
@@ -299,7 +301,9 @@ class LLMExtractionService:
                 system=prompts["system"],
             )
 
-            content = response.content[0].text
+            # TextBlock 타입 가드 (hasattr 사용으로 mock 호환)
+            first_block = response.content[0]
+            content = first_block.text if hasattr(first_block, "text") else ""
             result = self._parse_json_response(content)
 
             relations = []

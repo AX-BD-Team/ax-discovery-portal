@@ -136,7 +136,7 @@ STAGE_RULES: dict[OpportunityStage, StageRule] = {
 }
 
 
-def get_stage_rule(stage: OpportunityStage) -> StageRule:
+def get_stage_rule(stage: OpportunityStage) -> StageRule | None:
     """단계별 규칙 조회"""
     return STAGE_RULES.get(stage)
 

@@ -9,7 +9,7 @@ Opportunity 단계 관리 API
 """
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
@@ -243,7 +243,7 @@ async def create_opportunity(
     """Opportunity 생성"""
     opportunity_id = await opportunity_repo.generate_opportunity_id(db)
 
-    opp_data = {
+    opp_data: dict[str, Any] = {
         "opportunity_id": opportunity_id,
         "title": data.title,
         "description": data.description,
