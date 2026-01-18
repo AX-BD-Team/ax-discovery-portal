@@ -412,7 +412,24 @@ async def list_suites(
     Returns:
         Suite 목록
     """
-    query = select(EvalSuite)
+    # 서브쿼리로 task_count 계산 (N+1 문제 해결)
+    task_count_subquery = (
+        select(
+            EvalTask.suite_id,
+            func.count(EvalTask.task_id).label("task_count"),
+        )
+        .group_by(EvalTask.suite_id)
+        .subquery()
+    )
+
+    # Suite와 task_count를 LEFT JOIN으로 한 번에 조회
+    query = (
+        select(
+            EvalSuite,
+            func.coalesce(task_count_subquery.c.task_count, 0).label("task_count"),
+        )
+        .outerjoin(task_count_subquery, EvalSuite.suite_id == task_count_subquery.c.suite_id)
+    )
 
     if purpose:
         try:
@@ -429,16 +446,13 @@ async def list_suites(
 
     query = query.order_by(EvalSuite.name)
     result = await db.execute(query)
-    suites = result.scalars().all()
+    rows = result.all()
 
-    # Task 수 계산
+    # 결과 변환
     responses = []
-    for suite in suites:
-        task_count_query = select(func.count(EvalTask.task_id)).where(
-            EvalTask.suite_id == suite.suite_id
-        )
-        task_count_result = await db.execute(task_count_query)
-        task_count = task_count_result.scalar() or 0
+    for row in rows:
+        suite = row[0]  # EvalSuite 객체
+        task_count = row[1]  # task_count 값
 
         responses.append(
             SuiteResponse(
@@ -761,15 +775,22 @@ async def get_run(
     if not run:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
+    # Trial에서 사용된 모든 task_id 추출
+    task_ids_in_trials = {trial.task_id for trial in run.trials}
+
+    # 모든 Task 정보를 한 번에 조회 (N+1 문제 해결)
+    task_map: dict[str, EvalTask] = {}
+    if task_ids_in_trials:
+        task_query = select(EvalTask).where(EvalTask.task_id.in_(task_ids_in_trials))
+        task_result = await db.execute(task_query)
+        tasks = task_result.scalars().all()
+        task_map = {task.task_id: task for task in tasks}
+
     # Task별 결과 집계
     task_results_map: dict[str, TaskResultSummary] = {}
     for trial in run.trials:
         if trial.task_id not in task_results_map:
-            # Task 정보 조회
-            task_query = select(EvalTask).where(EvalTask.task_id == trial.task_id)
-            task_result = await db.execute(task_query)
-            task = task_result.scalar_one_or_none()
-
+            task = task_map.get(trial.task_id)
             task_results_map[trial.task_id] = TaskResultSummary(
                 task_id=trial.task_id,
                 task_description=task.description if task else None,

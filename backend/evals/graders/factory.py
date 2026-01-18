@@ -10,6 +10,7 @@ import structlog
 
 from backend.evals.graders.base import BaseGrader
 from backend.evals.graders.deterministic import MypyGrader, PytestGrader, RuffGrader
+from backend.evals.graders.llm_judge import LLMJudgeConfig, LLMJudgeGrader
 from backend.evals.graders.state_check import StateCheckGrader
 from backend.evals.graders.tool_call_check import ToolCallCheckGrader
 from backend.evals.graders.transcript_metrics import TranscriptMetricsGrader
@@ -33,6 +34,7 @@ class GraderFactory:
         GraderType.TRANSCRIPT_METRICS: TranscriptMetricsGrader,
         GraderType.TOOL_CALL_CHECK: ToolCallCheckGrader,
         GraderType.STATIC_ANALYSIS: RuffGrader,  # 기본 정적 분석 도구
+        GraderType.LLM_RUBRIC: LLMJudgeGrader,  # LLM-as-Judge 채점기
     }
 
     # 정적 분석 도구별 클래스 매핑
@@ -70,9 +72,8 @@ class GraderFactory:
         grader_class = cls._grader_map.get(grader_type)
 
         if grader_class is None:
-            # LLM 채점기는 아직 미구현
+            # LLM_RUBRIC은 구현됨, 나머지 LLM 채점기는 아직 미구현
             if grader_type in (
-                GraderType.LLM_RUBRIC,
                 GraderType.LLM_ASSERTION,
                 GraderType.LLM_PAIRWISE,
                 GraderType.LLM_REFERENCE,
@@ -184,6 +185,24 @@ class GraderFactory:
                     if r.get("max_count") is not None
                 },
                 check_order=grader_config.get("check_order", False),
+                **common_kwargs,
+            )
+
+        elif grader_class == LLMJudgeGrader:
+            # LLM-as-Judge 채점기 생성
+            llm_config = LLMJudgeConfig(
+                rubric=grader_config.get("rubric", ""),
+                criteria=grader_config.get("criteria", []),
+                scoring_scale=grader_config.get("scoring_scale", 5),
+                model=grader_config.get("model", "claude-sonnet-4-20250514"),
+                temperature=grader_config.get("temperature", 0.0),
+                max_tokens=grader_config.get("max_tokens", 2048),
+                enable_cache=grader_config.get("enable_cache", True),
+                pass_threshold=grader_config.get("pass_threshold", 0.6),
+            )
+            return LLMJudgeGrader(
+                config=llm_config,
+                api_key=grader_config.get("api_key"),
                 **common_kwargs,
             )
 

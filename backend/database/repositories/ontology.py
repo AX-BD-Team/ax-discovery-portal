@@ -245,33 +245,53 @@ class OntologyRepository:
 
             next_frontier: set[str] = set()
 
-            # 현재 frontier에서 나가는/들어오는 관계 조회
-            for node_id in current_frontier:
-                # 나가는 관계
-                outgoing, _ = await self.query_triples(db, subject_id=node_id, limit=100)
-                for triple in outgoing:
-                    if predicates is None or triple.predicate in predicates:
-                        all_edges.append(triple)
-                        if triple.object_id not in visited_nodes:
-                            next_frontier.add(triple.object_id)
+            # 배치 쿼리로 현재 frontier의 모든 관계를 한 번에 조회 (N+1 문제 해결)
+            frontier_list = list(current_frontier)
 
-                # 들어오는 관계
-                incoming, _ = await self.query_triples(db, object_id=node_id, limit=100)
-                for triple in incoming:
-                    if predicates is None or triple.predicate in predicates:
-                        all_edges.append(triple)
-                        if triple.subject_id not in visited_nodes:
-                            next_frontier.add(triple.subject_id)
+            # 나가는 관계 배치 조회
+            outgoing_query = (
+                select(Triple)
+                .options(selectinload(Triple.subject), selectinload(Triple.object))
+                .where(Triple.subject_id.in_(frontier_list))
+            )
+            if predicates:
+                outgoing_query = outgoing_query.where(Triple.predicate.in_(predicates))
+            outgoing_result = await db.execute(outgoing_query)
+            outgoing_triples = list(outgoing_result.scalars().all())
+
+            for triple in outgoing_triples:
+                all_edges.append(triple)
+                if triple.object_id not in visited_nodes:
+                    next_frontier.add(triple.object_id)
+
+            # 들어오는 관계 배치 조회
+            incoming_query = (
+                select(Triple)
+                .options(selectinload(Triple.subject), selectinload(Triple.object))
+                .where(Triple.object_id.in_(frontier_list))
+            )
+            if predicates:
+                incoming_query = incoming_query.where(Triple.predicate.in_(predicates))
+            incoming_result = await db.execute(incoming_query)
+            incoming_triples = list(incoming_result.scalars().all())
+
+            for triple in incoming_triples:
+                all_edges.append(triple)
+                if triple.subject_id not in visited_nodes:
+                    next_frontier.add(triple.subject_id)
 
             visited_nodes.update(next_frontier)
             current_frontier = next_frontier
 
-        # 노드 조회
-        nodes = []
-        for node_id in visited_nodes:
-            node = await self.get_entity(db, node_id)
-            if node:
-                nodes.append(node)
+        # 노드 배치 조회 (N+1 문제 해결)
+        node_ids_to_fetch = list(visited_nodes)
+        if node_ids_to_fetch:
+            nodes_result = await db.execute(
+                select(Entity).where(Entity.entity_id.in_(node_ids_to_fetch))
+            )
+            nodes = list(nodes_result.scalars().all())
+        else:
+            nodes = []
 
         # 중복 엣지 제거
         unique_edges = {e.triple_id: e for e in all_edges}
@@ -323,28 +343,40 @@ class OntologyRepository:
         limit: int = 10,
     ) -> list[tuple[Entity, float]]:
         """유사 엔티티 검색 (similar_to 관계 기반)"""
-        # similar_to 관계로 연결된 엔티티
-        triples, _ = await self.query_triples(
-            db, subject_id=entity_id, predicate=PredicateType.SIMILAR_TO, limit=limit
+        # 양방향 관계를 단일 쿼리로 조회 (N+1 문제 해결)
+        query = (
+            select(Triple)
+            .options(selectinload(Triple.subject), selectinload(Triple.object))
+            .where(
+                Triple.predicate == PredicateType.SIMILAR_TO,
+                or_(
+                    Triple.subject_id == entity_id,
+                    Triple.object_id == entity_id,
+                ),
+            )
+            .order_by(Triple.weight.desc())
+            .limit(limit * 2)  # 양방향이므로 2배로 가져옴
         )
+        result = await db.execute(query)
+        triples = list(result.scalars().all())
 
-        results = []
+        # 중복 제거하며 결과 구성
+        seen_entity_ids: set[str] = set()
+        results: list[tuple[Entity, float]] = []
+
         for triple in triples:
-            entity = await self.get_entity(db, triple.object_id)
-            if entity:
-                results.append((entity, triple.weight))
+            if triple.subject_id == entity_id:
+                # 나가는 관계: object가 유사 엔티티
+                if triple.object_id not in seen_entity_ids and triple.object:
+                    seen_entity_ids.add(triple.object_id)
+                    results.append((triple.object, triple.weight))
+            else:
+                # 들어오는 관계: subject가 유사 엔티티
+                if triple.subject_id not in seen_entity_ids and triple.subject:
+                    seen_entity_ids.add(triple.subject_id)
+                    results.append((triple.subject, triple.weight))
 
-        # 역방향도 검색 (양방향 관계)
-        reverse_triples, _ = await self.query_triples(
-            db, object_id=entity_id, predicate=PredicateType.SIMILAR_TO, limit=limit
-        )
-
-        for triple in reverse_triples:
-            entity = await self.get_entity(db, triple.subject_id)
-            if entity and entity.entity_id not in [r[0].entity_id for r in results]:
-                results.append((entity, triple.weight))
-
-        # 점수순 정렬
+        # 점수순 정렬 후 limit 적용
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:limit]
 
@@ -384,34 +416,48 @@ class OntologyRepository:
     # ==================== Statistics ====================
 
     async def get_stats(self, db: AsyncSession) -> dict:
-        """온톨로지 통계"""
-        # 엔티티 통계
-        entity_count = await db.scalar(select(func.count()).select_from(Entity))
-
-        entity_by_type = {}
-        for entity_type in EntityType:
-            count = await db.scalar(
-                select(func.count()).select_from(Entity).where(Entity.entity_type == entity_type)
+        """온톨로지 통계 (최적화: N개 쿼리 -> 3개 쿼리)"""
+        # 엔티티 타입별 개수를 단일 GROUP BY 쿼리로 조회
+        entity_stats_query = (
+            select(
+                Entity.entity_type,
+                func.count().label("count"),
             )
-            entity_by_type[entity_type.value] = count or 0
+            .group_by(Entity.entity_type)
+        )
+        entity_result = await db.execute(entity_stats_query)
+        entity_rows = entity_result.all()
 
-        # Triple 통계
-        triple_count = await db.scalar(select(func.count()).select_from(Triple))
+        entity_by_type = {entity_type.value: 0 for entity_type in EntityType}
+        entity_count = 0
+        for row in entity_rows:
+            entity_by_type[row.entity_type.value] = row.count
+            entity_count += row.count
 
-        triple_by_predicate = {}
-        for predicate in PredicateType:
-            count = await db.scalar(
-                select(func.count()).select_from(Triple).where(Triple.predicate == predicate)
+        # Triple 통계를 단일 쿼리로 조회 (predicate별 개수 + 평균 신뢰도)
+        triple_stats_query = (
+            select(
+                Triple.predicate,
+                func.count().label("count"),
             )
-            triple_by_predicate[predicate.value] = count or 0
+            .group_by(Triple.predicate)
+        )
+        triple_result = await db.execute(triple_stats_query)
+        triple_rows = triple_result.all()
 
-        # 평균 신뢰도
+        triple_by_predicate = {predicate.value: 0 for predicate in PredicateType}
+        triple_count = 0
+        for row in triple_rows:
+            triple_by_predicate[row.predicate.value] = row.count
+            triple_count += row.count
+
+        # 평균 신뢰도 (별도 쿼리, 집계 함수)
         avg_confidence = await db.scalar(select(func.avg(Triple.confidence)).select_from(Triple))
 
         return {
-            "entity_count": entity_count or 0,
+            "entity_count": entity_count,
             "entity_by_type": entity_by_type,
-            "triple_count": triple_count or 0,
+            "triple_count": triple_count,
             "triple_by_predicate": triple_by_predicate,
             "avg_confidence": round(avg_confidence or 0, 3),
         }

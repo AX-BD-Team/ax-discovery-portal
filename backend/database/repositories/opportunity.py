@@ -130,43 +130,44 @@ class OpportunityRepository(CRUDBase[Opportunity]):
 
     async def get_stage_stats(self, db: AsyncSession) -> dict:
         """
-        단계별 Opportunity 통계 조회
+        단계별 Opportunity 통계 조회 (최적화: N개 쿼리 -> 1개 쿼리)
 
         Returns:
             dict: 단계별 개수 및 통계
         """
-        total_result = await db.execute(select(func.count()).select_from(Opportunity))
-        total = total_result.scalar()
-
-        stage_stats = {}
-        for stage in OpportunityStage:
-            count_result = await db.execute(
-                select(func.count())
-                .select_from(Opportunity)
-                .where(Opportunity.current_stage == stage)
+        # 단일 GROUP BY 쿼리로 모든 통계 조회
+        stats_query = (
+            select(
+                Opportunity.current_stage,
+                func.count().label("count"),
             )
-            stage_stats[stage.value] = count_result.scalar()
-
-        # 활성/비활성 개수
-        active_count_result = await db.execute(
-            select(func.count())
-            .select_from(Opportunity)
-            .where(
-                Opportunity.current_stage.notin_([OpportunityStage.HOLD, OpportunityStage.DROP])
-            )
+            .group_by(Opportunity.current_stage)
         )
-        active_count = active_count_result.scalar()
+        result = await db.execute(stats_query)
+        rows = result.all()
+
+        # 결과 처리
+        stage_stats = {stage.value: 0 for stage in OpportunityStage}
+        total = 0
+        active_count = 0
+        inactive_stages = {OpportunityStage.HOLD, OpportunityStage.DROP}
+
+        for row in rows:
+            stage_stats[row.current_stage.value] = row.count
+            total += row.count
+            if row.current_stage not in inactive_stages:
+                active_count += row.count
 
         return {
             "total": total,
-            "active": active_count or 0,
-            "inactive": (total or 0) - (active_count or 0),
+            "active": active_count,
+            "inactive": total - active_count,
             "by_stage": stage_stats,
         }
 
     async def get_funnel_data(self, db: AsyncSession) -> list[dict]:
         """
-        파이프라인 퍼널 데이터 조회
+        파이프라인 퍼널 데이터 조회 (최적화: N개 쿼리 -> 1개 쿼리)
 
         Returns:
             list[dict]: 단계별 퍼널 데이터
@@ -183,18 +184,27 @@ class OpportunityRepository(CRUDBase[Opportunity]):
             (OpportunityStage.HANDOFF, "09 인계"),
         ]
 
+        # 단일 GROUP BY 쿼리로 모든 단계 개수 조회
+        stats_query = (
+            select(
+                Opportunity.current_stage,
+                func.count().label("count"),
+            )
+            .group_by(Opportunity.current_stage)
+        )
+        result = await db.execute(stats_query)
+        rows = result.all()
+
+        # 결과를 딕셔너리로 변환
+        stage_counts = {row.current_stage: row.count for row in rows}
+
+        # 퍼널 순서대로 데이터 구성
         funnel_data = []
         for stage, label in funnel_stages:
-            count_result = await db.execute(
-                select(func.count())
-                .select_from(Opportunity)
-                .where(Opportunity.current_stage == stage)
-            )
-            count = count_result.scalar() or 0
             funnel_data.append({
                 "stage": stage.value,
                 "label": label,
-                "count": count,
+                "count": stage_counts.get(stage, 0),
             })
 
         return funnel_data

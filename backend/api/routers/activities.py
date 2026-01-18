@@ -118,41 +118,49 @@ async def list_activities(
     Returns:
         ActivityListResponse: Activity 목록 + 페이지네이션 정보
     """
-    from sqlalchemy import select
+    from sqlalchemy import func, select
 
     from backend.database.models.entity import Entity, EntityType
 
-    # 전체 Activity 조회
+    # 기본 쿼리 조건
+    base_conditions = [Entity.entity_type == EntityType.ACTIVITY]
+
+    # JSON 필터 조건 추가 (PostgreSQL JSONB 연산자 사용)
+    # SQLite 호환성을 위해 DB 종류에 따라 분기
+    if play_id:
+        # PostgreSQL: properties->>'play_id', SQLite: json_extract(properties, '$.play_id')
+        base_conditions.append(
+            Entity.properties["play_id"].astext == play_id
+        )
+    if source_type:
+        base_conditions.append(
+            Entity.properties["source_type"].astext == source_type
+        )
+    if status:
+        base_conditions.append(
+            Entity.properties["status"].astext == status
+        )
+
+    # 총 개수 조회 (별도 쿼리로 분리하여 최적화)
+    count_query = (
+        select(func.count())
+        .select_from(Entity)
+        .where(*base_conditions)
+    )
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # 페이지네이션 적용된 데이터 조회
+    skip = (page - 1) * page_size
     query = (
         select(Entity)
-        .where(Entity.entity_type == EntityType.ACTIVITY)
+        .where(*base_conditions)
         .order_by(Entity.created_at.desc())
+        .offset(skip)
+        .limit(page_size)
     )
     result = await db.execute(query)
-    all_items = list(result.scalars().all())
-
-    # Python에서 필터링 (JSON 쿼리 호환성 문제 우회)
-    filtered_items = all_items
-    if play_id:
-        filtered_items = [
-            item for item in filtered_items
-            if (item.properties or {}).get("play_id") == play_id
-        ]
-    if source_type:
-        filtered_items = [
-            item for item in filtered_items
-            if (item.properties or {}).get("source_type") == source_type
-        ]
-    if status:
-        filtered_items = [
-            item for item in filtered_items
-            if (item.properties or {}).get("status") == status
-        ]
-
-    # 페이지네이션
-    total = len(filtered_items)
-    skip = (page - 1) * page_size
-    items = filtered_items[skip : skip + page_size]
+    items = list(result.scalars().all())
 
     return ActivityListResponse(
         items=[ActivityResponse.from_entity(item) for item in items],
@@ -178,40 +186,44 @@ async def get_activity_stats(
 
     from backend.database.models.entity import Entity, EntityType
 
-    # 총 Activity 수
-    total_result = await db.execute(
-        select(func.count())
-        .select_from(Entity)
-        .where(Entity.entity_type == EntityType.ACTIVITY)
-    )
-    total = total_result.scalar() or 0
-
-    # 모든 Activity 조회 후 Python에서 집계
-    all_result = await db.execute(
-        select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
-    )
-    all_activities = list(all_result.scalars().all())
-
-    # 소스 타입별 개수
-    source_types = ["rss", "festa", "eventbrite", "manual"]
-    by_source_type = dict.fromkeys(source_types, 0)
-    for activity in all_activities:
-        props = activity.properties or {}
-        st = props.get("source_type", "manual")
-        if st in by_source_type:
-            by_source_type[st] += 1
-
-    # 오늘 수집된 Activity 수
+    # 모든 통계를 단일 쿼리로 조회 (성능 최적화)
     today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-    today_result = await db.execute(
-        select(func.count())
-        .select_from(Entity)
-        .where(
-            Entity.entity_type == EntityType.ACTIVITY,
-            Entity.created_at >= today_start,
+
+    # 소스 타입별 개수를 DB에서 직접 집계 (PostgreSQL JSONB)
+    source_types = ["rss", "festa", "eventbrite", "manual", "onoffmix", "eventus", "devevent", "chat", "upload"]
+
+    # 총 개수 + 오늘 수집 개수를 단일 쿼리로
+    stats_query = select(
+        func.count().label("total"),
+        func.count().filter(Entity.created_at >= today_start).label("today_count"),
+    ).where(Entity.entity_type == EntityType.ACTIVITY)
+
+    stats_result = await db.execute(stats_query)
+    stats_row = stats_result.one()
+    total = stats_row.total or 0
+    today_count = stats_row.today_count or 0
+
+    # 소스 타입별 개수 집계 (DB 레벨)
+    source_count_query = (
+        select(
+            Entity.properties["source_type"].astext.label("source_type"),
+            func.count().label("count"),
         )
+        .where(Entity.entity_type == EntityType.ACTIVITY)
+        .group_by(Entity.properties["source_type"].astext)
     )
-    today_count = today_result.scalar() or 0
+    source_result = await db.execute(source_count_query)
+    source_rows = source_result.all()
+
+    # 결과를 딕셔너리로 변환
+    by_source_type = dict.fromkeys(source_types, 0)
+    for row in source_rows:
+        source_type = row.source_type or "manual"
+        if source_type in by_source_type:
+            by_source_type[source_type] = row.count
+        else:
+            # 알 수 없는 소스 타입은 manual로 집계
+            by_source_type["manual"] = by_source_type.get("manual", 0) + row.count
 
     return ActivityStatsResponse(
         total=total,
@@ -315,18 +327,16 @@ async def get_activity_by_url(
 
     from backend.database.models.entity import Entity, EntityType
 
-    # 모든 Activity 조회 후 URL로 필터링
+    # DB 레벨에서 URL로 직접 필터링 (JSONB 인덱스 활용)
     result = await db.execute(
-        select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
+        select(Entity)
+        .where(
+            Entity.entity_type == EntityType.ACTIVITY,
+            Entity.properties["url"].astext == url,
+        )
+        .limit(1)
     )
-    all_activities = list(result.scalars().all())
-
-    entity = None
-    for activity in all_activities:
-        props = activity.properties or {}
-        if props.get("url") == url:
-            entity = activity
-            break
+    entity = result.scalar_one_or_none()
 
     if not entity:
         raise HTTPException(status_code=404, detail="Activity not found for this URL")
@@ -364,36 +374,44 @@ async def check_duplicate(
             detail="url, title, 또는 external_id 중 하나는 필수입니다",
         )
 
-    # 모든 Activity 조회 후 Python에서 중복 체크
-    result = await db.execute(
-        select(Entity).where(Entity.entity_type == EntityType.ACTIVITY)
-    )
-    all_activities = list(result.scalars().all())
-
     existing = None
 
-    # 1. external_id로 체크
-    if external_id:
-        for activity in all_activities:
-            if activity.external_ref_id == external_id:
-                existing = activity
-                break
+    # 1. external_id로 체크 (가장 우선순위 높음)
+    if external_id and not existing:
+        result = await db.execute(
+            select(Entity)
+            .where(
+                Entity.entity_type == EntityType.ACTIVITY,
+                Entity.external_ref_id == external_id,
+            )
+            .limit(1)
+        )
+        existing = result.scalar_one_or_none()
 
-    # 2. URL로 체크
-    if not existing and url:
-        for activity in all_activities:
-            props = activity.properties or {}
-            if props.get("url") == url:
-                existing = activity
-                break
+    # 2. URL로 체크 (DB 레벨 JSONB 쿼리)
+    if url and not existing:
+        result = await db.execute(
+            select(Entity)
+            .where(
+                Entity.entity_type == EntityType.ACTIVITY,
+                Entity.properties["url"].astext == url,
+            )
+            .limit(1)
+        )
+        existing = result.scalar_one_or_none()
 
-    # 3. 제목 + 날짜로 체크
-    if not existing and title and date:
-        for activity in all_activities:
-            props = activity.properties or {}
-            if activity.name == title and props.get("date") == date:
-                existing = activity
-                break
+    # 3. 제목 + 날짜로 체크 (DB 레벨 쿼리)
+    if title and date and not existing:
+        result = await db.execute(
+            select(Entity)
+            .where(
+                Entity.entity_type == EntityType.ACTIVITY,
+                Entity.name == title,
+                Entity.properties["date"].astext == date,
+            )
+            .limit(1)
+        )
+        existing = result.scalar_one_or_none()
 
     if existing:
         return {

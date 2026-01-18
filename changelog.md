@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2026-01-18
 
+### Added
+
+- **LLM-as-Judge Grader (Phase 5.1)** 🤖
+  - Claude API 기반 에이전트 출력 평가 채점기
+  - 루브릭 기반 평가: 마크다운 형식 평가 기준 정의
+  - 다중 기준 채점: 기준별 점수, 근거, 개선 제안 추출
+  - 비용 최적화: 메모리 캐싱 (동일 입/출력 재평가 방지)
+  - 토큰 사용량 추적 및 비용 계산
+  - `backend/evals/graders/llm_judge.py`
+
+### Improved
+
+- **API 성능 최적화** ⚡
+  - **activities.py**: DB 레벨 JSONB 필터링, 페이지네이션 도입 (O(N) → O(log N))
+  - **evals.py**: N+1 쿼리 해결 (서브쿼리 + LEFT JOIN)
+  - **ontology.py**: 배치 IN 쿼리, selectinload 활용 (40+ → 3 쿼리)
+  - **opportunity.py**: 단일 GROUP BY 쿼리 통합 (11+ → 1 쿼리)
+
 ### Fixed
 
 - **외부 세미나 수집기 4개 복구** 🔧
