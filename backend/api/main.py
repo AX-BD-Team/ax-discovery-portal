@@ -61,6 +61,7 @@ from .routers import (
     stages,
     stream,
     tasks,
+    templates,
     webhooks,
     workflows,
     xai,
@@ -135,6 +136,10 @@ TAGS_METADATA = [
     {
         "name": "evals",
         "description": "AI 평가 플랫폼 - Suite/Run/Trial 관리 및 통계 분석",
+    },
+    {
+        "name": "templates",
+        "description": "Boilerplate 템플릿 - Claude Agent SDK 프로젝트 템플릿 다운로드",
     },
 ]
 
@@ -286,6 +291,8 @@ app.include_router(xai.router, prefix="/api", tags=["xai"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 # Evals Platform
 app.include_router(evals.router, prefix="/api/evals", tags=["evals"])
+# Templates
+app.include_router(templates.router, prefix="/api/templates", tags=["templates"])
 
 
 @app.get("/")
