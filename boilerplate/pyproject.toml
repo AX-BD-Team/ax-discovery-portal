@@ -1,0 +1,116 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "{{project-name}}"
+version = "0.1.0"
+description = "{{project-description}}"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "{{author-name}}"}
+]
+keywords = ["claude", "agent", "mcp"]
+
+dependencies = [
+    # === AI/Agent ===
+    "anthropic>=0.40.0",
+    "claude-agent-sdk>=0.1.19",
+
+    # === Web Framework ===
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sse-starlette>=2.2.1",
+
+    # === Data Validation ===
+    "pydantic[email]>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "email-validator>=2.0.0",
+
+    # === HTTP Client ===
+    "httpx>=0.28.0",
+
+    # === Logging ===
+    "structlog>=24.4.0",
+
+    # === Config ===
+    "python-dotenv>=1.0.0",
+
+    # === Database ===
+    "psycopg[binary]>=3.2.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "alembic>=1.14.0",
+
+    # === Utils ===
+    "tenacity>=9.0.0",
+    "jsonschema>=4.23.0",
+    "pyyaml>=6.0.0",
+
+    # === Auth ===
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.0",
+    "types-PyYAML>=6.0.0",
+]
+monitoring = [
+    "sentry-sdk[fastapi]>=2.0.0",
+]
+
+[project.scripts]
+{{project-cli}} = "backend.api.main:main"
+{{project-cli}}-evals = "backend.evals.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/{{org}}/{{project-name}}"
+Repository = "https://github.com/{{org}}/{{project-name}}"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in default argument (FastAPI Depends pattern)
+    "N806",   # variable in function should be lowercase
+    "SIM102", # nested if (readability preference)
+    "SIM105", # contextlib.suppress
+    "SIM117", # nested with statements
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]
+"backend/database/models/*" = ["F821"]
+"backend/api/main.py" = ["E402"]
+"backend/evals/cli.py" = ["E402"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+strict_optional = true
+warn_unused_ignores = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true

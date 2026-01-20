@@ -1,0 +1,12 @@
+{
+  "setting_sources": ["project", "user"],
+  "allowed_tools": ["Skill", "mcp", "bash", "files"],
+  "permission_mode": "ask",
+  "default_agent": "orchestrator",
+  "project_name": "{{PROJECT_NAME}}",
+  "project_description": "{{PROJECT_DESCRIPTION}}",
+  "skills_dir": ".claude/skills",
+  "agents_dir": ".claude/agents",
+  "commands_dir": ".claude/commands",
+  "hooks_dir": ".claude/hooks"
+}

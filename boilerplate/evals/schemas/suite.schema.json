@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvalSuite",
+  "description": "AI 에이전트 평가 Suite 정의 스키마",
+  "type": "object",
+  "required": ["suite"],
+  "properties": {
+    "suite": {
+      "type": "object",
+      "required": ["id", "name", "purpose", "tasks"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$",
+          "minLength": 3,
+          "maxLength": 100,
+          "description": "Suite 고유 ID"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Suite 이름"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Suite 설명"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "default": "1.0.0"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["capability", "regression"],
+          "description": "Suite 목적 (역량 측정 vs 회귀 방지)"
+        },
+        "domain": {
+          "type": "string",
+          "description": "도메인 분류"
+        },
+        "owner_team": {
+          "type": "string",
+          "description": "담당 팀"
+        },
+        "tasks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Task YAML 파일 경로"
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Task 활성화 여부"
+              },
+              "override": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Task 설정 오버라이드"
+              }
+            }
+          },
+          "description": "포함된 Task 목록"
+        },
+        "default_trial_config": {
+          "type": "object",
+          "properties": {
+            "k": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 5
+            },
+            "parallel": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "description": "기본 Trial 설정 (Task에서 오버라이드 가능)"
+        },
+        "gate_config": {
+          "type": "object",
+          "properties": {
+            "min_pass_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.9,
+              "description": "CI 게이트 최소 통과율"
+            },
+            "required_tasks": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "필수 통과 Task ID 목록"
+            },
+            "allow_regressions": {
+              "type": "boolean",
+              "default": false,
+              "description": "회귀 허용 여부"
+            }
+          },
+          "description": "CI 게이트 설정"
+        },
+        "schedule": {
+          "type": "object",
+          "properties": {
+            "cron": {
+              "type": "string",
+              "description": "Cron 표현식 (예: '0 0 * * *')"
+            },
+            "on_push": {
+              "type": "boolean",
+              "default": false
+            },
+            "on_pr": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "description": "실행 스케줄"
+        },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "on_failure": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "실패 시 알림 대상"
+            },
+            "on_regression": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "회귀 발생 시 알림 대상"
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "분류 태그"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

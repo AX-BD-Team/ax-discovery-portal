@@ -1,0 +1,61 @@
+# Eval Suite 템플릿 (Regression)
+# 회귀 테스트용 Suite 정의
+
+suite:
+  # ===== 기본 정보 =====
+  id: "{{suite-id}}-regression"
+  name: "{{Suite Name}} 회귀 테스트"
+  description: "{{description}}"
+  version: "1.0.0"
+  purpose: regression  # 회귀 방지 목적
+
+  # ===== 메타데이터 =====
+  domain: "{{domain}}"
+  owner_team: "{{team}}"
+
+  # ===== Task 목록 =====
+  tasks:
+    - path: "evals/tasks/workflow/{{task-1}}.yaml"
+      enabled: true
+
+    - path: "evals/tasks/workflow/{{task-2}}.yaml"
+      enabled: true
+      override:
+        trials:
+          k: 3  # 이 Task만 3회 실행
+
+    # - path: "evals/tasks/workflow/{{task-3}}.yaml"
+    #   enabled: false  # 임시 비활성화
+
+  # ===== 기본 Trial 설정 =====
+  default_trial_config:
+    k: 5  # 기본 5회 실행
+    parallel: true
+
+  # ===== CI 게이트 설정 =====
+  gate_config:
+    min_pass_rate: 0.9  # 90% 이상 통과 필요
+    required_tasks:
+      - "{{critical-task-1}}"
+      - "{{critical-task-2}}"
+    allow_regressions: false  # 회귀 허용 안 함
+
+  # ===== 실행 스케줄 =====
+  schedule:
+    cron: "0 0 * * *"  # 매일 자정
+    on_push: false
+    on_pr: true  # PR 시 자동 실행
+
+  # ===== 알림 설정 =====
+  notifications:
+    on_failure:
+      - "@{{team-channel}}"
+    on_regression:
+      - "@{{team-lead}}"
+      - "@{{team-channel}}"
+
+  # ===== 태그 =====
+  tags:
+    - regression
+    - ci-gate
+    - "{{domain}}"
