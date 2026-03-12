@@ -27,7 +27,7 @@ PoC 목표:
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 import structlog
@@ -40,7 +40,7 @@ logger = structlog.get_logger()
 # ============================================================
 
 
-class AlertSeverity(str, Enum):
+class AlertSeverity(StrEnum):
     """경고 심각도"""
 
     INFO = "INFO"
@@ -48,7 +48,7 @@ class AlertSeverity(str, Enum):
     RED = "RED"
 
 
-class AlertType(str, Enum):
+class AlertType(StrEnum):
     """경고 유형"""
 
     UNDER_TARGET = "UNDER_TARGET"

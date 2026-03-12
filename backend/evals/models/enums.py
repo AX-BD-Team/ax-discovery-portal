@@ -4,10 +4,10 @@ Evals Enum 정의
 평가 플랫폼에서 사용하는 열거형 타입
 """
 
-from enum import Enum
+from enum import Enum, StrEnum
 
 
-class TaskType(str, Enum):
+class TaskType(StrEnum):
     """Task 유형"""
 
     CODING = "coding"
@@ -17,7 +17,7 @@ class TaskType(str, Enum):
     COMPUTER_USE = "computer_use"
 
 
-class TrialStatus(str, Enum):
+class TrialStatus(StrEnum):
     """Trial 실행 상태"""
 
     PENDING = "pending"
@@ -28,7 +28,7 @@ class TrialStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class RunStatus(str, Enum):
+class RunStatus(StrEnum):
     """Run(평가 세션) 상태"""
 
     PENDING = "pending"
@@ -38,7 +38,7 @@ class RunStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class SuitePurpose(str, Enum):
+class SuitePurpose(StrEnum):
     """Suite 목적"""
 
     CAPABILITY = "capability"  # 역량 측정 (새 기능, 품질 향상)
@@ -47,7 +47,7 @@ class SuitePurpose(str, Enum):
     SAFETY = "safety"  # 안전성 테스트
 
 
-class GraderType(str, Enum):
+class GraderType(StrEnum):
     """채점기 유형"""
 
     # Deterministic (결정적)
@@ -70,7 +70,7 @@ class GraderType(str, Enum):
     HUMAN_REVIEW = "human_review"
 
 
-class ScoringMode(str, Enum):
+class ScoringMode(StrEnum):
     """채점 모드"""
 
     WEIGHTED = "weighted"  # 가중치 기반 합산
@@ -79,7 +79,7 @@ class ScoringMode(str, Enum):
     PARTIAL_CREDIT = "partial_credit"  # 부분 점수
 
 
-class SandboxType(str, Enum):
+class SandboxType(StrEnum):
     """샌드박스/격리 유형"""
 
     NONE = "none"  # 격리 없음 (위험)
@@ -88,7 +88,7 @@ class SandboxType(str, Enum):
     VM = "vm"  # VM 격리
 
 
-class ResetMode(str, Enum):
+class ResetMode(StrEnum):
     """환경 리셋 모드"""
 
     CLEAN = "clean"  # 매 Trial마다 깨끗한 환경
@@ -96,7 +96,7 @@ class ResetMode(str, Enum):
     PERSIST = "persist"  # 상태 유지 (주의 필요)
 
 
-class NetworkAccess(str, Enum):
+class NetworkAccess(StrEnum):
     """네트워크 접근 수준"""
 
     NONE = "none"  # 네트워크 차단
@@ -104,7 +104,7 @@ class NetworkAccess(str, Enum):
     EXTERNAL = "external"  # 외부 네트워크 허용
 
 
-class AgentAdapter(str, Enum):
+class AgentAdapter(StrEnum):
     """에이전트 어댑터 유형"""
 
     AX_AGENT_SDK = "ax_agent_sdk"
@@ -113,7 +113,7 @@ class AgentAdapter(str, Enum):
     CUSTOM = "custom"
 
 
-class MetricType(str, Enum):
+class MetricType(StrEnum):
     """메트릭 유형"""
 
     TRANSCRIPT = "transcript"
@@ -122,7 +122,7 @@ class MetricType(str, Enum):
     CUSTOM = "custom"
 
 
-class Domain(str, Enum):
+class Domain(StrEnum):
     """도메인 분류"""
 
     SECURITY = "security"
@@ -133,7 +133,7 @@ class Domain(str, Enum):
     DATA_QUALITY = "data_quality"
 
 
-class Difficulty(str, Enum):
+class Difficulty(StrEnum):
     """난이도"""
 
     TRIVIAL = "trivial"
@@ -143,7 +143,7 @@ class Difficulty(str, Enum):
     EXPERT = "expert"
 
 
-class Risk(str, Enum):
+class Risk(StrEnum):
     """위험도 (실패 시 영향)"""
 
     LOW = "low"
@@ -152,7 +152,7 @@ class Risk(str, Enum):
     CRITICAL = "critical"
 
 
-class Decision(str, Enum):
+class Decision(StrEnum):
     """평가 판정"""
 
     PASS = "pass"
@@ -161,7 +161,7 @@ class Decision(str, Enum):
     UNKNOWN = "unknown"
 
 
-class TestFramework(str, Enum):
+class TestFramework(StrEnum):
     """테스트 프레임워크"""
 
     PYTEST = "pytest"
@@ -172,7 +172,7 @@ class TestFramework(str, Enum):
     JUNIT = "junit"
 
 
-class StaticAnalysisTool(str, Enum):
+class StaticAnalysisTool(StrEnum):
     """정적 분석 도구"""
 
     RUFF = "ruff"
@@ -184,7 +184,7 @@ class StaticAnalysisTool(str, Enum):
     CLIPPY = "clippy"
 
 
-class NotificationChannel(str, Enum):
+class NotificationChannel(StrEnum):
     """알림 채널"""
 
     SLACK = "slack"

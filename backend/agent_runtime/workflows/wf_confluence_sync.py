@@ -7,7 +7,7 @@ Signal/Scorecard/Brief/Play 데이터를 Confluence에 동기화
 import os
 import re
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 import structlog
@@ -20,7 +20,7 @@ logger = structlog.get_logger()
 # ============================================================
 
 
-class SyncTargetType(str, Enum):
+class SyncTargetType(StrEnum):
     """동기화 대상 타입"""
 
     SIGNAL = "signal"
@@ -31,7 +31,7 @@ class SyncTargetType(str, Enum):
     ALL = "all"
 
 
-class SyncAction(str, Enum):
+class SyncAction(StrEnum):
     """동기화 액션"""
 
     CREATE_PAGE = "create_page"

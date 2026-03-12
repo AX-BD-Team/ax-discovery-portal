@@ -6,11 +6,11 @@ AG-UI 프로토콜 기반 이벤트 타입 정의 (Python)
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 
-class AgentEventType(str, Enum):
+class AgentEventType(StrEnum):
     """이벤트 타입 열거형"""
 
     # 실행 제어
@@ -39,7 +39,7 @@ class AgentEventType(str, Enum):
     RENDER_SURFACE = "RENDER_SURFACE"
 
 
-class RunStatus(str, Enum):
+class RunStatus(StrEnum):
     """실행 상태"""
 
     IDLE = "idle"
@@ -49,7 +49,7 @@ class RunStatus(str, Enum):
     PAUSED = "paused"
 
 
-class StepStatus(str, Enum):
+class StepStatus(StrEnum):
     """단계 상태"""
 
     PENDING = "pending"
@@ -59,7 +59,7 @@ class StepStatus(str, Enum):
     SKIPPED = "skipped"
 
 
-class ImpactLevel(str, Enum):
+class ImpactLevel(StrEnum):
     """위험도 수준"""
 
     LOW = "low"
@@ -68,7 +68,7 @@ class ImpactLevel(str, Enum):
     CRITICAL = "critical"
 
 
-class SeminarPipelineStep(str, Enum):
+class SeminarPipelineStep(StrEnum):
     """WF-01 세미나 파이프라인 단계"""
 
     METADATA_EXTRACTION = "METADATA_EXTRACTION"

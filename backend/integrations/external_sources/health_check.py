@@ -7,7 +7,7 @@ HTML 구조 변경 시 조기 감지를 위한 진단 도구입니다.
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import Enum, StrEnum
 
 import structlog
 
@@ -19,7 +19,7 @@ from .rss_collector import RSSCollector
 logger = structlog.get_logger()
 
 
-class HealthStatus(str, Enum):
+class HealthStatus(StrEnum):
     """수집기 상태"""
 
     HEALTHY = "healthy"  # 정상: 1건 이상 수집

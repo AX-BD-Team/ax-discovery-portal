@@ -5,12 +5,12 @@ Stage Rules
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, StrEnum
 
 from backend.database.models.opportunity import OpportunityStage
 
 
-class ApprovalRequirement(str, Enum):
+class ApprovalRequirement(StrEnum):
     """승인 요구사항 유형"""
 
     NONE = "NONE"  # 승인 불필요 (자동 전환)

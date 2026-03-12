@@ -16,7 +16,7 @@ WF-02: Interview to Brief
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 import structlog
@@ -31,7 +31,7 @@ logger = structlog.get_logger()
 # ============================================================
 
 
-class InterviewSource(str, Enum):
+class InterviewSource(StrEnum):
     """인터뷰 원천"""
 
     SALES_PM = "영업PM"

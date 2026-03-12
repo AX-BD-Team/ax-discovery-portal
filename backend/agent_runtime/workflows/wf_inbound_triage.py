@@ -23,7 +23,7 @@ SLA:
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 import structlog
@@ -36,7 +36,7 @@ logger = structlog.get_logger()
 # ============================================================
 
 
-class Urgency(str, Enum):
+class Urgency(StrEnum):
     """긴급도"""
 
     URGENT = "URGENT"  # 24h SLA
@@ -44,7 +44,7 @@ class Urgency(str, Enum):
     LOW = "LOW"  # 72h SLA
 
 
-class TriageAction(str, Enum):
+class TriageAction(StrEnum):
     """Triage 후 다음 액션"""
 
     CREATE_BRIEF = "CREATE_BRIEF"  # GO → Brief 생성
