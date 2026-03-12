@@ -12,6 +12,7 @@ from typing import Any
 
 import structlog
 
+from backend.evals.adapters import create_adapter
 from backend.evals.models.configs import (
     AgentConfig,
     EnvironmentConfig,
@@ -319,10 +320,11 @@ class TrialExecutor:
         transcript: Transcript,
     ) -> dict[str, Any]:
         """
-        에이전트 실행
+        에이전트 실행 — adapter 팩토리 기반
 
-        TODO: 실제 에이전트 실행 구현
-        현재는 stub으로 구현
+        환경에 따라 자동 분기:
+        - ANTHROPIC_API_KEY 있음 → AnthropicAdapter (실제 API 호출)
+        - ANTHROPIC_API_KEY 없음 또는 EVALS_STUB_MODE=true → StubAdapter
 
         Args:
             prompt: 에이전트에게 전달할 프롬프트
@@ -332,46 +334,35 @@ class TrialExecutor:
         Returns:
             에이전트 실행 결과
         """
+        adapter = create_adapter(agent_config)
+
         self.logger.debug(
-            "에이전트 실행 (stub)",
-            adapter=agent_config.adapter.value if hasattr(agent_config, "adapter") else "default",
-            model=agent_config.model if hasattr(agent_config, "model") else None,
+            "에이전트 실행",
+            adapter=adapter.adapter_name,
+            model=agent_config.model,
             prompt_length=len(prompt),
         )
 
-        # TODO: 실제 에이전트 실행 구현
-        # from backend.agent_runtime.runner import runtime
-        # result = await runtime.run_workflow(...)
-
-        # Stub 응답
-        await asyncio.sleep(0.1)  # 시뮬레이션 지연
+        result = await adapter.run(prompt, agent_config)
 
         # Transcript 기록
-        transcript.messages.append(
-            {
-                "role": "user",
-                "content": prompt,
-                "timestamp": datetime.now().isoformat(),
-            }
-        )
-        transcript.messages.append(
-            {
-                "role": "assistant",
-                "content": "[Stub 응답] 에이전트 실행이 완료되었습니다.",
-                "timestamp": datetime.now().isoformat(),
-            }
-        )
-        transcript.n_turns = 1
+        for msg in result.messages:
+            transcript.messages.append(
+                {
+                    **msg,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+        transcript.n_turns = result.n_turns
 
-        # Stub 결과
         return {
-            "success": True,
-            "output": "[Stub] 에이전트 실행 완료",
-            "cost_usd": 0.001,  # 예상 비용
-            "total_tokens": 150,
-            "input_tokens": 100,
-            "output_tokens": 50,
-            "tool_calls": [],
+            "success": result.success,
+            "output": result.output,
+            "cost_usd": result.cost_usd,
+            "total_tokens": result.total_tokens,
+            "input_tokens": result.input_tokens,
+            "output_tokens": result.output_tokens,
+            "tool_calls": result.tool_calls,
         }
 
     async def _capture_outcome(
