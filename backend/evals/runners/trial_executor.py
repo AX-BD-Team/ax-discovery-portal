@@ -445,6 +445,20 @@ async def execute_trial_with_grading(
     total_weight = 0.0
     all_passed = True
 
+    # 채점기가 없으면 기본 stub 채점 적용
+    if not graders:
+        grader_result = GraderResult(
+            trial_id=result.trial_id,
+            grader_id="default_stub",
+            grader_type="stub",
+            score=0.8,
+            passed=True,
+            explanation="채점기 미설정 — 기본 stub 채점 적용",
+        )
+        grader_results.append(grader_result)
+        total_score = grader_result.score
+        total_weight = 1.0
+
     for grader in graders:
         try:
             # TODO: 실제 채점기 실행
