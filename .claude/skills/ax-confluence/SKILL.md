@@ -1,3 +1,8 @@
+---
+name: ax-confluence
+description: "Confluence 동기화 규칙 — DB/Live doc 업데이트"
+---
+
 # /ax:confluence Command
 
 Confluence 페이지를 동기화하고 업데이트합니다.

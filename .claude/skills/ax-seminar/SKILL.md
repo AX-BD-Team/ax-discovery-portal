@@ -1,3 +1,8 @@
+---
+name: ax-seminar
+description: "세미나 Activity 생성 — Activity + AAR 템플릿"
+---
+
 # AX Seminar Skill
 
 세미나/컨퍼런스 참석을 Activity → AAR → Signal로 자동 전환합니다.

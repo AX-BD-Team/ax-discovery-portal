@@ -1,3 +1,8 @@
+---
+name: ax-todo
+description: "ToDo 관리 + Confluence 동기화 — 진행현황 리포트 + 차이점 분석"
+---
+
 # AX ToDo Skill (ToDo 관리)
 
 프로젝트 ToDo List 관리 및 Confluence 동기화를 수행합니다.

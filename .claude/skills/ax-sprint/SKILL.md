@@ -1,3 +1,8 @@
+---
+name: ax-sprint
+description: "5-day Sprint 플랜 수립 — Sprint 체크리스트"
+---
+
 # AX Sprint Skill
 
 Brief 승인 후 5-Day Validation Sprint를 설계하고 운영합니다.

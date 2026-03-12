@@ -1,3 +1,8 @@
+---
+name: ax-brief
+description: "1-Page Brief 자동 생성 — Brief JSON + Confluence 페이지"
+---
+
 # AX Brief Skill
 
 Scorecard 통과(GO) Signal을 1-Page Opportunity Brief로 변환합니다.

@@ -1,3 +1,8 @@
+---
+name: ax-scorecard
+description: "Signal 정량 평가 — Scorecard JSON (100점 만점, 5개 차원)"
+---
+
 # AX Scorecard Skill
 
 Signal을 정량 평가하여 Go/Pivot/Hold/No-Go를 판정합니다.

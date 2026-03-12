@@ -1,3 +1,8 @@
+---
+name: ax-wrap-up
+description: "작업 정리 + 테스트 + 커밋 — 문서 업데이트 + Git commit"
+---
+
 # AX Wrap-up Skill (작업 정리)
 
 SSDD 원칙에 따라 작업 내용을 정리하고, 테스트 검증 후 Git 커밋을 수행합니다.
