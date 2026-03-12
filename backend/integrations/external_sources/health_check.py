@@ -7,7 +7,7 @@ HTML 구조 변경 시 조기 감지를 위한 진단 도구입니다.
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum, StrEnum
+from enum import StrEnum
 
 import structlog
 

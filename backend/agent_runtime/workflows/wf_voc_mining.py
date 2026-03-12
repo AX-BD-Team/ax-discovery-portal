@@ -13,7 +13,7 @@ VoC/티켓 데이터 → 테마화 → Signal 생성 → Brief 후보
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Any
 
 import structlog

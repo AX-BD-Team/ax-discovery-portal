@@ -4,7 +4,7 @@ Evals Enum 정의
 평가 플랫폼에서 사용하는 열거형 타입
 """
 
-from enum import Enum, StrEnum
+from enum import StrEnum
 
 
 class TaskType(StrEnum):

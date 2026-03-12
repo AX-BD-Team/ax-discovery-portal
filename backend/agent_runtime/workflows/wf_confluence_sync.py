@@ -7,7 +7,7 @@ Signal/Scorecard/Brief/Play 데이터를 Confluence에 동기화
 import os
 import re
 from dataclasses import dataclass, field
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Any
 
 import structlog

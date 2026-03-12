@@ -7,7 +7,7 @@ play_data.json → play_records 테이블 적재
 import asyncio
 import json
 import sys
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 
 # 프로젝트 루트를 Python 경로에 추가
@@ -17,9 +17,7 @@ sys.path.insert(0, str(project_root))
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models.play_record import PlayRecord
 from backend.database.session import SessionLocal as AsyncSessionLocal
-from backend.database.session import engine
 
 
 async def load_play_data(json_path: Path, db: AsyncSession) -> dict:
