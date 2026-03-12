@@ -58,6 +58,11 @@ on:
     - cron: '0 0 * * 1-5'
 
 # 동시 실행 제한 (같은 PR에서 여러 커밋 시 이전 실행 취소)
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
 concurrency:
   group: evals-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
