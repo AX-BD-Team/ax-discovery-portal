@@ -123,18 +123,22 @@ class AnthropicAdapter(AgentAdapterBase):
             # 도구 호출 기록 + tool_result 메시지 생성
             tool_results: list[dict[str, Any]] = []
             for block in tool_use_blocks:
-                all_tool_calls.append({
-                    "tool_name": block.name,
-                    "tool_input": block.input,
-                    "tool_use_id": block.id,
-                })
+                all_tool_calls.append(
+                    {
+                        "tool_name": block.name,
+                        "tool_input": block.input,
+                        "tool_use_id": block.id,
+                    }
+                )
 
                 sim_result = self._simulate_tool_result(block.name)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": json.dumps(sim_result, ensure_ascii=False),
-                })
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": json.dumps(sim_result, ensure_ascii=False),
+                    }
+                )
 
             tool_result_msg: dict[str, Any] = {
                 "role": "user",
@@ -191,20 +195,22 @@ class AnthropicAdapter(AgentAdapterBase):
         tools: list[dict[str, Any]] = []
         for tool_name in tools_allowed:
             api_name = tool_name.replace(".", "_")
-            tools.append({
-                "name": api_name,
-                "description": f"{tool_name} 도구",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "입력 파라미터",
+            tools.append(
+                {
+                    "name": api_name,
+                    "description": f"{tool_name} 도구",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "입력 파라미터",
+                            },
                         },
+                        "required": ["query"],
                     },
-                    "required": ["query"],
-                },
-            })
+                }
+            )
         return tools
 
     def _simulate_tool_result(self, tool_name: str) -> dict[str, Any]:
@@ -220,12 +226,14 @@ class AnthropicAdapter(AgentAdapterBase):
             if block.type == "text":
                 serialized.append({"type": "text", "text": block.text})
             elif block.type == "tool_use":
-                serialized.append({
-                    "type": "tool_use",
-                    "id": block.id,
-                    "name": block.name,
-                    "input": block.input,
-                })
+                serialized.append(
+                    {
+                        "type": "tool_use",
+                        "id": block.id,
+                        "name": block.name,
+                        "input": block.input,
+                    }
+                )
         return serialized
 
     def _extract_text(self, content: Any) -> str:

@@ -202,10 +202,11 @@ async def cmd_run(args: argparse.Namespace) -> int:
 
         # 채점기 맵 생성 — live 모드에서만 GraderFactory 사용, stub 모드에서는 빈 map
         graders_map: dict[str, list[Any]] = {}
-        is_stub_mode = (
-            os.environ.get("EVALS_STUB_MODE", "").lower() in ("true", "1", "yes")
-            or not os.environ.get("ANTHROPIC_API_KEY")
-        )
+        is_stub_mode = os.environ.get("EVALS_STUB_MODE", "").lower() in (
+            "true",
+            "1",
+            "yes",
+        ) or not os.environ.get("ANTHROPIC_API_KEY")
         if is_stub_mode:
             logger.info("채점기: stub 모드 — 기본 stub 채점 사용")
         else:
@@ -215,13 +216,9 @@ async def cmd_run(args: argparse.Namespace) -> int:
                     grader_instances = GraderFactory.create_all(task_def.task.graders)
                     graders_map[task_id] = grader_instances
                     if grader_instances:
-                        logger.info(
-                            f"Task '{task_id}' 채점기 {len(grader_instances)}개 생성 완료"
-                        )
+                        logger.info(f"Task '{task_id}' 채점기 {len(grader_instances)}개 생성 완료")
                 except Exception as e:
-                    logger.warning(
-                        f"Task '{task_id}' 채점기 생성 실패, 빈 graders로 진행: {e}"
-                    )
+                    logger.warning(f"Task '{task_id}' 채점기 생성 실패, 빈 graders로 진행: {e}")
                     graders_map[task_id] = []
 
         # Runner 설정
