@@ -13,6 +13,7 @@ from typing import Any
 import structlog
 
 from backend.evals.adapters import create_adapter
+from backend.evals.graders.base import BaseGrader
 from backend.evals.models.configs import (
     AgentConfig,
     EnvironmentConfig,
@@ -452,18 +453,19 @@ async def execute_trial_with_grading(
 
     for grader in graders:
         try:
-            # TODO: 실제 채점기 실행
-            # grader_result = await grader.grade(result.transcript, result.outcome)
-
-            # Stub 채점 결과
-            grader_result = GraderResult(
-                trial_id=result.trial_id,
-                grader_id=f"grader_{len(grader_results)}",
-                grader_type="stub",
-                score=0.8,
-                passed=True,
-                explanation="Stub 채점 결과",
-            )
+            # BaseGrader 인스턴스인 경우 실제 채점기 실행
+            if isinstance(grader, BaseGrader):
+                grader_result = await grader.safe_grade(result.trial)
+            else:
+                # 하위 호환: BaseGrader가 아닌 경우 stub 동작 유지
+                grader_result = GraderResult(
+                    trial_id=result.trial_id,
+                    grader_id=f"grader_{len(grader_results)}",
+                    grader_type="stub",
+                    score=0.8,
+                    passed=True,
+                    explanation="Stub 채점 결과 (비-BaseGrader)",
+                )
 
             grader_results.append(grader_result)
 
