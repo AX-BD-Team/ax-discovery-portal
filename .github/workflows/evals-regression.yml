@@ -72,6 +72,8 @@ env:
   PYTHON_VERSION: '3.11'
   # 기본 Suite
   DEFAULT_SUITE: 'regression'
+  # Stub 모드 (CI에서는 stub, workflow_dispatch로 live 실행 가능)
+  EVALS_STUB_MODE: 'true'
   # 기본 Trial 횟수
   DEFAULT_K: '3'
   # 타임아웃 (분)
